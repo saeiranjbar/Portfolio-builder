@@ -2,8 +2,26 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig } from './types';
 import { defaultTheme } from './templates';
+import { PageSeo, SiteData, SiteDataSchema } from './site-types';
+import {
+  portfolioToSiteData,
+  siteSettingsToPortfolioFields,
+  sectionsFromSiteData,
+  uniqueSlug,
+} from './migrate-portfolio';
 
 const MAX_HISTORY = 50;
+
+// A page of the site being edited. The CURRENT page's sections live in
+// portfolio.sections (so every existing editor component keeps working);
+// its copy here is synced on page switch and on getSiteData().
+export interface EditorPage {
+  id: string;
+  slug: string; // '' = home
+  title: string;
+  seo?: PageSeo;
+  sections: PortfolioSection[];
+}
 
 // IndexedDB storage adapter — handles large data (base64 images/videos) that overflow localStorage
 const createIndexedDBStorage = () => {
@@ -97,6 +115,11 @@ interface PortfolioState {
   viewMode: 'desktop' | 'tablet' | 'mobile';
   isDirty: boolean;
 
+  // Multi-page site state. The current page's sections are the live
+  // portfolio.sections; entries in this array are synced on switch/save.
+  pages: EditorPage[];
+  currentPageId: string;
+
   // History for undo/redo
   past: PortfolioData[];
   future: PortfolioData[];
@@ -125,6 +148,16 @@ interface PortfolioState {
   // Layout mode actions
   setLayoutMode: (mode: LayoutMode) => void;
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
+
+  // Page actions (multi-page site)
+  addPage: (title: string, slug?: string) => void;
+  removePage: (pageId: string) => void;
+  switchPage: (pageId: string) => void;
+  updatePageMeta: (pageId: string, updates: Partial<Pick<EditorPage, 'title' | 'slug' | 'seo'>>) => void;
+  // Assemble the full validated SiteData (all pages) for saving / publishing
+  getSiteData: () => SiteData;
+  // Replace the whole editor state from SiteData (AI generation, templates)
+  loadSiteData: (data: SiteData) => void;
 
   // Undo/Redo
   undo: () => void;
@@ -462,6 +495,8 @@ export const usePortfolioStore = create<PortfolioState>()(
       previewMode: false,
       viewMode: 'desktop',
       isDirty: false,
+      pages: [{ id: 'home', slug: '', title: 'Home', sections: defaultPortfolio.sections }],
+      currentPageId: 'home',
       past: [],
       future: [],
 
@@ -735,18 +770,24 @@ export const usePortfolioStore = create<PortfolioState>()(
       setViewMode: (mode) => set({ viewMode: mode }),
 
       resetPortfolio: () =>
-        set((state) => ({
-          past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
-          portfolio: {
+        set((state) => {
+          const fresh: PortfolioData = {
             ...defaultPortfolio,
             id: generateId(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-          },
-          selectedSectionId: null,
-          future: [],
-          isDirty: false,
-        })),
+            sections: [createDefaultSection('hero')],
+          };
+          return {
+            past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+            portfolio: fresh,
+            pages: [{ id: 'home', slug: '', title: 'Home', sections: fresh.sections }],
+            currentPageId: 'home',
+            selectedSectionId: null,
+            future: [],
+            isDirty: false,
+          };
+        }),
 
       markClean: () => set({ isDirty: false }),
 
@@ -776,6 +817,118 @@ export const usePortfolioStore = create<PortfolioState>()(
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             portfolio: newPortfolio,
+            future: [],
+            isDirty: true,
+          };
+        }),
+
+      // --- Page actions (multi-page site) ---
+
+      addPage: (title, slug) =>
+        set((state) => {
+          const taken = new Set(state.pages.map((p) => p.slug));
+          const newPage: EditorPage = {
+            id: generateId(),
+            slug: slug !== undefined ? slug : uniqueSlug(title, taken),
+            title,
+            sections: [createDefaultSection('hero')],
+          };
+          // Persist the outgoing page's live sections, then switch to the new page.
+          const pages = state.pages.map((p) =>
+            p.id === state.currentPageId ? { ...p, sections: state.portfolio.sections } : p
+          );
+          return {
+            pages: [...pages, newPage],
+            currentPageId: newPage.id,
+            portfolio: { ...state.portfolio, updatedAt: new Date().toISOString(), sections: newPage.sections },
+            selectedSectionId: null,
+            // History is per-page; undoing across a page switch would restore
+            // another page's sections into this one.
+            past: [],
+            future: [],
+            isDirty: true,
+          };
+        }),
+
+      removePage: (pageId) =>
+        set((state) => {
+          if (state.pages.length <= 1) return state;
+          const remaining = state.pages.filter((p) => p.id !== pageId);
+          if (remaining.length === state.pages.length) return state;
+          if (pageId !== state.currentPageId) {
+            return { pages: remaining, isDirty: true };
+          }
+          const next = remaining[0];
+          return {
+            pages: remaining,
+            currentPageId: next.id,
+            portfolio: { ...state.portfolio, updatedAt: new Date().toISOString(), sections: next.sections },
+            selectedSectionId: null,
+            past: [],
+            future: [],
+            isDirty: true,
+          };
+        }),
+
+      switchPage: (pageId) =>
+        set((state) => {
+          if (pageId === state.currentPageId) return state;
+          const target = state.pages.find((p) => p.id === pageId);
+          if (!target) return state;
+          const pages = state.pages.map((p) =>
+            p.id === state.currentPageId ? { ...p, sections: state.portfolio.sections } : p
+          );
+          return {
+            pages,
+            currentPageId: pageId,
+            portfolio: { ...state.portfolio, sections: target.sections },
+            selectedSectionId: null,
+            past: [],
+            future: [],
+          };
+        }),
+
+      updatePageMeta: (pageId, updates) =>
+        set((state) => ({
+          pages: state.pages.map((p) => (p.id === pageId ? { ...p, ...updates } : p)),
+          isDirty: true,
+        })),
+
+      getSiteData: () => {
+        const state = get();
+        // Current page's live sections take precedence over its synced copy
+        const pages = state.pages.map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          seo: p.seo,
+          sections: p.id === state.currentPageId ? state.portfolio.sections : p.sections,
+        }));
+        const site = portfolioToSiteData(state.portfolio);
+        return SiteDataSchema.parse({ ...site, pages });
+      },
+
+      loadSiteData: (data) =>
+        set((state) => {
+          const fields = siteSettingsToPortfolioFields(data.settings, data.seo);
+          const pages: EditorPage[] = data.pages.map((p) => ({
+            id: generateId(),
+            slug: p.slug,
+            title: p.title,
+            seo: p.seo,
+            sections: sectionsFromSiteData(p.sections),
+          }));
+          const first = pages[0];
+          return {
+            pages,
+            currentPageId: first.id,
+            portfolio: {
+              ...state.portfolio,
+              ...fields,
+              updatedAt: new Date().toISOString(),
+              sections: first.sections,
+            },
+            selectedSectionId: null,
+            past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             future: [],
             isDirty: true,
           };
@@ -814,11 +967,25 @@ export const usePortfolioStore = create<PortfolioState>()(
     }),
     {
       name: 'portfolio-storage',
-      // Only persist the portfolio data — not the undo/redo history
+      version: 1,
+      // Only persist the site data — not the undo/redo history
       // (past/future arrays contain up to 50 full deep clones and would overflow localStorage)
       partialize: (state) => ({
         portfolio: state.portfolio,
+        pages: state.pages,
+        currentPageId: state.currentPageId,
       }),
+      // v0 persisted state predates multi-page: wrap its sections in a home page
+      migrate: (persisted: any, version: number) => {
+        if (version === 0 && persisted?.portfolio && !persisted.pages) {
+          return {
+            ...persisted,
+            pages: [{ id: 'home', slug: '', title: 'Home', sections: persisted.portfolio.sections ?? [] }],
+            currentPageId: 'home',
+          };
+        }
+        return persisted;
+      },
       // Use IndexedDB for storage — handles large data (base64 images/videos)
       // Falls back to localStorage if IndexedDB is unavailable
       storage: createJSONStorage(() => createIndexedDBStorage()),

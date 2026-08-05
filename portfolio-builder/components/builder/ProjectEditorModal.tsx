@@ -1,4 +1,19 @@
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Project,
+  ProjectMediaBlock,
+  PhotoGridItem,
+  PhotoGridContent,
+  TextBlockContent,
+  VideoContent,
+  EmbedContent,
+  PdfContent,
+} from '@/lib/types';
 import { ImageUploader } from './ImageUploader';
 import {
   X, Plus, Trash2, MoveUp, MoveDown,

@@ -657,12 +657,34 @@ export const DarkModeConfigSchema = z.object({
   darkTheme: ThemeSchema.optional(),
 });
 
+export const SimpleLayoutConfigSchema = z.object({
+  showSidebar: z.boolean().default(true),
+  sidebarPosition: z.enum(['left', 'right']).default('left'),
+  profileImage: z.string().default(''),
+  profileName: z.string().default(''),
+  profileTitle: z.string().default(''),
+  profileLocation: z.string().default(''),
+  availableForWork: z.boolean().default(false),
+  availabilityText: z.string().default(''),
+  showStats: z.boolean().default(false),
+  projectViews: z.number().default(0),
+  appreciations: z.number().default(0),
+  followers: z.number().default(0),
+  following: z.number().default(0),
+  sidebarSocialLinks: z.array(SocialLinkSchema).default([]),
+  sidebarExperiences: z.array(ExperienceSchema).default([]),
+  sidebarAbout: z.string().default(''),
+  resumeUrl: z.string().optional(),
+});
+
 export const SiteSettingsSchema = z.object({
   theme: ThemeSchema,
   navbar: NavbarConfigSchema,
   availability: AvailabilityConfigSchema.optional(),
   darkMode: DarkModeConfigSchema.optional(),
   customCSS: z.string().optional(),
+  layoutMode: z.enum(['flexible', 'simple']).optional(),
+  simpleLayout: SimpleLayoutConfigSchema.optional(),
 });
 
 export const SiteSeoSchema = z.object({

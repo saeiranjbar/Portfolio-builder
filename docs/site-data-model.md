@@ -1,6 +1,13 @@
 # Site data model — design spec
 
-Status: in progress (2026-08-05) — steps 1–2 of the migration plan are implemented: Prisma models (`Site`, `Page`, `SiteRevision`, `AiBrief`) are live in the dev DB, and `lib/site-types.ts` provides the zod schema layer with parse helpers (`parseSiteData`, `validateAiSiteData`).
+Status: in progress (2026-08-05) — steps 1–4 of the migration plan are implemented:
+- Prisma models (`Site`, `Page`, `SiteRevision`, `AiBrief`) live in the dev DB
+- `lib/site-types.ts`: zod schema layer with parse helpers (`parseSiteData`, `validateAiSiteData`)
+- `lib/migrate-portfolio.ts`: PortfolioData ⇄ SiteData conversion + slug helpers
+- `scripts/migrate-portfolios-to-sites.ts`: DB migration (run with `npx tsx`, idempotent)
+- `lib/store.ts` is page-aware: `pages`/`currentPageId` state, `addPage`/`removePage`/`switchPage`/`updatePageMeta` actions, `getSiteData()`/`loadSiteData()` boundary. The current page's sections stay in `portfolio.sections`, so all existing editor components work unchanged. Undo history is per-page (cleared on page switch). Persisted state migrates v0→v1 automatically.
+
+Remaining: step 5 (`/api/sites` routes + page-switcher UI), step 6 (retire legacy models).
 Goal: evolve the current single-page `PortfolioData` model into a multi-page **Site** model that serves all three builder modes (AI-guided, template, flexible) for small-business websites.
 
 ## Design principles
