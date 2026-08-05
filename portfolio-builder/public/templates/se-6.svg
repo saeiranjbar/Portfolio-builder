@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#0f0f1a"/>
+  <rect x="300" y="200" width="600" height="800" fill="#1a1a2e" rx="40"/>
+  <circle cx="600" cy="500" r="120" fill="#e94560" opacity="0.8"/>
+  <rect x="400" y="700" width="400" height="12" rx="6" fill="#636e72"/>
+  <rect x="450" y="740" width="300" height="8" rx="4" fill="#636e72" opacity="0.6"/>
+  <text x="600" y="950" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#ffffff">PULSE</text>
+  <text x="600" y="1000" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#636e72">MUSIC APP</text>
+</svg>

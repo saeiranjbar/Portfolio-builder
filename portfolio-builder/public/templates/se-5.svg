@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#e8eae6"/>
+  <circle cx="600" cy="500" r="250" fill="#c5d4c8"/>
+  <circle cx="600" cy="500" r="150" fill="#a8b89e"/>
+  <text x="600" y="850" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="300" fill="#3a4a3b">NORDIC</text>
+  <text x="600" y="910" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="300" fill="#5a6b5c">WELLNESS</text>
+</svg>

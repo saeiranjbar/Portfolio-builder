@@ -1,0 +1,8 @@
+# Project Rules for Cline SR
+
+## File Aliases
+
+When the user refers to the "analysis page" or "analysis file", they mean:
+`docs/landing-page-features-analysis.md`
+
+This file contains the comprehensive landing page features analysis comparing this portfolio builder against Adobe Portfolio, Behance, Squarespace, Webflow, Wix, and Format. Always open or reference this file when the user mentions "analysis".

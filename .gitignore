@@ -1,0 +1,7 @@
+# Local TLS certificates and private keys
+certificates/
+*.pem
+
+# Local databases
+*.db
+*.db-journal
