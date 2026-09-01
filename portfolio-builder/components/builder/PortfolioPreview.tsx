@@ -3024,33 +3024,65 @@ function ProcessPreview({ section, theme }: { section: ProcessSection; theme: an
                       {step.number}
                     </div>
                     {layout === 'horizontal' && i < section.steps.length - 1 && (
-                      <div className="hidden md:flex items-center transition-all duration-300" style={{ color: theme.colors.primary }}>
-                        <div
-                          style={{
-                            width: '3rem',
-                            height: '2px',
-                            backgroundColor: theme.colors.primary,
-                            animation: isConnectorAnimating ? `process-connector-slide-horizontal 0.5s ease-out forwards` : 'none',
-                            opacity: isConnectorAnimating ? 1 : 0,
-                          }}
+                      <svg
+                        viewBox="0 0 100 30"
+                        width="70"
+                        height="30"
+                        className="hidden md:block arrow-svg"
+                        style={{
+                          opacity: isConnectorAnimating ? 1 : 0,
+                          transition: 'opacity 0.4s ease-out',
+                          transitionDelay: isConnectorAnimating ? '0.15s' : '0s',
+                        }}
+                      >
+                        {/* Static outline arrow */}
+                        <path
+                          d="M 5 15 L 60 15 M 55 10 L 60 15 L 55 20"
+                          className="arrow-path-static"
+                          stroke={theme.colors.primary}
+                          strokeWidth="2"
                         />
-                        <span className="text-lg leading-none -ml-1" style={{ opacity: isConnectorAnimating ? 1 : 0, transition: 'opacity 0.3s ease-out', transitionDelay: '0.3s' }}>›</span>
-                      </div>
+                        {/* Animated flowing line */}
+                        <path
+                          d="M 5 15 L 60 15 M 55 10 L 60 15 L 55 20"
+                          className={isConnectorAnimating ? 'arrow-path-animated' : ''}
+                          stroke={theme.colors.primary}
+                          strokeWidth="2.5"
+                          strokeDasharray="4, 4"
+                          opacity="0.8"
+                        />
+                      </svg>
                     )}
                   </div>
                   {layout !== 'horizontal' && i < section.steps.length - 1 && (
-                    <div className="flex items-center my-2 transition-all duration-300" style={{ color: theme.colors.primary }}>
-                      <div
-                        style={{
-                          width: '2px',
-                          height: '2rem',
-                          backgroundColor: theme.colors.primary,
-                          animation: isConnectorAnimating ? `process-connector-slide-vertical 0.5s ease-out forwards` : 'none',
-                          opacity: isConnectorAnimating ? 1 : 0,
-                        }}
+                    <svg
+                      viewBox="0 0 30 100"
+                      width="30"
+                      height="70"
+                      className="arrow-svg mx-auto"
+                      style={{
+                        opacity: isConnectorAnimating ? 1 : 0,
+                        transition: 'opacity 0.4s ease-out',
+                        transitionDelay: isConnectorAnimating ? '0.15s' : '0s',
+                      }}
+                    >
+                      {/* Static outline arrow */}
+                      <path
+                        d="M 15 5 L 15 60 M 10 55 L 15 60 L 20 55"
+                        className="arrow-path-static"
+                        stroke={theme.colors.primary}
+                        strokeWidth="2"
                       />
-                      <span className="text-lg leading-none -mt-1 ml-1" style={{ opacity: isConnectorAnimating ? 1 : 0, transition: 'opacity 0.3s ease-out', transitionDelay: '0.3s' }}>⌄</span>
-                    </div>
+                      {/* Animated flowing line */}
+                      <path
+                        d="M 15 5 L 15 60 M 10 55 L 15 60 L 20 55"
+                        className={isConnectorAnimating ? 'arrow-path-animated-long' : ''}
+                        stroke={theme.colors.primary}
+                        strokeWidth="2.5"
+                        strokeDasharray="4, 4"
+                        opacity="0.8"
+                      />
+                    </svg>
                   )}
                   <h3
                     className="text-lg font-semibold mb-2 transition-all duration-500"

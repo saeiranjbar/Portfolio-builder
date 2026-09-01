@@ -355,3 +355,59 @@ html.dark-scrollbar * {
   opacity: 0;
 }
 
+/* ===== SVG Animated Arrow Animations ===== */
+@keyframes arrow-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -8;
+  }
+}
+
+@keyframes arrow-flow-long {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes arrow-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.arrow-svg {
+  transition: opacity 0.4s ease-out;
+}
+
+.arrow-svg.animate {
+  animation: arrow-fade-in 0.4s ease-out forwards;
+}
+
+.arrow-path-static {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.arrow-path-animated {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: arrow-flow 3.5s linear infinite;
+}
+
+.arrow-path-animated-long {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: arrow-flow-long 4s linear infinite;
+}
+
