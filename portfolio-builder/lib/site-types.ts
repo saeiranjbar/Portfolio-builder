@@ -22,9 +22,23 @@ export const TextStyleSettingsSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   lineHeight: z.string().optional(),
   letterSpacing: z.string().optional(),
+  maxWidth: z.string().optional(),
 });
 
 export const TextStylesSchema = z.record(TextStyleSettingsSchema);
+
+export const BackgroundShapeSchema = z.object({
+  id: z.string(),
+  shape: z.enum(['rectangle', 'circle', 'triangle', 'rounded']),
+  color: z.string().default('#ffffff'),
+  opacity: z.number().min(0).max(100).default(80),
+  width: z.number().min(10).max(2000).default(300),
+  height: z.number().min(10).max(2000).default(200),
+  position: ElementPositionSchema.default({ x: 50, y: 50 }),
+  zIndex: z.number().default(0),
+  rotation: z.number().default(0),
+  borderRadius: z.number().optional(),
+});
 
 export const SectionBackgroundSchema = z.object({
   type: z.enum(['theme', 'color', 'gradient', 'image']),
@@ -359,6 +373,8 @@ export const AboutSectionSchema = z.object({
   imageUrl: z.string().optional(),
   secondImageUrl: z.string().optional(),
   resumeUrl: z.string().optional(),
+  resumeDisplayMode: z.enum(['embed', 'download']).optional(),
+  resumeHeight: z.number().optional(),
   imageShape: z.enum(['rounded', 'circle', 'square']).optional(),
   imageLayout: z.enum(['left', 'right', 'top', 'none', 'fullwidth']).optional(),
   imageSize: z.enum(['small', 'medium', 'large']).optional(),
@@ -706,6 +722,8 @@ export const PageDataSchema = z.object({
   slug: z.string(), // "" = home
   title: z.string(),
   seo: PageSeoSchema.optional(),
+  themeMode: z.enum(['inherit', 'custom']).default('inherit'),
+  themeOverride: ThemeSchema.optional(),
   sections: z.array(SectionSchema),
 });
 

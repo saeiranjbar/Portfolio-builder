@@ -28,10 +28,6 @@ export function StatsEditor({ section, onUpdate }: StatsEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Stats</h2>
-        <p className="text-sm text-gray-700">Quick facts and numbers about your work.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

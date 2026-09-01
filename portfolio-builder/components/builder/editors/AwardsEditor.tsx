@@ -29,10 +29,6 @@ export function AwardsEditor({ section, onUpdate }: AwardsEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Awards & Recognition</h2>
-        <p className="text-sm text-gray-700">Showcase awards and recognition you've received.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

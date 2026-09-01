@@ -1,6 +1,6 @@
 import React from 'react';
 import { SectionBackground, Theme, SocialLink } from './types';
-import { FaLinkedin, FaGithub, FaTwitter, FaInstagram, FaDribbble, FaBehance } from 'react-icons/fa';
+import { FaLinkedin, FaGithub, FaTwitter, FaInstagram, FaFacebook, FaDribbble, FaBehance } from 'react-icons/fa';
 import { Globe } from 'lucide-react';
 
 // Social icon map with proper brand icons
@@ -9,6 +9,7 @@ export const socialIconMap: Record<string, React.ElementType> = {
   github: FaGithub,
   twitter: FaTwitter,
   instagram: FaInstagram,
+  facebook: FaFacebook,
   dribbble: FaDribbble,
   behance: FaBehance,
   website: Globe,
@@ -34,25 +35,10 @@ export function getSectionBackground(sectionBg: SectionBackground | undefined, t
 }
 
 // Get background style object for a section
-export function getSectionBackgroundStyle(sectionBg: SectionBackground | undefined, theme: Theme): React.CSSProperties {
-  if (!sectionBg || sectionBg.type === 'theme' || !sectionBg.value) {
-    return { backgroundColor: theme.colors.background };
-  }
-  if (sectionBg.type === 'color') {
-    return { backgroundColor: sectionBg.value };
-  }
-  if (sectionBg.type === 'gradient') {
-    return { background: sectionBg.value };
-  }
-  if (sectionBg.type === 'image') {
-    return {
-      backgroundImage: `url(${sectionBg.value})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    };
-  }
-  return { backgroundColor: theme.colors.background };
+export function getSectionBackgroundStyle(_sectionBg: SectionBackground | undefined, _theme: Theme): React.CSSProperties {
+  // Categories sit on the landing page canvas. Their own surfaces stay transparent
+  // so a page gradient or image continues seamlessly from one category to the next.
+  return { backgroundColor: 'transparent' };
 }
 
 // Get overlay style for image backgrounds

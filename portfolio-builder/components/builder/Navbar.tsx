@@ -72,11 +72,12 @@ export function Navbar({ theme, sections }: NavbarProps) {
   if (!navbar.enabled) return null;
 
   // Build nav links from visible sections
+  // Exclude hero from nav links — it's already represented by the logo
   const navLinks = sections
-    .filter((s) => s.visible !== false && s.type !== 'footer')
+    .filter((s) => s.visible !== false && s.type !== 'footer' && s.type !== 'hero' && s.type !== 'about')
     .map((s) => ({
       id: s.id,
-      label: s.type === 'hero' ? (s.name || 'Home') : (s.title || s.type),
+      label: s.title || s.type,
       type: s.type,
     }));
 
@@ -136,14 +137,14 @@ export function Navbar({ theme, sections }: NavbarProps) {
               {navbar.logoType === 'image' && navbar.logo ? (
                 <OptimizedImage src={navbar.logo} alt="Logo" className="h-8 w-auto" width={120} height={32} />
 
-              ) : (
+              ) : navbar.logo ? (
                 <span
                   className="text-lg font-bold"
                   style={{ color: textColor, fontFamily: theme.typography.headingFont }}
                 >
-                  {navbar.logo || 'Portfolio'}
+                  {navbar.logo}
                 </span>
-              )}
+              ) : null}
               {/* Availability badge */}
               {availability.enabled && (
                 <span

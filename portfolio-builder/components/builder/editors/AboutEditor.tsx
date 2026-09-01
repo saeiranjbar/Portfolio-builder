@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUploader } from '../ImageUploader';
 import { GalleryUploader } from '../GalleryUploader';
-import { TextStyleControls } from '../TextStyleControls';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, MapPin, Download, Video, Languages, Quote, Sparkles, Tag, FileText, Image as ImageIcon, Type, Images } from 'lucide-react';
-import { FreeFormControls } from '../FreeFormControls';
+import { Plus, Trash2, MapPin, Download, Video, Languages, Quote, Sparkles, Tag, FileText, Image as ImageIcon, Type, Images, Upload } from 'lucide-react';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
+import { imageToBase64 } from '@/lib/utils';
+
 
 
 
@@ -66,22 +67,6 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">About Section</h2>
-        <p className="text-sm text-gray-500">
-          Tell your story and share your background.
-        </p>
-      </div>
-
-      {/* Free-Form Layout Controls - Only show in website mode */}
-      {!isSimpleMode && (
-        <FreeFormControls
-          freeFormEnabled={section.freeFormEnabled || false}
-          snapEnabled={section.snapEnabled !== false}
-          onUpdate={(updates) => onUpdate(updates)}
-        />
-      )}
-
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
@@ -94,12 +79,6 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
           value={section.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="About Me"
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Section Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -129,21 +108,6 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
           placeholder="Tell your story here..."
           rows={6}
         />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="content"
-          fieldLabel="Main Bio"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
-        <div>
-          <Label>Second Paragraph (Optional)</Label>
-          <Textarea
-            value={section.secondParagraph || ''}
-            onChange={(e) => onUpdate({ secondParagraph: e.target.value })}
-            placeholder="Share your philosophy, approach, or what drives you..."
-            rows={4}
-          />
-        </div>
       </CollapsibleSection>
 
       {/* Personal Quote */}
@@ -180,6 +144,53 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
             value={section.secondImageUrl || ''}
             onChange={(url) => onUpdate({ secondImageUrl: url })}
           />
+        </div>
+        {/* Custom image dimensions */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Portrait Image Width (px)</Label>
+            <Input
+              type="number"
+              value={section.imageWidth || 896}
+              onChange={(e) => onUpdate({ imageWidth: parseInt(e.target.value) || 896 })}
+              min={100}
+              max={2000}
+              step={10}
+            />
+          </div>
+          <div>
+            <Label>Portrait Image Height (px)</Label>
+            <Input
+              type="number"
+              value={section.imageHeight || 300}
+              onChange={(e) => onUpdate({ imageHeight: parseInt(e.target.value) || 300 })}
+              min={50}
+              max={2000}
+              step={10}
+            />
+          </div>
+          <div>
+            <Label>Second Image Width (px)</Label>
+            <Input
+              type="number"
+              value={section.secondImageWidth || 300}
+              onChange={(e) => onUpdate({ secondImageWidth: parseInt(e.target.value) || 300 })}
+              min={50}
+              max={2000}
+              step={10}
+            />
+          </div>
+          <div>
+            <Label>Second Image Height (px)</Label>
+            <Input
+              type="number"
+              value={section.secondImageHeight || 200}
+              onChange={(e) => onUpdate({ secondImageHeight: parseInt(e.target.value) || 200 })}
+              min={50}
+              max={2000}
+              step={10}
+            />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -358,20 +369,78 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
         </div>
       </CollapsibleSection>
 
-      {/* Resume Download */}
-      <CollapsibleSection title="Resume / CV Download" icon={Download}
+      {/* Resume / CV */}
+      <CollapsibleSection title="Resume / CV" icon={Download}
         showToggle
         toggleChecked={section.showResume !== false}
         onToggleChange={(checked) => onUpdate({ showResume: checked })}
       >
         <div>
           <Label>Resume URL (PDF link)</Label>
-          <Input
-            value={section.resumeUrl || ''}
-            onChange={(e) => onUpdate({ resumeUrl: e.target.value })}
-            placeholder="https://example.com/resume.pdf"
-          />
+          <div className="flex gap-2">
+            <Input
+              value={section.resumeUrl || ''}
+              onChange={(e) => onUpdate({ resumeUrl: e.target.value })}
+              placeholder="https://example.com/resume.pdf"
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('resume-file-upload')?.click()}
+            >
+              <Upload className="w-3 h-3 mr-1" /> Upload
+            </Button>
+            <input
+              id="resume-file-upload"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const base64 = await imageToBase64(file);
+                  onUpdate({ resumeUrl: base64 });
+                }
+                e.target.value = '';
+              }}
+            />
+          </div>
+          {section.resumeUrl && section.resumeUrl.startsWith('data:') && (
+            <p className="text-xs text-green-600 mt-1">✓ Resume uploaded from file</p>
+          )}
         </div>
+        <div>
+          <Label>Display Mode</Label>
+          <select
+            value={section.resumeDisplayMode || 'embed'}
+            onChange={(e) => onUpdate({ resumeDisplayMode: e.target.value as 'embed' | 'download' })}
+            className="w-full px-3 py-2 border rounded-xl text-sm"
+          >
+            <option value="embed">Embed (view PDF in page)</option>
+            <option value="download">Download Button</option>
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            {section.resumeDisplayMode === 'download'
+              ? 'Shows a download button that links to the resume file'
+              : 'Embeds the PDF directly in the page so visitors can read it without leaving'}
+          </p>
+        </div>
+        {(section.resumeDisplayMode || 'embed') === 'embed' && (
+          <div>
+            <Label>Viewer Height (px)</Label>
+            <Input
+              type="number"
+              value={section.resumeHeight || 600}
+              onChange={(e) => onUpdate({ resumeHeight: parseInt(e.target.value) || 600 })}
+              placeholder="600"
+              min={300}
+              max={2000}
+              step={50}
+            />
+            <p className="text-xs text-gray-400 mt-1">Height of the embedded PDF viewer in pixels</p>
+          </div>
+        )}
       </CollapsibleSection>
 
       {/* Video Introduction */}
@@ -384,9 +453,19 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
           <Label>Video URL</Label>
           <Input
             value={section.videoUrl || ''}
-            onChange={(e) => onUpdate({ videoUrl: e.target.value })}
-            placeholder="https://youtube.com/watch?v=..."
+            onChange={(e) => {
+              const url = e.target.value;
+              // Auto-detect video type from URL
+              const isVimeo = url.includes('vimeo.com');
+              const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+              const detectedType = isVimeo ? 'vimeo' : isYouTube ? 'youtube' : section.videoType || 'youtube';
+              onUpdate({ videoUrl: url, videoType: detectedType as any });
+            }}
+            placeholder="https://www.youtube.com/watch?v=..."
           />
+          <p className="text-xs text-gray-400 mt-1">
+            Paste a YouTube or Vimeo URL. The type is auto-detected.
+          </p>
         </div>
         <div>
           <Label>Video Type</Label>
@@ -399,7 +478,62 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
             <option value="vimeo">Vimeo</option>
           </select>
         </div>
+        {/* Live preview */}
+        {section.videoUrl && (
+          <div className="mt-2">
+            <Label>Preview</Label>
+            <div className="relative w-full bg-gray-900 rounded-lg overflow-hidden aspect-video">
+              {(() => {
+                const url = section.videoUrl.trim();
+                let embedUrl = '';
+                if ((section.videoType || 'youtube') === 'vimeo') {
+                  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+                  embedUrl = vimeoMatch
+                    ? `https://player.vimeo.com/video/${vimeoMatch[1]}`
+                    : url;
+                } else {
+                  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+                  if (shortMatch) {
+                    embedUrl = `https://www.youtube.com/embed/${shortMatch[1]}`;
+                  } else {
+                    const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+                    if (watchMatch) {
+                      embedUrl = `https://www.youtube.com/embed/${watchMatch[1]}`;
+                    } else if (url.includes('/embed/')) {
+                      embedUrl = url;
+                    } else if (url.includes('/shorts/')) {
+                      const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
+                      if (shortsMatch) embedUrl = `https://www.youtube.com/embed/${shortsMatch[1]}`;
+                    } else if (url.includes('/live/')) {
+                      const liveMatch = url.match(/\/live\/([a-zA-Z0-9_-]+)/);
+                      if (liveMatch) embedUrl = `https://www.youtube.com/embed/${liveMatch[1]}`;
+                    } else {
+                      embedUrl = url;
+                    }
+                  }
+                }
+                if (!embedUrl) {
+                  return <div className="flex items-center justify-center h-full text-gray-400 text-sm">Could not parse URL</div>;
+                }
+                return (
+                  <iframe
+                    src={embedUrl}
+                    className="w-full h-full"
+                    style={{ border: 0 }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    title="Video preview"
+                  />
+                );
+              })()}
+            </div>
+            {section.showVideo === false && (
+              <p className="text-xs text-orange-600 mt-1">⚠️ Video is hidden. Enable the "Show" toggle above to display it in the preview.</p>
+            )}
+          </div>
+        )}
       </CollapsibleSection>
+
 
       {/* Languages */}
       <CollapsibleSection title="Languages" icon={Languages}
@@ -469,6 +603,16 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
           Show social media links in About section
         </label>
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[
+          { key: 'title', label: 'Section Title' },
+          { key: 'content', label: 'Main Bio' },
+        ]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
   );
 }

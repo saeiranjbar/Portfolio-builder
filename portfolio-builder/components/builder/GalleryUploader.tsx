@@ -23,7 +23,14 @@ export function GalleryUploader({ images, onChange, className, maxImages = 20 }:
     for (const file of acceptedFiles) {
       if (images.length + newImages.length >= maxImages) break;
       const base64 = await imageToBase64(file);
-      newImages.push({ id: generateId(), url: base64, caption: '' });
+      // Capture natural image dimensions for aspect-ratio calculations
+      const dims = await new Promise<{ width: number; height: number }>((resolve) => {
+        const img = new window.Image();
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = () => resolve({ width: 0, height: 0 });
+        img.src = base64;
+      });
+      newImages.push({ id: generateId(), url: base64, caption: '', naturalWidth: dims.width, naturalHeight: dims.height });
     }
     onChange([...images, ...newImages]);
   }, [images, onChange, maxImages]);

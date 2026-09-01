@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Linkedin, Github, Twitter, Instagram, Globe, Type, Link2 } from 'lucide-react';
+import { Plus, Trash2, Linkedin, Github, Twitter, Instagram, Facebook, Globe, Type, Link2 } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { TextStyleControls } from '../TextStyleControls';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 
@@ -22,6 +22,7 @@ const platformOptions = [
   { value: 'github', label: 'GitHub', icon: Github },
   { value: 'twitter', label: 'Twitter', icon: Twitter },
   { value: 'instagram', label: 'Instagram', icon: Instagram },
+  { value: 'facebook', label: 'Facebook', icon: Facebook },
   { value: 'dribbble', label: 'Dribbble', icon: Globe },
   { value: 'behance', label: 'Behance', icon: Globe },
   { value: 'website', label: 'Website', icon: Globe },
@@ -56,12 +57,6 @@ export function SocialEditor({ section, onUpdate }: SocialEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Social Links Section</h2>
-        <p className="text-sm text-gray-500">
-          Links to your social media profiles.
-        </p>
-      </div>
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
@@ -73,12 +68,6 @@ export function SocialEditor({ section, onUpdate }: SocialEditorProps) {
           value={section.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="Connect With Me"
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Section Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -152,6 +141,13 @@ export function SocialEditor({ section, onUpdate }: SocialEditorProps) {
           </div>
         )}
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[{ key: 'title', label: 'Section Title' }]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
   );
 }

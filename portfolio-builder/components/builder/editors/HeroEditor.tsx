@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ImageUploader } from '../ImageUploader';
 import { GalleryUploader } from '../GalleryUploader';
-import { TextStyleControls } from '../TextStyleControls';
+import { VideoUploader } from '../VideoUploader';
 import { CollapsibleSection } from '../CollapsibleSection';
-import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Palette, Magnet, Images, Type, Sparkles, MousePointerClick, Plus, Trash2 } from 'lucide-react';
+import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images, Type, MousePointerClick, Plus, Trash2, Video as VideoIcon } from 'lucide-react';
 
-import { FreeFormControls } from '../FreeFormControls';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
+import { cn } from '@/lib/utils';
 
 
 
@@ -31,27 +32,9 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Hero Section</h2>
-        <p className="text-sm text-gray-500 mb-2">
-          {isSimpleMode ? 'Elements are centered in a clean, structured layout.' : 'Drag elements in the preview to reposition them freely.'}
-        </p>
-      </div>
-
-      {/* Free-Form Layout Controls - Only show in website mode */}
-      {!isSimpleMode && (
-        <FreeFormControls
-          freeFormEnabled={section.freeFormEnabled !== false}
-          snapEnabled={section.snapEnabled !== false}
-          onUpdate={(updates) => onUpdate(updates)}
-        />
-      )}
-
-
-
-      {/* Your Name */}
+      {/* Name */}
       <CollapsibleSection
-        title="Your Name"
+        title="Name"
         icon={User}
         defaultOpen
         showToggle
@@ -66,12 +49,6 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         {section.showName && !isSimpleMode && (
           <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
         )}
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="name"
-          fieldLabel="Name"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* Professional Title */}
@@ -90,12 +67,6 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         {section.showTitle && !isSimpleMode && (
           <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
         )}
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* Typing Animation */}
@@ -144,12 +115,6 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         {section.showSubtitle && !isSimpleMode && (
           <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
         )}
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="subtitle"
-          fieldLabel="Subtitle"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* Bio */}
@@ -169,12 +134,6 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         {section.showBio && !isSimpleMode && (
           <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
         )}
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="bio"
-          fieldLabel="Bio"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* CTA Buttons */}
@@ -234,12 +193,13 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
               </div>
               <div>
                 <Label className="text-xs">Style</Label>
-                <div className="flex gap-2 mt-1">
+                <div className="grid grid-cols-3 gap-2 mt-1">
                   {(['primary', 'secondary', 'outline'] as const).map((variant) => (
                     <Button
                       key={variant}
                       variant={btn.variant === variant ? 'default' : 'outline'}
                       size="sm"
+                      className="w-full"
                       onClick={() => {
                         const updated = (section.ctaButtons || []).map((b) =>
                           b.id === btn.id ? { ...b, variant } : b
@@ -291,195 +251,242 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
           onChange={(url: string) => onUpdate({ avatar: url })}
         />
         {section.showAvatar && !isSimpleMode && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
+
+            {/* Shape Controls */}
             <div>
-              <Label>Avatar Size</Label>
-              <div className="flex gap-2 mt-2">
-                {(['small', 'medium', 'large'] as const).map((size) => (
+              <Label>Avatar Shape</Label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {(['circle', 'rounded', 'square'] as const).map((shape) => (
                   <Button
-                    key={size}
-                    variant={section.avatarSize === size ? 'default' : 'outline'}
+                    key={shape}
+                    variant={section.avatarShape === shape ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => onUpdate({ avatarSize: size })}
+                    onClick={() => onUpdate({ avatarShape: shape })}
+                    className="text-xs"
                   >
-                    {size.charAt(0).toUpperCase() + size.slice(1)}
+                    {shape === 'circle' ? '⭕' : shape === 'rounded' ? '▬' : '□'} {shape.charAt(0).toUpperCase() + shape.slice(1)}
                   </Button>
                 ))}
               </div>
             </div>
+
+            {/* Size Controls */}
+            <div>
+              <Label>Avatar Size (pixels)</Label>
+              <div className="flex gap-2 items-center mt-2">
+                <Input
+                  type="number"
+                  min="40"
+                  max="300"
+                  step="10"
+                  value={section.avatarWidth || 120}
+                  onChange={(e) => {
+                    const size = parseInt(e.target.value);
+                    onUpdate({ avatarWidth: size, avatarHeight: size });
+                  }}
+                  placeholder="Size"
+                  className="flex-1"
+                />
+                <span className="text-sm text-gray-600">px</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Width and height scale together</p>
+            </div>
+
+            {/* Legacy Size Buttons (Optional) */}
+            <div>
+              <Label className="text-xs text-gray-600">Quick Presets</Label>
+              <div className="flex gap-2 mt-2">
+                {(['small', 'medium', 'large'] as const).map((preset) => {
+                  const sizeMap = { small: 80, medium: 120, large: 160 };
+                  return (
+                    <Button
+                      key={preset}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onUpdate({ avatarWidth: sizeMap[preset], avatarHeight: sizeMap[preset] })}
+                    >
+                      {preset.charAt(0).toUpperCase() + preset.slice(1)}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </CollapsibleSection>
 
-      {/* Gallery Images */}
+      {/* Gallery (Images + Videos merged) */}
       <CollapsibleSection
-        title="Gallery Images"
+        title="Gallery"
         icon={Images}
-        description="Add multiple images to showcase your work or personality"
+        description="Add images and videos to showcase your work or personality"
       >
-        <GalleryUploader
-          images={section.galleryImages || []}
-          onChange={(images) => onUpdate({ galleryImages: images })}
-          maxImages={20}
-        />
-      </CollapsibleSection>
-
-      {/* Background Settings */}
-      <CollapsibleSection
-        title="Background Settings"
-        icon={Palette}
-      >
-
-        <div>
-          <Label>Background Type</Label>
-          <div className="flex gap-2 mt-2">
-            <Button
-              variant={section.backgroundType === 'color' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onUpdate({ backgroundType: 'color', backgroundValue: '#3b82f6' })}
-            >
-              Color
-            </Button>
-            <Button
-              variant={section.backgroundType === 'gradient' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onUpdate({ backgroundType: 'gradient', backgroundValue: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' })}
-            >
-              Gradient
-            </Button>
-            <Button
-              variant={section.backgroundType === 'image' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onUpdate({ backgroundType: 'image' })}
-            >
-              Image
-            </Button>
+        {/* Images sub-section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-900">Images</h3>
           </div>
-        </div>
+          <GalleryUploader
+            images={section.galleryImages || []}
+            onChange={(images) => onUpdate({ galleryImages: images })}
+            maxImages={20}
+          />
 
-        {section.backgroundType === 'color' && (
-          <div>
-            <Label htmlFor="bgColor">Background Color</Label>
-            <div className="flex gap-2 items-center">
-              <Input
-                id="bgColor"
-                type="color"
-                value={section.backgroundValue}
-                onChange={(e) => onUpdate({ backgroundValue: e.target.value })}
-                className="w-16 h-9"
-              />
-              <Input
-                value={section.backgroundValue}
-                onChange={(e) => onUpdate({ backgroundValue: e.target.value })}
-                placeholder="#3b82f6"
-                className="flex-1"
-              />
-            </div>
-          </div>
-        )}
-
-        {section.backgroundType === 'gradient' && (
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Gradient Colors</Label>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Label className="text-xs text-gray-600 mb-1 block">Start Color</Label>
-                  <div 
-                    className="w-full h-10 rounded border border-gray-300 cursor-pointer overflow-hidden"
-                    style={{ backgroundColor: section.backgroundValue.match(/#[a-fA-F0-9]{6}/)?.[0] || '#667eea' }}
-                  >
-                    <Input
-                      type="color"
-                      value={section.backgroundValue.match(/#[a-fA-F0-9]{6}/)?.[0] || '#667eea'}
-                      onChange={(e) => {
-                        const endColor = section.backgroundValue.match(/#[a-fA-F0-9]{6}/g)?.[1] || '#764ba2';
-                        onUpdate({ backgroundValue: `linear-gradient(135deg, ${e.target.value} 0%, ${endColor} 100%)` });
-                      }}
-                      className="w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <Label className="text-xs text-gray-600 mb-1 block">End Color</Label>
-                  <div 
-                    className="w-full h-10 rounded border border-gray-300 cursor-pointer overflow-hidden"
-                    style={{ backgroundColor: section.backgroundValue.match(/#[a-fA-F0-9]{6}/g)?.[1] || '#764ba2' }}
-                  >
-                    <Input
-                      type="color"
-                      value={section.backgroundValue.match(/#[a-fA-F0-9]{6}/g)?.[1] || '#764ba2'}
-                      onChange={(e) => {
-                        const startColor = section.backgroundValue.match(/#[a-fA-F0-9]{6}/)?.[0] || '#667eea';
-                        onUpdate({ backgroundValue: `linear-gradient(135deg, ${startColor} 0%, ${e.target.value} 100%)` });
-                      }}
-                      className="w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
+          {/* Gallery Grid Settings */}
+          {(section.galleryImages && section.galleryImages.length > 0) && (
+            <div className="space-y-3 pt-3 border-t border-gray-200">
+              <div>
+                <Label htmlFor="gridCols">Image Columns: {section.galleryGridCols || 2}</Label>
+                <Input
+                  id="gridCols"
+                  type="range"
+                  min="1"
+                  max="4"
+                  value={section.galleryGridCols || 2}
+                  onChange={(e) => onUpdate({ galleryGridCols: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
                 </div>
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-gray-600 mb-2 block">Preset Gradients</Label>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', name: 'Purple' },
-                  { gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', name: 'Pink' },
-                  { gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', name: 'Blue' },
-                  { gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', name: 'Green' },
-                  { gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', name: 'Sunset' },
-                  { gradient: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)', name: 'Lavender' },
-                  { gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', name: 'Rose' },
-                  { gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)', name: 'Peach' },
-                ].map((item) => (
-                  <button
-                    key={item.name}
-                    className="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-blue-500 transition-all hover:scale-110"
-                    style={{ background: item.gradient }}
-                    onClick={() => onUpdate({ backgroundValue: item.gradient })}
-                    title={item.name}
-                  />
-                ))}
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="my-4 border-t border-gray-200" />
+
+        {/* Videos sub-section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <VideoIcon className="w-4 h-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-900">Videos</h3>
+          </div>
+          <VideoUploader
+            videos={section.galleryVideos || []}
+            onChange={(videos) => onUpdate({ galleryVideos: videos })}
+            maxVideos={10}
+          />
+
+          {/* Video Grid Settings */}
+          {(section.galleryVideos && section.galleryVideos.length > 0) && (
+            <div className="space-y-3 pt-3 border-t border-gray-200">
+              <div>
+                <Label htmlFor="vidGridCols">Video Columns: {section.galleryVideoGridCols || 1}</Label>
+                <Input
+                  id="vidGridCols"
+                  type="range"
+                  min="1"
+                  max="3"
+                  value={section.galleryVideoGridCols || 1}
+                  onChange={(e) => onUpdate({ galleryVideoGridCols: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {section.backgroundType === 'image' && (
-          <div>
-            <Label>Background Image</Label>
-            <ImageUploader
-              value={section.backgroundType === 'image' ? section.backgroundValue : ''}
-              onChange={(url: string) => onUpdate({ backgroundValue: url })}
-            />
-          </div>
-        )}
-
-        {/* Parallax toggle for image/gradient backgrounds */}
-        <div className="pt-2 border-t">
-          <Label>Parallax Effect</Label>
-          <div className="flex gap-2 mt-2">
-            <Button
-              variant={section.parallaxEnabled ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onUpdate({ parallaxEnabled: true })}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> Enabled
-            </Button>
-            <Button
-              variant={!section.parallaxEnabled ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onUpdate({ parallaxEnabled: false })}
-            >
-              Disabled
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Adds a subtle parallax scrolling effect to the hero background for depth.
-          </p>
+          )}
         </div>
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[
+          { key: 'name', label: 'Name' },
+          { key: 'title', label: 'Title' },
+          { key: 'subtitle', label: 'Subtitle' },
+          { key: 'bio', label: 'Bio' },
+        ]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
+  );
+}
+
+// Element Order Controls — lets users reorder elements within the Hero section
+// by swapping their Y positions (up/down)
+function ElementOrderControls({ section, onUpdate }: { section: HeroSection; onUpdate: (updates: Partial<HeroSection>) => void }) {
+  const [draggedKey, setDraggedKey] = React.useState<string | null>(null);
+
+  // Define the elements that can be reordered, with their position keys and labels
+  const elements = [
+    { key: 'avatar', label: 'Avatar', posKey: 'avatarPosition' as const, visible: section.showAvatar !== false && !!section.avatar },
+    { key: 'name', label: 'Name', posKey: 'namePosition' as const, visible: section.showName !== false },
+    { key: 'title', label: 'Title', posKey: 'titlePosition' as const, visible: section.showTitle !== false },
+    { key: 'subtitle', label: 'Subtitle', posKey: 'subtitlePosition' as const, visible: section.showSubtitle !== false },
+    { key: 'bio', label: 'Bio', posKey: 'bioPosition' as const, visible: section.showBio !== false },
+    { key: 'ctaButtons', label: 'CTA Buttons', posKey: 'ctaButtonsPosition' as const, visible: (section.ctaButtons || []).length > 0 },
+    { key: 'galleryImages', label: 'Photo Grid', posKey: 'galleryImagesPosition' as const, visible: (section.galleryImages || []).length > 0 },
+  ].filter(e => e.visible);
+
+  // Sort by current Y position to show the visual order
+  // Elements without a saved position are treated as being at the bottom (y = 999)
+  const sortedElements = [...elements].sort((a, b) => {
+    const posA = section[a.posKey];
+    const posB = section[b.posKey];
+    const yA = posA?.y ?? 999;
+    const yB = posB?.y ?? 999;
+    return yA - yB;
+  });
+
+  const swapPositions = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+
+    // Get all current Y positions (use defaults for elements without saved positions)
+    const positions = sortedElements.map((elem, i) => {
+      const pos = section[elem.posKey];
+      return pos || { x: 50, y: (i + 1) * 10 };
+    });
+
+    // Extract the dragged element and its position
+    const [draggedElem] = sortedElements.slice(fromIndex, fromIndex + 1);
+    const [draggedPos] = positions.slice(fromIndex, fromIndex + 1);
+
+    // Remove the dragged element from both arrays
+    const remainingElements = sortedElements.filter((_, i) => i !== fromIndex);
+    const remainingPositions = positions.filter((_, i) => i !== fromIndex);
+
+    // Insert the dragged element at the target position
+    const newElements = [
+      ...remainingElements.slice(0, toIndex),
+      draggedElem,
+      ...remainingElements.slice(toIndex),
+    ];
+    const newPositions = [
+      ...remainingPositions.slice(0, toIndex),
+      draggedPos,
+      ...remainingPositions.slice(toIndex),
+    ];
+
+    // Now reassign Y positions based on the new order
+    // Use evenly spaced Y values to maintain the visual order
+    const updates: Partial<HeroSection> = {};
+    const ySpacing = 10; // 10% spacing between elements
+    const yStart = 8; // Start at 8% from top
+
+    newElements.forEach((elem, i) => {
+      const oldPos = newPositions[i];
+      updates[elem.posKey] = { x: oldPos.x, y: yStart + i * ySpacing } as any;
+    });
+
+    onUpdate(updates);
+  };
+
+  return (
+    <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+      <h3 className="text-sm font-semibold text-gray-900 mb-1">Element Order</h3>
+      <p className="text-xs text-gray-500 mb-3">Drag a handle and drop it on another element.</p><div className="space-y-1">{sortedElements.map((elem, index) => <div key={elem.key} draggable onDragStart={() => setDraggedKey(elem.key)} onDragOver={(event) => event.preventDefault()} onDrop={() => { const sourceIndex = sortedElements.findIndex((item) => item.key === draggedKey); if (sourceIndex >= 0 && sourceIndex !== index) swapPositions(sourceIndex, index); setDraggedKey(null); }} className={cn("flex items-center gap-2 p-2 bg-white rounded border border-gray-200 cursor-grab", draggedKey === elem.key && "opacity-50")}><Move className="w-4 h-4 text-gray-400" /><span className="text-xs text-gray-400 w-4">{index + 1}</span><span className="text-sm text-gray-700 flex-1">{elem.label}</span></div>)}</div></div>
   );
 }

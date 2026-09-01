@@ -1,6 +1,16 @@
 import { PortfolioData } from './types';
+import { availableFonts } from './templates';
+
+// Build a Google Fonts URL that loads all available fonts
+function buildGoogleFontsUrl(): string {
+  const fontFamilies = availableFonts
+    .filter(f => !f.includes(',')) // skip font stacks like "Inter, Helvetica..."
+    .map(f => `family=${f.replace(/ /g, '+')}:wght@400;500;600;700`);
+  return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
+}
 
 export function generateHTML(portfolio: PortfolioData): string {
+
   const { theme } = portfolio;
   
   const sectionsHTML = portfolio.sections
@@ -55,6 +65,9 @@ export function generateHTML(portfolio: PortfolioData): string {
 
 
 
+  // Generate interactive effects HTML/JS
+  const effectsHTML = generateEffects(portfolio);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,7 +77,7 @@ export function generateHTML(portfolio: PortfolioData): string {
   <meta name="description" content="${portfolio.metadata.description}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=${theme.typography.headingFont.replace(/ /g, '+')}:wght@400;500;600;700&family=${theme.typography.bodyFont.replace(/ /g, '+')}:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="${buildGoogleFontsUrl()}" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -120,8 +133,129 @@ export function generateHTML(portfolio: PortfolioData): string {
 </head>
 <body>
 ${sectionsHTML}
+${effectsHTML}
 </body>
 </html>`;
+}
+
+// Generate interactive effects (mouse color shift + splash button) as vanilla JS/HTML
+function generateEffects(portfolio: PortfolioData): string {
+  const effects = portfolio.effects;
+  if (!effects) return '';
+
+  let html = '';
+
+  // Mouse Color Shift effect
+  if (effects.mouseColorShift?.enabled) {
+    const { startColor, endColor, intensity } = effects.mouseColorShift;
+    const opacity = Math.max(0, Math.min(100, intensity)) / 100;
+    html += `
+<div id="mouse-color-shift-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:5;background-color:rgba(59,130,246,${opacity});transition:background-color 0.1s linear;"></div>
+<script>
+(function(){
+  var overlay=document.getElementById('mouse-color-shift-overlay');
+  if(!overlay)return;
+  var startColor='${startColor}';
+  var endColor='${endColor}';
+  var opacity=${opacity};
+  function hexToRgb(hex){var c=hex.replace('#','');return{r:parseInt(c.substring(0,2),16)||0,g:parseInt(c.substring(2,4),16)||0,b:parseInt(c.substring(4,6),16)||0};}
+  var c1=hexToRgb(startColor),c2=hexToRgb(endColor);
+  var mouseX=0.5,currentT=0.5;
+  function handleMove(e){mouseX=e.clientX/window.innerWidth;}
+  function animate(){
+    currentT+=(mouseX-currentT)*0.08;
+    var r=Math.round(c1.r+(c2.r-c1.r)*currentT);
+    var g=Math.round(c1.g+(c2.g-c1.g)*currentT);
+    var b=Math.round(c1.b+(c2.b-c1.b)*currentT);
+    overlay.style.backgroundColor='rgba('+r+','+g+','+b+','+opacity+')';
+    requestAnimationFrame(animate);
+  }
+  window.addEventListener('mousemove',handleMove);
+  requestAnimationFrame(animate);
+})();
+</script>`;
+  }
+
+  // Color Ribbon effect
+  if (effects.colorRibbon?.enabled) {
+    const { color, intensity } = effects.colorRibbon;
+    const opacity = Math.max(0, Math.min(100, intensity)) / 100;
+    html += `
+<div id="color-ribbon" style="position:absolute;top:0;left:0;height:100%;width:50%;background-color:${color};opacity:${opacity};pointer-events:none;z-index:4;"></div>
+<script>
+(function(){
+  var ribbon=document.getElementById('color-ribbon');
+  if(!ribbon)return;
+  var targetX=50,currentX=50;
+  function handleMove(e){targetX=(e.clientX/window.innerWidth)*100;}
+  function animate(){
+    currentX+=(targetX-currentX)*0.12;
+    ribbon.style.width=currentX+'%';
+    requestAnimationFrame(animate);
+  }
+  window.addEventListener('mousemove',handleMove);
+  requestAnimationFrame(animate);
+})();
+</script>`;
+  }
+
+  // Splash Button effect
+  if (effects.splashButton?.enabled) {
+    const { text, link, color, position } = effects.splashButton;
+    const posStyle = position === 'bottom-center' ? 'left:50%;transform:translateX(-50%);' : position === 'bottom-right' ? 'right:24px;' : 'left:24px;';
+    html += `
+<div id="splash-button-container" style="position:fixed;bottom:32px;${posStyle}z-index:200;">
+  <button id="splash-cta-btn" style="position:relative;padding:16px 32px;border-radius:9999px;font-weight:600;color:white;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.2);background-color:${color};overflow:hidden;">
+    <span style="position:relative;z-index:10;">${text}</span>
+  </button>
+</div>
+<div id="splash-ripple" style="position:fixed;pointer-events:none;z-index:199;border-radius:50%;background-color:${color};left:50%;top:50%;width:0;height:0;opacity:0;transform:translate(-50%,-50%);"></div>
+<script>
+(function(){
+  var btn=document.getElementById('splash-cta-btn');
+  var ripple=document.getElementById('splash-ripple');
+  if(!btn||!ripple)return;
+  btn.addEventListener('click',function(){
+    ripple.style.transition='none';
+    ripple.style.width='0px';
+    ripple.style.height='0px';
+    ripple.style.opacity='0.6';
+    void ripple.offsetWidth;
+    ripple.style.transition='width 0.6s ease-out,height 0.6s ease-out,opacity 0.6s ease-out';
+    ripple.style.width='300vw';
+    ripple.style.height='300vw';
+    ripple.style.opacity='0';
+    setTimeout(function(){
+      var link='${link}';
+      if(link.indexOf('#')===0){
+        var linkId=link.substring(1);
+        var el=document.getElementById(linkId.indexOf('section-')===0?linkId:'section-'+linkId);
+        if(!el){
+          var sections=document.querySelectorAll('[data-section-type]');
+          for(var i=0;i<sections.length;i++){
+            if(sections[i].getAttribute('data-section-type')===linkId){el=sections[i];break;}
+          }
+        }
+        if(el)el.scrollIntoView({behavior:'smooth'});
+      }else{
+        window.open(link,'_blank','noopener,noreferrer');
+      }
+    },600);
+  });
+  // Pulsing animation
+  var scale=1,growing=true;
+  function pulse(){
+    if(growing){scale+=0.002;if(scale>=1.05)growing=false;}
+    else{scale-=0.002;if(scale<=1)growing=true;}
+    btn.style.transform='scale('+scale+')';
+    requestAnimationFrame(pulse);
+  }
+  requestAnimationFrame(pulse);
+})();
+</script>`;
+  }
+
+  return html;
 }
 
 function generateHeroSection(section: any, theme: any): string {
@@ -129,11 +263,23 @@ function generateHeroSection(section: any, theme: any): string {
     ? `background: ${section.backgroundValue};`
     : section.backgroundType === 'image'
     ? `background-image: url('${section.backgroundValue}'); background-size: cover; background-position: center;`
+    : section.backgroundType === 'video'
+    ? `background: #000;`
+    : '';
+
+  const videoBg = section.backgroundType === 'video' && section.backgroundValue
+    ? `<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;"><source src="${section.backgroundValue}"></video>`
+    : '';
+
+  const overlay = (section.backgroundType === 'image' || section.backgroundType === 'video') && section.backgroundOverlayOpacity
+    ? `<div style="position:absolute;inset:0;background-color:rgba(0,0,0,${section.backgroundOverlayOpacity / 100});z-index:1;"></div>`
     : '';
 
   return `
-  <section style="${bgStyle} min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 80px 24px; text-align: center;">
-    <div style="max-width: 800px;">
+  <section style="${bgStyle} position: relative; min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; overflow: hidden;">
+    ${videoBg}
+    ${overlay}
+    <div style="max-width: 800px; position: relative; z-index: 2;">
       ${section.avatar ? `<img src="${section.avatar}" alt="${section.name}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-bottom: 24px; border: 4px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">` : ''}
       <h1 style="font-size: 3rem; margin-bottom: 8px; color: ${theme.colors.text};">${section.name}</h1>
       <h2 style="font-size: 1.5rem; font-weight: 500; margin-bottom: 16px; color: ${theme.colors.primary};">${section.title}</h2>
@@ -201,26 +347,63 @@ function generateAboutSection(section: any, theme: any): string {
     ? `<blockquote style="margin: 24px 0; padding: 16px 24px; border-left: 4px solid ${theme.colors.primary}; font-style: italic; font-size: 1.25rem; color: ${theme.colors.text}; background-color: ${theme.colors.primary}10;">"${section.personalQuote}"</blockquote>`
     : '';
 
-  // Buttons
-  const resumeBtnHtml = section.resumeUrl
-    ? `<a href="${section.resumeUrl}" download style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none; margin-right: 12px;">⬇ Download Resume</a>`
-    : '';
+  // Resume - embedded viewer or download button
+  const resumeDisplayMode = section.resumeDisplayMode || 'embed';
+  const resumeHeight = section.resumeHeight || 600;
+  let resumeHtml = '';
+  if (section.resumeUrl && resumeDisplayMode === 'embed') {
+    resumeHtml = `<div style="margin-top: 24px; width: 100%;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h4 style="font-size: 0.875rem; font-weight: 600; color: ${theme.colors.text};">Resume</h4>
+        <a href="${section.resumeUrl}" download style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 6px 12px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none;">⬇ Download</a>
+      </div>
+      <div style="width: 100%; border-radius: ${theme.borderRadius}px; overflow: hidden; border: 1px solid ${theme.colors.textSecondary}33;">
+        <iframe src="${section.resumeUrl}" title="Resume" style="width: 100%; height: ${resumeHeight}px; border: 0;"></iframe>
+      </div>
+    </div>`;
+  } else if (section.resumeUrl && resumeDisplayMode === 'download') {
+    resumeHtml = `<a href="${section.resumeUrl}" download style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none; margin-right: 12px;">⬇ Download Resume</a>`;
+  }
   const ctaBtnHtml = section.ctaButtonText && section.ctaButtonLink
     ? `<a href="${section.ctaButtonLink}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; border: 2px solid ${theme.colors.primary}; color: ${theme.colors.primary}; font-weight: 500; text-decoration: none;">${section.ctaButtonText}</a>`
     : '';
-  const buttonsHtml = (resumeBtnHtml || ctaBtnHtml) ? `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">${resumeBtnHtml}${ctaBtnHtml}</div>` : '';
+  const buttonsHtml = (resumeDisplayMode === 'download' && (resumeHtml || ctaBtnHtml)) ? `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">${resumeHtml}${ctaBtnHtml}</div>` : (ctaBtnHtml ? `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">${ctaBtnHtml}</div>` : '');
 
 
   // Video embed
   let videoHtml = '';
-  if (section.videoUrl) {
-    const embedUrl = section.videoType === 'vimeo'
-      ? section.videoUrl.replace('vimeo.com/', 'player.vimeo.com/video/')
-      : section.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+  if (section.videoUrl && section.showVideo !== false) {
+    let embedUrl: string;
+    if (section.videoType === 'vimeo') {
+      const vimeoMatch = section.videoUrl.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+      embedUrl = vimeoMatch
+        ? `https://player.vimeo.com/video/${vimeoMatch[1]}`
+        : section.videoUrl.replace('vimeo.com/', 'player.vimeo.com/video/');
+    } else {
+      const url = section.videoUrl.trim();
+      // Handle youtu.be/VIDEO_ID format
+      const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+      if (shortMatch) {
+        embedUrl = `https://www.youtube.com/embed/${shortMatch[1]}`;
+      } else {
+        // Handle watch?v=VIDEO_ID format (strip extra params like &t=, &feature=, etc.)
+        const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+        if (watchMatch) {
+          embedUrl = `https://www.youtube.com/embed/${watchMatch[1]}`;
+        } else if (url.includes('/embed/')) {
+          // Already embeddable
+          embedUrl = url;
+        } else {
+          // Fallback: try the old replace method
+          embedUrl = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+        }
+      }
+    }
     videoHtml = `<div style="margin-top: 32px; border-radius: ${theme.borderRadius}px; overflow: hidden; position: relative; padding-bottom: 56.25%; height: 0;">
       <iframe src="${embedUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>`;
   }
+
 
   // Second image
   const secondImageHtml = section.secondImageUrl
@@ -237,6 +420,7 @@ function generateAboutSection(section: any, theme: any): string {
       ${toolTagsHtml}
       ${locAvailHtml}
       ${languagesHtml}
+      ${resumeDisplayMode === 'embed' ? resumeHtml : ''}
       ${buttonsHtml}
     </div>`;
 
@@ -332,9 +516,9 @@ function generateExperienceSection(section: any, theme: any): string {
         ${section.experiences.map((exp: any) => `
           <div style="position: relative; padding-left: 24px; margin-bottom: 32px; border-left: 2px solid ${theme.colors.primary};">
             <div style="position: absolute; left: -8px; top: 0; width: 14px; height: 14px; border-radius: 50%; background-color: ${theme.colors.primary};"></div>
-            <h3 style="font-size: 1.125rem; font-weight: 600; color: ${theme.colors.text};">${exp.position}</h3>
-            <p style="color: ${theme.colors.primary}; margin-bottom: 4px;">${exp.company}</p>
-            <p style="font-size: 0.875rem; color: ${theme.colors.textSecondary}; margin-bottom: 8px;">${exp.startDate} - ${exp.endDate || 'Present'}${exp.location ? ` • ${exp.location}` : ''}</p>
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: #1a1a1a;">${exp.position}</h3>
+            <p style="color: #333333; margin-bottom: 4px;">${exp.company}</p>
+            <p style="font-size: 0.875rem; color: #555555; margin-bottom: 8px;">${exp.startDate} - ${exp.endDate || 'Present'}${exp.location ? ` • ${exp.location}` : ''}</p>
             <p>${exp.description}</p>
           </div>
         `).join('')}
@@ -348,13 +532,14 @@ function generateEducationSection(section: any, theme: any): string {
   <section style="background-color: ${theme.colors.background}; padding: 80px 24px;">
     <div class="container" style="max-width: 800px;">
       <h2 style="font-size: 2rem; text-align: center; margin-bottom: 32px; color: ${theme.colors.text};">${section.title}</h2>
-      <div style="display: flex; flex-direction: column; gap: 24px;">
+      <div style="position: relative;">
         ${section.educations.map((edu: any) => `
-          <div style="padding: 16px; border: 1px solid ${theme.colors.primary}; border-radius: ${theme.borderRadius}px;">
-            <h3 style="font-size: 1.125rem; font-weight: 600; color: ${theme.colors.text};">${edu.degree} in ${edu.field}</h3>
-            <p style="color: ${theme.colors.primary};">${edu.institution}</p>
-            <p style="font-size: 0.875rem; color: ${theme.colors.textSecondary};">${edu.startDate} - ${edu.endDate}</p>
-            ${edu.description ? `<p style="margin-top: 8px;">${edu.description}</p>` : ''}
+          <div style="position: relative; padding-left: 24px; margin-bottom: 32px; border-left: 2px solid ${theme.colors.primary};">
+            <div style="position: absolute; left: -8px; top: 0; width: 14px; height: 14px; border-radius: 50%; background-color: ${theme.colors.primary};"></div>
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: #1a1a1a;">${edu.degree} in ${edu.field}</h3>
+            <p style="color: #333333; margin-bottom: 4px;">${edu.institution}</p>
+            <p style="font-size: 0.875rem; color: #555555; margin-bottom: 8px;">${edu.startDate} - ${edu.endDate}</p>
+            ${edu.description ? `<p>${edu.description}</p>` : ''}
           </div>
         `).join('')}
       </div>
@@ -413,6 +598,7 @@ function generateSocialSection(section: any, theme: any): string {
     github: 'GitHub',
     twitter: 'Twitter',
     instagram: 'Instagram',
+    facebook: 'Facebook',
     dribbble: 'Dribbble',
     behance: 'Behance',
     website: 'Website',

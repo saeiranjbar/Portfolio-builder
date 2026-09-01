@@ -5,9 +5,9 @@ import { ProjectsSection, Project, ProjectCategory } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Type, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Type, FolderOpen, Layout } from 'lucide-react';
 import { CategoryEditorModal } from '../CategoryEditorModal';
-import { TextStyleControls } from '../TextStyleControls';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 
@@ -30,7 +30,7 @@ export function ProjectsEditor({ section, onUpdate }: ProjectsEditorProps) {
       // Edit mode: update existing category and replace its projects
       const otherProjects = section.projects.filter(p => p.category !== editingCategoryData.name);
       const updatedCategories = (section.categories || []).map(c => 
-        c.id === editingCategoryData.id ? { ...c, name: category.name } : c
+        c.id === editingCategoryData.id ? { ...c, name: category.name, description: category.description, imageUrl: category.imageUrl } : c
       );
       onUpdate({ 
         categories: updatedCategories,
@@ -94,17 +94,50 @@ export function ProjectsEditor({ section, onUpdate }: ProjectsEditorProps) {
             placeholder="Projects"
             className="mt-1"
           />
-          <div className="mt-2">
-            <TextStyleControls
-              textStyles={section.textStyles}
-              fieldKey="title"
-              fieldLabel="Section Title"
-              onUpdate={(textStyles) => onUpdate({ textStyles })}
-            />
-          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
+
+          {/* Grid Layout Settings */}
+          <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white">
+            <div className="flex items-center gap-2 mb-3">
+              <Layout className="w-4 h-4 text-gray-500" />
+              <span className="text-xs font-semibold text-gray-700">Grid Layout</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-gray-500">Columns: {section.columnCount || 2}</Label>
+                <Input
+                  type="range"
+                  min="1"
+                  max="2"
+                  value={section.columnCount || 2}
+                  onChange={(e) => onUpdate({ columnCount: parseInt(e.target.value) as 1 | 2 })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Aspect Ratio</Label>
+                <div className="flex gap-2 mt-1">
+                  {(['1:1', '4:3', '16:9'] as const).map((ratio) => (
+                    <Button
+                      key={ratio}
+                      variant={section.aspectRatio === ratio ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs flex-1"
+                      onClick={() => onUpdate({ aspectRatio: ratio })}
+                    >
+                      {ratio}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -129,7 +162,7 @@ export function ProjectsEditor({ section, onUpdate }: ProjectsEditorProps) {
               <p className="text-sm text-gray-500 mb-2">No categories yet</p>
               <Button onClick={openAddCategoryModal} size="sm" variant="outline" className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Category
+                Add Project Category
               </Button>
             </div>
           ) : (

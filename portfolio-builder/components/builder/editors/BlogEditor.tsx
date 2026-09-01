@@ -40,10 +40,6 @@ export function BlogEditor({ section, onUpdate }: BlogEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Blog Section</h2>
-        <p className="text-sm text-gray-500">Share articles and blog posts.</p>
-      </div>
 
       <CollapsibleSection title="Section Title" icon={Settings} defaultOpen
         showToggle

@@ -29,10 +29,6 @@ export function ProcessEditor({ section, onUpdate }: ProcessEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Process</h2>
-        <p className="text-sm text-gray-700">Show your design process steps.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

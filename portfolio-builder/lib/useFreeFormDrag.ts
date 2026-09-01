@@ -10,7 +10,7 @@ interface FreeFormDragConfig {
   onPositionChange: (element: string, position: ElementPosition) => void;
 }
 
-const SNAP_THRESHOLD = 5; // percentage points within which snapping occurs
+const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
 
 /**
  * Reusable hook for free-form drag with snap guides.
@@ -68,12 +68,31 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     return { x: snappedX, y: snappedY, snapV, snapH };
   }, []);
 
+  const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (!sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
+    const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
+    const allPos = configRef.current.getAllPositions();
+    const elemPos = allPos[element] || { x: 50, y: 50 };
+    dragOffset.current = { x: mouseX - elemPos.x, y: mouseY - elemPos.y };
     setDragging(element);
   };
 
   const handleTouchStart = (e: React.TouchEvent, element: string) => {
+    e.stopPropagation();
+    if (!sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const touchX = ((touch.clientX - rect.left) / rect.width) * 100;
+    const touchY = ((touch.clientY - rect.top) / rect.height) * 100;
+    const allPos = configRef.current.getAllPositions();
+    const elemPos = allPos[element] || { x: 50, y: 50 };
+    dragOffset.current = { x: touchX - elemPos.x, y: touchY - elemPos.y };
     setDragging(element);
   };
 
@@ -82,9 +101,13 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     const rect = sectionRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const clampedX = Math.max(0, Math.min(100, x));
-    const clampedY = Math.max(0, Math.min(100, y));
-    const { x: snappedX, y: snappedY, snapV, snapH } = computeSnap(dragging, clampedX, clampedY);
+    const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
+    const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
+    // Hold Alt to temporarily disable snapping for fine-tuning position
+    const useSnap = configRef.current.snapEnabled && !e.altKey;
+    const { x: snappedX, y: snappedY, snapV, snapH } = useSnap
+      ? computeSnap(dragging, clampedX, clampedY)
+      : { x: clampedX, y: clampedY, snapV: undefined, snapH: undefined };
     setSnapLines({ vertical: snapV, horizontal: snapH });
     configRef.current.onPositionChange(dragging, { x: snappedX, y: snappedY });
   }, [dragging, computeSnap]);
@@ -95,8 +118,8 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     const rect = sectionRef.current.getBoundingClientRect();
     const x = ((touch.clientX - rect.left) / rect.width) * 100;
     const y = ((touch.clientY - rect.top) / rect.height) * 100;
-    const clampedX = Math.max(0, Math.min(100, x));
-    const clampedY = Math.max(0, Math.min(100, y));
+    const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
+    const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
     const { x: snappedX, y: snappedY, snapV, snapH } = computeSnap(dragging, clampedX, clampedY);
     setSnapLines({ vertical: snapV, horizontal: snapH });
     configRef.current.onPositionChange(dragging, { x: snappedX, y: snappedY });

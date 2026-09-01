@@ -32,10 +32,6 @@ export function FAQEditor({ section, onUpdate }: FAQEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">FAQ Section</h2>
-        <p className="text-sm text-gray-500">Answer common questions from visitors.</p>
-      </div>
 
       <CollapsibleSection title="Section Title" icon={Settings} defaultOpen
         showToggle

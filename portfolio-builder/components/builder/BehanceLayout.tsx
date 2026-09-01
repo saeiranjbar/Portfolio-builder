@@ -7,7 +7,7 @@ import { usePortfolioStore } from '@/lib/store';
 import { SimpleLayoutConfig, SocialLink, Experience, Project, HeroSection, AboutSection, ContactSection, ProjectsSection } from '@/lib/types';
 
 import { 
-  Linkedin, Instagram, Twitter, Github, Dribbble, Globe, 
+  Linkedin, Instagram, Twitter, Github, Dribbble, Facebook, Globe, 
   ExternalLink, MapPin, Briefcase, GraduationCap, Users, Heart, Eye,
   ArrowLeft, X, FileText, Download, CheckCircle, Mail, Phone, Plus, Trash2,
   Building2
@@ -123,6 +123,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
       case 'github': return <Github className="w-3.5 h-3.5" />;
       case 'twitter': return <Twitter className="w-3.5 h-3.5" />;
       case 'instagram': return <Instagram className="w-3.5 h-3.5" />;
+      case 'facebook': return <Facebook className="w-3.5 h-3.5" />;
       case 'dribbble': return <Dribbble className="w-3.5 h-3.5" />;
       case 'behance': return <Globe className="w-3.5 h-3.5" />;
       case 'website': return <Globe className="w-3.5 h-3.5" />;
@@ -190,7 +191,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             title: 'Projects',
             projects: [project],
             layout: 'grid',
-            columnCount: 3,
+            columnCount: 2,
             aspectRatio: '4:3',
             showTitle: true,
             showCategories: true,
@@ -379,6 +380,19 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                  style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Instagram' : (isEditMode ? 'Add Instagram link' : '')}>
                 <Instagram className="w-5 h-5" />
+              </a>
+            );
+          })()}
+          {/* Facebook */}
+          {(() => {
+            const link = config.sidebarSocialLinks?.find(l => l.platform === 'facebook');
+            const url = link?.url || '#';
+            return (
+              <a href={url} target="_blank" rel="noopener noreferrer" 
+                 className="transition-opacity hover:opacity-60" 
+                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 title={link ? 'Facebook' : (isEditMode ? 'Add Facebook link' : '')}>
+                <Facebook className="w-5 h-5" />
               </a>
             );
           })()}

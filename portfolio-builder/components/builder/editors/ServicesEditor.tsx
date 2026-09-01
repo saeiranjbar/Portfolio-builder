@@ -29,10 +29,6 @@ export function ServicesEditor({ section, onUpdate }: ServicesEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Services</h2>
-        <p className="text-sm text-gray-700">List the services you offer.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

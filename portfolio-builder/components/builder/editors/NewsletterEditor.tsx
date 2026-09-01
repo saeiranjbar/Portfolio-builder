@@ -16,10 +16,6 @@ interface NewsletterEditorProps {
 export function NewsletterEditor({ section, onUpdate }: NewsletterEditorProps) {
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Newsletter Section</h2>
-        <p className="text-sm text-gray-500">Collect email subscribers with a signup form.</p>
-      </div>
 
       <CollapsibleSection title="Title" icon={Mail} defaultOpen
         showToggle

@@ -221,3 +221,137 @@ html.dark-scrollbar * {
               width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ===== Process step sequential fade-in animations ===== */
+@keyframes process-step-fade-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes process-connector-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes process-dots-flow {
+  0% { background-position: 0 0; }
+  100% { background-position: 8px 0; }
+}
+
+@keyframes process-dots-flow-vertical {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 8px; }
+}
+
+.process-step-circle {
+  opacity: 0;
+  animation: process-step-fade-in 0.6s ease-out forwards;
+}
+
+.process-connector-horizontal {
+  height: 2px;
+  opacity: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0,
+    currentColor 3px,
+    transparent 3px,
+    transparent 8px
+  );
+  background-size: 8px 2px;
+  animation: process-connector-fade-in 0.4s ease-out forwards, process-dots-flow 0.6s linear infinite;
+}
+
+.process-connector-vertical {
+  width: 2px;
+  opacity: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    currentColor 0,
+    currentColor 3px,
+    transparent 3px,
+    transparent 8px
+  );
+  background-size: 2px 8px;
+  animation: process-connector-fade-in 0.4s ease-out forwards, process-dots-flow-vertical 0.6s linear infinite;
+}
+
+.process-arrow-horizontal {
+  opacity: 0;
+  animation: process-connector-fade-in 0.4s ease-out forwards;
+}
+
+.process-arrow-vertical {
+  opacity: 0;
+  animation: process-connector-fade-in 0.4s ease-out forwards;
+}
+
+/* ===== Playful Process Step Animations ===== */
+@keyframes process-step-bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes process-number-rotate-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-360deg);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes process-connector-slide-horizontal {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes process-connector-slide-vertical {
+  0% {
+    height: 0;
+    opacity: 0;
+  }
+  100% {
+    height: 100%;
+    opacity: 1;
+  }
+}
+
+.process-step-card {
+  animation: process-step-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.process-step-card:hover {
+  transform: scale(1.05);
+}
+
+.process-number-animated {
+  animation: process-number-rotate-in 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+  opacity: 0;
+}
+
+.process-connector-animated-horizontal {
+  animation: process-connector-slide-horizontal 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.process-connector-animated-vertical {
+  animation: process-connector-slide-vertical 0.5s ease-out forwards;
+  opacity: 0;
+}
+

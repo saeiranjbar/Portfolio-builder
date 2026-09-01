@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { TextStyleControls } from '../TextStyleControls';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { Type, Mail, Phone, MapPin, FormInput, Calendar, Plus, Trash2, Link as LinkIcon, Check } from 'lucide-react';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { generateId } from '@/lib/utils';
 
 interface ContactEditorProps {
@@ -51,12 +51,6 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
   };
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Contact Section</h2>
-        <p className="text-sm text-gray-500">
-          Contact information and form settings.
-        </p>
-      </div>
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
@@ -68,12 +62,6 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
           value={section.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="Get In Touch"
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Section Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -89,12 +77,6 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
           onChange={(e) => onUpdate({ email: e.target.value })}
           placeholder="your@email.com"
         />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="email"
-          fieldLabel="Email"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* Phone */}
@@ -109,12 +91,6 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
           onChange={(e) => onUpdate({ phone: e.target.value })}
           placeholder="+1 (555) 123-4567"
         />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="phone"
-          fieldLabel="Phone"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
-        />
       </CollapsibleSection>
 
       {/* Location */}
@@ -127,12 +103,6 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
           value={section.location || ''}
           onChange={(e) => onUpdate({ location: e.target.value })}
           placeholder="City, Country"
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="location"
-          fieldLabel="Location"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -241,6 +211,18 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
           Add social media links that will appear in the contact section.
         </p>
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[
+          { key: 'title', label: 'Section Title' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Phone' },
+          { key: 'location', label: 'Location' },
+        ]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
   );
 }

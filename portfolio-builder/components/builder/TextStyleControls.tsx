@@ -86,7 +86,7 @@ export function TextStyleControls({
         <div className="flex items-center gap-2">
           <Type className="w-3.5 h-3.5 text-gray-500" />
           <span className="text-xs font-medium text-gray-700">
-            Text Style: {fieldLabel}
+            {fieldLabel}
           </span>
           {hasCustomStyles && (
             <span className="w-2 h-2 rounded-full bg-blue-500" title="Custom styles applied" />
@@ -258,6 +258,39 @@ export function TextStyleControls({
                 <Strikethrough className="w-3.5 h-3.5" />
               </Button>
             </div>
+          </div>
+
+          {/* Max Width (line width control) */}
+          <div>
+            <Label className="text-xs text-gray-600 mb-1 block">
+              Text Width (max width): {styles.maxWidth ? parseInt(styles.maxWidth) : 'Auto'}px
+            </Label>
+            <Input
+              type="range"
+              min="100"
+              max="1600"
+              step="10"
+              value={styles.maxWidth ? parseInt(styles.maxWidth) : 0}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                updateStyle('maxWidth', val > 0 ? `${val}px` : '');
+              }}
+              className="w-full"
+            />
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-gray-400">Auto</span>
+              <button
+                type="button"
+                className="text-xs text-blue-500 hover:text-blue-700"
+                onClick={() => updateStyle('maxWidth', '')}
+              >
+                Reset to auto
+              </button>
+              <span className="text-xs text-gray-400">1600px</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Controls how wide the text line can be. Lower = narrower lines, higher = wider lines.
+            </p>
           </div>
 
           {/* Text Transform */}

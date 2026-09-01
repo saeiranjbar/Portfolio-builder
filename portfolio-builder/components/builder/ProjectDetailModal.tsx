@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Project } from '@/lib/types';
 import { X, ExternalLink, Calendar, User, Tag, ChevronLeft, ChevronRight, ZoomIn, Share2 } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
@@ -38,25 +39,30 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
   const prevProject = currentIndex > 0 ? projects[currentIndex - 1] : null;
   const nextProject = project && currentIndex >= 0 && currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null;
 
+  // Keep latest values in refs to avoid re-attaching the event listener
+  const isLightboxOpenRef = React.useRef(isLightboxOpen);
+  isLightboxOpenRef.current = isLightboxOpen;
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
   // Keyboard navigation - must be before early return to maintain hook order
   React.useEffect(() => {
     if (!isOpen || !project) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && prevProject && onNavigate) onNavigate(prevProject);
-      if (e.key === 'ArrowRight' && nextProject && onNavigate) onNavigate(nextProject);
+      // Don't handle Escape if a media block lightbox is open — let it handle Escape
+      if (e.key === 'Escape' && document.body.hasAttribute('data-lightbox-open')) return;
       if (e.key === 'Escape') {
-        if (isLightboxOpen) setIsLightboxOpen(false);
-        else onClose();
+        if (isLightboxOpenRef.current) setIsLightboxOpen(false);
+        else onCloseRef.current();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, project, prevProject, nextProject, isLightboxOpen, onNavigate]);
+  }, [isOpen, project]);
 
   if (!isOpen || !project) return null;
 
   const allImages = [
-    { id: 'cover', url: project.imageUrl, caption: 'Cover Image' },
     ...(project.images || [])
   ];
 
@@ -88,7 +94,7 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
     setShowShareMenu(false);
   };
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
@@ -107,31 +113,11 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
             <X className="w-6 h-6" />
           </button>
 
-          {/* Prev/Next navigation buttons */}
-          {prevProject && (
-            <button
-              onClick={handlePrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-              title="Previous project"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-          )}
-          {nextProject && (
-            <button
-              onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-              title="Next project"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          )}
-
-          {/* Main image with zoom button - only show if there's a cover image */}
-          {project.imageUrl && (
+          {/* Main image gallery - only show if there are gallery images */}
+          {allImages.length > 0 && (
           <div className="relative aspect-video w-full bg-gray-100 group">
             <OptimizedImage
-              src={allImages[currentImageIndex]?.url || project.imageUrl}
+              src={allImages[currentImageIndex]?.url}
               alt={project.title}
               className="w-full h-full object-cover cursor-zoom-in"
               fill
@@ -181,8 +167,8 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
           </div>
           )}
 
-          {/* Share button - shown when no cover image */}
-          {!project.imageUrl && (
+          {/* Share button - shown when no gallery images */}
+          {allImages.length === 0 && (
             <div className="relative bg-gray-50 p-4">
               <div className="absolute top-4 right-4">
                 <button
@@ -210,8 +196,8 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
             </div>
           )}
 
-          {/* Image thumbnails - only show if there are images */}
-          {project.imageUrl && allImages.length > 1 && (
+          {/* Image thumbnails - only show if there are multiple images */}
+          {allImages.length > 1 && (
             <div className="flex gap-2 p-4 overflow-x-auto bg-gray-50">
               {allImages.map((img, index) => (
                 <button
@@ -362,28 +348,6 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
               </a>
             )}
 
-            {/* Navigation footer */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handlePrev}
-                disabled={!prevProject}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </button>
-              <span className="text-xs text-gray-400">
-                {currentIndex + 1} / {projects.length}
-              </span>
-              <button
-                onClick={handleNext}
-                disabled={!nextProject}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -445,6 +409,7 @@ export function ProjectDetailModal({ project, isOpen, onClose, theme, projects =
           )}
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }

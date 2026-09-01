@@ -220,14 +220,42 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
   };
 
   const handlePhotoGridUpload = (blockId: string, itemId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // First file goes to the existing item
+    const firstReader = new FileReader();
+    firstReader.onload = (ev) => {
+      updatePhotoGridItem(blockId, itemId, { url: ev.target?.result as string });
+    };
+    firstReader.readAsDataURL(files[0]);
+
+    // Additional files create new items — use functional state update to avoid stale closure
+    for (let i = 1; i < files.length; i++) {
+      const file = files[i];
       const reader = new FileReader();
       reader.onload = (ev) => {
-        updatePhotoGridItem(blockId, itemId, { url: ev.target?.result as string });
+        const newItem: PhotoGridItem = {
+          id: generateId(),
+          url: ev.target?.result as string,
+          caption: '',
+        };
+        setMediaBlocks(prev => prev.map(b => {
+          if (b.id !== blockId || !b.photoGridContent) return b;
+          return {
+            ...b,
+            photoGridContent: {
+              ...b.photoGridContent,
+              items: [...b.photoGridContent.items, newItem],
+            } as PhotoGridContent,
+          };
+        }));
       };
       reader.readAsDataURL(file);
     }
+
+    // Reset the input so the same files can be selected again
+    e.target.value = '';
   };
 
   const handleVideoUpload = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -432,7 +460,7 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
                     ) : (
                       <label className="flex items-center justify-center w-12 h-12 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50">
                         <ImageIcon className="w-4 h-4 text-gray-400" />
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoGridUpload(block.id, item.id, e)} />
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePhotoGridUpload(block.id, item.id, e)} />
                       </label>
                     )}
                     <Input
@@ -449,9 +477,59 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
                     </button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => addPhotoGridItem(block.id)} className="w-full">
-                  <Plus className="w-3 h-3 mr-1" /> Add Photo
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => addPhotoGridItem(block.id)} className="flex-1">
+                    <Plus className="w-3 h-3 mr-1" /> Add Photo
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      // Trigger the hidden multi-file input
+                      const input = document.getElementById(`photo-grid-upload-${block.id}`) as HTMLInputElement;
+                      if (input) input.click();
+                    }}
+                  >
+                    <ImageIcon className="w-3 h-3 mr-1" /> Upload Multiple
+                  </Button>
+                  <input
+                    id={`photo-grid-upload-${block.id}`}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+                      // Create a new item for each file using functional state update
+                      // to avoid stale closure issues with async FileReader
+                      Array.from(files).forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const newItem: PhotoGridItem = {
+                            id: generateId(),
+                            url: ev.target?.result as string,
+                            caption: '',
+                          };
+                          // Use functional update to always get the latest state
+                          setMediaBlocks(prev => prev.map(b => {
+                            if (b.id !== block.id || !b.photoGridContent) return b;
+                            return {
+                              ...b,
+                              photoGridContent: {
+                                ...b.photoGridContent,
+                                items: [...b.photoGridContent.items, newItem],
+                              } as PhotoGridContent,
+                            };
+                          }));
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
               </div>
             </>
           )}

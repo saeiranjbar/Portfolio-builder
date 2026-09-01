@@ -52,6 +52,19 @@ export function imageToBase64(file: File): Promise<string> {
 }
 
 /**
+ * Converts a video File to a URL that can be used as a video source.
+ * Uses URL.createObjectURL() instead of base64 to avoid memory issues
+ * with large video files. Base64 encoding a video creates a massive string
+ * that can crash the browser. Object URLs are lightweight references to
+ * the file blob in memory.
+ * @param file - Video file to convert.
+ * @returns Promise that resolves with the object URL string.
+ */
+export function videoToBase64(file: File): Promise<string> {
+  return Promise.resolve(URL.createObjectURL(file));
+}
+
+/**
  * Triggers a download of the given content.
  * @param content - File content as a string.
  * @param filename - Desired filename for the download.

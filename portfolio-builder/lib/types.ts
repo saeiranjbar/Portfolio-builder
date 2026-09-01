@@ -36,6 +36,7 @@ export interface TextStyleSettings {
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   lineHeight?: string;
   letterSpacing?: string;
+  maxWidth?: string;
 }
 
 // Map of field key -> text style settings
@@ -46,6 +47,20 @@ export interface SectionBackground {
   type: 'theme' | 'color' | 'gradient' | 'image';
   value?: string; // hex color, gradient string, or image URL
   overlayOpacity?: number; // 0-100, for image backgrounds to darken for text readability
+}
+
+// Background shape for free-form sections — decorative shapes placed behind text
+export interface BackgroundShape {
+  id: string;
+  shape: 'rectangle' | 'circle' | 'triangle' | 'rounded';
+  color: string;
+  opacity: number; // 0-100
+  width: number; // px
+  height: number; // px
+  position: ElementPosition; // percentage 0-100
+  zIndex: number; // typically 0 (below text elements at zIndex 10)
+  rotation?: number; // degrees
+  borderRadius?: number; // for rounded rectangle, in px
 }
 
 // Free-form layout configuration shared by all section types
@@ -195,7 +210,19 @@ export interface GalleryImage {
   id: string;
   url: string;
   caption?: string;
+  // Natural image dimensions (captured on upload for aspect-ratio calculations)
+  naturalWidth?: number;
+  naturalHeight?: number;
   // Position for free-form layout (percentage 0-100)
+  position?: ElementPosition;
+}
+
+// Gallery video for hero/about multi-video support
+export interface GalleryVideo {
+  id: string;
+  url: string; // Can be YouTube/Vimeo embed URL or uploaded video URL
+  type: 'youtube' | 'vimeo' | 'uploaded'; // Video source type
+  caption?: string;
   position?: ElementPosition;
   // Size for free-form layout
   size?: 'small' | 'medium' | 'large';
@@ -287,7 +314,7 @@ export interface Testimonial {
 
 export interface SocialLink {
   id: string;
-  platform: 'linkedin' | 'github' | 'twitter' | 'instagram' | 'dribbble' | 'behance' | 'website';
+  platform: 'linkedin' | 'github' | 'twitter' | 'instagram' | 'facebook' | 'dribbble' | 'behance' | 'website';
   url: string;
 }
 
@@ -323,8 +350,13 @@ export interface HeroSection {
   subtitlePosition: ElementPosition;
   bioPosition: ElementPosition;
   ctaButtonsPosition: ElementPosition;
-  // Element sizes
+  galleryImagesPosition?: ElementPosition;
+  galleryVideosPosition?: ElementPosition;
+  // Element sizes and shapes
   avatarSize: 'small' | 'medium' | 'large';
+  avatarWidth?: number; // in pixels (e.g., 80, 120, 160)
+  avatarHeight?: number; // in pixels (e.g., 80, 120, 160)
+  avatarShape?: 'circle' | 'rounded' | 'square'; // circle, rounded square, or square
   // Visibility
   showName: boolean;
   showTitle: boolean;
@@ -347,10 +379,17 @@ export interface HeroSection {
 
   // Additional gallery images
   galleryImages?: GalleryImage[];
+  // Additional gallery videos
+  galleryVideos?: GalleryVideo[];
+  // Gallery grid layout
+  galleryGridCols?: number; // 1-4 columns (rows auto-calculate)
+  galleryVideoGridCols?: number; // 1-3 columns for video grid
   // Typing/rotating text animation for title (e.g., ["Designer", "Developer", "Creator"])
   typingWords?: string[];
   // Enable parallax effect on hero background
   parallaxEnabled?: boolean;
+  // Background shapes (free-form decorative shapes behind text)
+  backgroundShapes?: BackgroundShape[];
 }
 
 
@@ -380,7 +419,13 @@ export interface AboutSection {
   personalQuote?: string; // Large styled pull-quote
   imageUrl?: string;
   secondImageUrl?: string; // Optional workspace/secondary image
+  imageWidth?: number; // Custom portrait image width in px
+  imageHeight?: number; // Custom portrait image height in px
+  secondImageWidth?: number; // Custom second image width in px
+  secondImageHeight?: number; // Custom second image height in px
   resumeUrl?: string; // Downloadable resume/CV link
+  resumeDisplayMode?: 'embed' | 'download'; // How to show resume: embedded viewer or download button
+  resumeHeight?: number; // Height of embedded resume viewer in px
   imageShape?: 'rounded' | 'circle' | 'square';
   imageLayout?: 'left' | 'right' | 'top' | 'none' | 'fullwidth'; // Image position relative to text
   imageSize?: 'small' | 'medium' | 'large';
@@ -427,15 +472,17 @@ export interface AboutSection {
   freeFormEnabled?: boolean;
   snapEnabled?: boolean;
   elementPositions?: Record<string, ElementPosition>;
+  // Background shapes (free-form decorative shapes behind text)
+  backgroundShapes?: BackgroundShape[];
 }
 
 
 
 export interface ProjectCategory {
-
-
   id: string;
   name: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface ProjectsSection {
@@ -446,7 +493,7 @@ export interface ProjectsSection {
   categories: ProjectCategory[];
   projects: Project[];
   layout: 'grid' | 'carousel' | 'list';
-  columnCount: 2 | 3 | 4;
+  columnCount: 1 | 2;
 
   aspectRatio: '1:1' | '4:3' | '16:9' | 'original';
   textStyles?: TextStyles;
@@ -953,6 +1000,34 @@ export interface SimpleLayoutConfig {
 }
 
 
+// Interactive Effects Configuration
+export interface MouseColorShiftEffect {
+  enabled: boolean;
+  startColor: string;   // left side color
+  endColor: string;     // right side color
+  intensity: number;    // 0-100 opacity
+}
+
+export interface SplashButtonEffect {
+  enabled: boolean;
+  text: string;
+  link: string;
+  color: string;
+  position: 'bottom-center' | 'bottom-right' | 'bottom-left';
+}
+
+export interface ColorRibbonEffect {
+  enabled: boolean;
+  color: string;      // ribbon color
+  intensity: number;   // 0-100 opacity
+}
+
+export interface PortfolioEffects {
+  mouseColorShift: MouseColorShiftEffect;
+  splashButton: SplashButtonEffect;
+  colorRibbon: ColorRibbonEffect;
+}
+
 // Portfolio Data
 export interface PortfolioData {
   id: string;
@@ -973,6 +1048,8 @@ export interface PortfolioData {
   // Layout mode configuration
   layoutMode: LayoutMode;
   simpleLayout?: SimpleLayoutConfig;
+  // Interactive effects
+  effects?: PortfolioEffects;
 }
 
 // Template Types

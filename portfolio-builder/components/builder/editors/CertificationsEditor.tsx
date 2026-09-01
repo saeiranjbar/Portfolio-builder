@@ -28,10 +28,6 @@ export function CertificationsEditor({ section, onUpdate }: CertificationsEditor
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Certifications</h2>
-        <p className="text-sm text-gray-700">Showcase professional certifications and courses.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

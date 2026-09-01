@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
 import { generateId } from '@/lib/utils';
 import { OptimizedImage } from './OptimizedImage';
+import { ImageUploader } from './ImageUploader';
+import { Textarea } from '@/components/ui/textarea';
 
 import { ProjectEditorModal } from './ProjectEditorModal';
 
@@ -23,11 +25,17 @@ interface CategoryEditorModalProps {
 
 export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategories, editCategory, existingProjects = [] }: CategoryEditorModalProps) {
   const [categoryName, setCategoryName] = React.useState('');
+  const [categoryDescription, setCategoryDescription] = React.useState('');
+  const [categoryImageUrl, setCategoryImageUrl] = React.useState('');
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [expandedProject, setExpandedProject] = React.useState<string | null>(null);
   const [error, setError] = React.useState('');
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = React.useState(false);
+
+  // Keep a ref to projects so handleSave always has the latest state
+  const projectsRef = React.useRef<Project[]>([]);
+  projectsRef.current = projects;
 
   const isEditMode = !!editCategory;
 
@@ -36,10 +44,14 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
       if (editCategory) {
         // Edit mode: populate with existing data
         setCategoryName(editCategory.name);
+        setCategoryDescription(editCategory.description || '');
+        setCategoryImageUrl(editCategory.imageUrl || '');
         setProjects(existingProjects.filter(p => p.category === editCategory.name));
       } else {
         // Add mode: clear form
         setCategoryName('');
+        setCategoryDescription('');
+        setCategoryImageUrl('');
         setProjects([]);
       }
       setExpandedProject(null);
@@ -59,7 +71,7 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
       tags: [],
       category: categoryName,
     };
-    setProjects([...projects, newProject]);
+    setProjects(prev => [...prev, newProject]);
     // Open the project editor modal for the new project
     setEditingProject(newProject);
     setIsProjectModalOpen(true);
@@ -71,7 +83,7 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
   };
 
   const handleSaveProject = (updatedProject: Project) => {
-    setProjects(projects.map(p => 
+    setProjects(prev => prev.map(p => 
       p.id === updatedProject.id ? updatedProject : p
     ));
   };
@@ -134,12 +146,14 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
     }
 
     const newCategory: ProjectCategory = {
-      id: generateId(),
+      id: isEditMode ? editCategory!.id : generateId(),
       name: categoryName.trim(),
+      description: categoryDescription.trim() || undefined,
+      imageUrl: categoryImageUrl || undefined,
     };
 
-    // Update all projects with the category name
-    const updatedProjects = projects.map(p => ({
+    // Update all projects with the category name (use ref for latest state)
+    const updatedProjects = projectsRef.current.map(p => ({
       ...p,
       category: categoryName.trim()
     }));
@@ -183,6 +197,29 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
             {error && (
               <p className="text-red-500 text-sm mt-1">{error}</p>
             )}
+          </div>
+
+          {/* Category Description */}
+          <div>
+            <Label htmlFor="categoryDescription">Category Description</Label>
+            <Textarea
+              id="categoryDescription"
+              value={categoryDescription}
+              onChange={(e) => setCategoryDescription(e.target.value)}
+              placeholder="Write a brief description about this category..."
+              rows={3}
+              className="mt-1"
+            />
+          </div>
+
+          {/* Category Cover Image */}
+          <div>
+            <Label>Category Cover Image</Label>
+            <p className="text-sm text-gray-500 mb-2">This image will be shown as the category tile cover</p>
+            <ImageUploader
+              value={categoryImageUrl}
+              onChange={(url: string) => setCategoryImageUrl(url)}
+            />
           </div>
 
           {/* Projects Section */}

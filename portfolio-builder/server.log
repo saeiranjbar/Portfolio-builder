@@ -1,0 +1,17 @@
+
+> portfolio-builder@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://105.146.10✓ Finished writing to filesystem cache in 25.5s
+✓ Finished writing to filesystem cache in 73s
+✓ Finished writing to filesystem cache in 46s
+0
+- PID:          11644
+- Dir:          C:\Users\s.ranjbar\Documents\Cline\Portfolio Builder\portfolio-builder
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 11644 /F to stop it.
+[?25h

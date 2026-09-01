@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -s http://localhost:3000 -w \"\\\\n%{http_code}\\\\n\")",
+      "Bash(timeout 5 curl -s http://localhost:3000 --connect-timeout 2)",
+      "Bash(git add *)",
+      "Bash(netstat -tlnp)",
+      "Bash(echo 'Test preview file: file:///c:/Users/s.ranjbar/Documents/Cline/Portfolio Builder/portfolio-builder/public/test-preview.html')",
+      "Bash(echo '1. Open this file in your browser: file:///c:/Users/s.ranjbar/Documents/Cline/Portfolio Builder/portfolio-builder/public/test-preview.html')",
+      "Bash(pkill -9 node)",
+      "Bash(lsof -Pi :3000 -sTCP:LISTEN -t)",
+      "Bash(curl -s http://localhost:3000 -w \"\\\\nStatus: %{http_code}\\\\n\")",
+      "Bash(timeout 5 curl -s -w \"\\\\nHTTP Status: %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(rm -f .next/cache)",
+      "Bash(tee server.log)",
+      "Bash(node -c \"c:\\\\Users\\\\s.ranjbar\\\\Documents\\\\Cline\\\\Portfolio Builder\\\\portfolio-builder\\\\app\\\\page.tsx\")",
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"Status: %{http_code}\\\\n\")",
+      "PowerShell(taskkill /PID 27376 /F)",
+      "PowerShell(Get-Process | Where-Object {$_.ProcessName -eq \"node\"} | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; \"Processes stopped\")",
+      "PowerShell(Get-Process | Where-Object {$_.ProcessName -eq \"node\"} | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; \"Done\")",
+      "Bash(pkill -f \"npm run dev\")",
+      "Read(//c/Users/s.ranjbar/Downloads/**)"
+    ]
+  }
+}

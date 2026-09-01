@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePortfolioStore } from '@/lib/store';
 import { SectionEditor } from '@/components/builder/SectionEditor';
+import { SectionListPanel } from '@/components/builder/SectionListPanel';
 import { AddSectionDialog } from '@/components/builder/AddSectionDialog';
 import { PortfolioPreview } from '@/components/builder/PortfolioPreview';
 import { ThemeSettings } from '@/components/builder/ThemeSettings';
+import { EffectsPanel } from '@/components/builder/EffectsPanel';
 import { SectionTabs } from '@/components/builder/SectionTabs';
 import { CommandPalette } from '@/components/builder/CommandPalette';
 import { downloadHTML, downloadJSON } from '@/lib/export';
@@ -31,6 +33,7 @@ import {
   Columns,
   Plus,
   Wand2,
+  Sparkles,
 } from 'lucide-react';
 
 
@@ -64,6 +67,7 @@ export default function BuilderPage() {
     selectedSectionId,
     markClean,
     setLayoutMode,
+    createBlankFlexibleSite,
   } = usePortfolioStore();
 
 
@@ -80,6 +84,7 @@ export default function BuilderPage() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showThemePanel, setShowThemePanel] = useState(false);
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +92,16 @@ export default function BuilderPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const lastSyncedCategoryIdRef = React.useRef<string>('');
+  const wasPreviewModeRef = React.useRef(previewMode);
+
+  // Development-only entry point used by the local browser regression test.
+  // It is disabled in production and leaves the normal welcome flow unchanged.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development' || new URLSearchParams(window.location.search).get('__e2e') !== 'manual') return;
+    createBlankFlexibleSite();
+    setShowWelcome(false);
+  }, [createBlankFlexibleSite]);
 
   // Show skeleton on initial load
   useEffect(() => {
@@ -104,16 +119,21 @@ export default function BuilderPage() {
     }
   }, [portfolio.sections, defaultSectionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Select section when activeSectionId changes
+  // Content edits replace the sections array. Only synchronize when navigation
+  // actually changes, otherwise typing in About would reopen the stale Hero item.
   useEffect(() => {
-    if (activeSectionId && portfolio.sections.some(s => s.id === activeSectionId)) {
+    if (activeSectionId && lastSyncedCategoryIdRef.current !== activeSectionId) {
+      lastSyncedCategoryIdRef.current = activeSectionId;
       selectSection(activeSectionId);
     }
-  }, [activeSectionId, portfolio.sections, selectSection]);
+  }, [activeSectionId, portfolio.sections, defaultSectionId, selectSection]);
 
-  // Re-select section when exiting preview mode
+  // Restore the active category only on the transition from preview back to edit.
   useEffect(() => {
-    if (!previewMode && activeSectionId && portfolio.sections.some(s => s.id === activeSectionId)) {
+    const wasPreviewing = wasPreviewModeRef.current;
+    wasPreviewModeRef.current = previewMode;
+    if (wasPreviewing && !previewMode && activeSectionId && portfolio.sections.some(s => s.id === activeSectionId)) {
+      lastSyncedCategoryIdRef.current = activeSectionId;
       selectSection(activeSectionId);
     }
   }, [previewMode, activeSectionId, portfolio.sections, selectSection]);
@@ -291,8 +311,8 @@ export default function BuilderPage() {
           setShowAIChat(true);
         }}
         onChooseManual={() => {
+          createBlankFlexibleSite();
           setShowWelcome(false);
-          setShowWizard(true);
         }}
         onChooseTemplate={() => {
           setShowWelcome(false);
@@ -355,6 +375,55 @@ export default function BuilderPage() {
             <span className="hidden md:inline">AI Website Builder</span>
             <span className="md:hidden">AI</span>
           </button>
+          {process.env.NODE_ENV === 'development' && (
+            <button
+              onClick={() => {
+                const hero = portfolio.sections.find(s => s.type === 'hero');
+                if (!hero) { toast.error('No Hero section found'); return; }
+                // Find existing sections to link CTA buttons to real targets
+                const about = portfolio.sections.find(s => s.type === 'about');
+                const contact = portfolio.sections.find(s => s.type === 'contact');
+                const projects = portfolio.sections.find(s => s.type === 'projects');
+                updateSection(hero.id, {
+                  name: 'Jane Doe', title: 'Senior Product Designer',
+                  subtitle: 'Creating delightful digital experiences',
+                  bio: 'Passionate designer with 8+ years of experience crafting user-centered digital products.',
+                  avatar: 'https://picsum.photos/seed/avatar/300/300',
+                  avatarShape: 'circle', avatarWidth: 120, avatarHeight: 120,
+                  showName: true, showTitle: true, showSubtitle: true, showBio: true, showAvatar: true, showScrollIndicator: true,
+                  avatarPosition: { x: 50, y: 8 }, namePosition: { x: 50, y: 18 },
+                  titlePosition: { x: 50, y: 28 }, subtitlePosition: { x: 50, y: 38 },
+                  bioPosition: { x: 50, y: 50 }, ctaButtonsPosition: { x: 50, y: 75 },
+                  ctaButtons: [
+                    { id: 'cta-1', label: 'About Me', link: about ? `#section-${about.id}` : '#about', variant: 'primary' as const },
+                    { id: 'cta-2', label: 'My Projects', link: projects ? `#section-${projects.id}` : '#projects', variant: 'outline' as const },
+                    { id: 'cta-3', label: 'Get In Touch', link: contact ? `#section-${contact.id}` : '#contact', variant: 'secondary' as const },
+                  ],
+                  freeFormEnabled: true, snapEnabled: true,
+                  galleryImages: [
+                    { id: 'gi-1', url: 'https://picsum.photos/seed/test1/800/600', caption: 'Test 1' },
+                    { id: 'gi-2', url: 'https://picsum.photos/seed/test2/800/600', caption: 'Test 2' },
+                    { id: 'gi-3', url: 'https://picsum.photos/seed/test3/800/600', caption: 'Test 3' },
+                    { id: 'gi-4', url: 'https://picsum.photos/seed/test4/800/600', caption: 'Test 4' },
+                    { id: 'gi-5', url: 'https://picsum.photos/seed/test5/800/600', caption: 'Test 5' },
+                    { id: 'gi-6', url: 'https://picsum.photos/seed/test6/800/600', caption: 'Test 6' },
+                  ],
+                  galleryVideos: [
+                    { id: 'gv-1', type: 'youtube', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', caption: 'YouTube Test' },
+                    { id: 'gv-2', type: 'vimeo', url: 'https://player.vimeo.com/video/76979871', caption: 'Vimeo Test' },
+                  ],
+                  galleryGridCols: 3, galleryVideoGridCols: 2,
+                  typingWords: ['Designer', 'Developer', 'Creator'], parallaxEnabled: false,
+                } as any);
+                toast.success('Test data loaded into Hero section!');
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors"
+              title="Load test data into Hero section"
+            >
+              <span className="hidden md:inline">🧪 Test Data</span>
+              <span className="md:hidden">🧪</span>
+            </button>
+          )}
           {isDirty && (
             <span className="text-xs text-orange-500 flex items-center gap-1">
               <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
@@ -533,17 +602,9 @@ export default function BuilderPage() {
       </motion.header>
 
 
-      {/* Combined Section Tabs (replaces both left sidebar list and top preview tabs) - hidden in simple mode */}
-      {portfolio.layoutMode !== 'simple' && (
-        <SectionTabs
-          activeSectionId={activeSectionId}
-          onSelectSection={handleSelectSection}
-          onAddSection={() => setShowAddSection(!showAddSection)}
-          readOnly={previewMode}
-        />
-      )}
+      {/* Section List Panel replaced SectionTabs - only show in flexible mode */}
 
-      {/* Add Section button for simple mode */}
+      {/* Add Category button for simple mode */}
       {portfolio.layoutMode === 'simple' && !previewMode && (
         <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between flex-shrink-0">
           <span className="text-sm font-medium text-gray-700">Sections</span>
@@ -552,14 +613,24 @@ export default function BuilderPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Section
+            Add Category
           </button>
         </div>
       )}
 
-      {/* Add Section Panel (collapsible below tabs) */}
+      {/* Add Category Panel (collapsible below tabs) */}
       {showAddSection && !previewMode && (
         <div className="bg-gray-50 border-b border-gray-200 p-4 flex-shrink-0 rounded-b-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Add a Category</h3>
+            <button
+              onClick={() => setShowAddSection(false)}
+              className="text-gray-400 hover:text-gray-600 transition-colors text-xl font-bold"
+              title="Close (press Escape)"
+            >
+              ✕
+            </button>
+          </div>
           <AddSectionDialog onSectionAdded={(id) => {
             handleSelectSection(id);
             setShowAddSection(false);
@@ -590,16 +661,27 @@ export default function BuilderPage() {
 
         ) : !previewMode ? (
           <>
-            {/* Left Panel - Editor Only */}
+            {/* Center Panel - Editor */}
             <motion.div
               initial={{ x: -360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="w-[360px] bg-white/80 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-hidden"
+              className="w-[320px] bg-white/80 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-hidden"
             >
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto min-h-0">
+                {/* Add Category Button */}
+                <div className="p-3">
+                  <button
+                    onClick={() => setShowAddSection(!showAddSection)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Category
+                  </button>
+                </div>
+
                 {/* Theme Settings Toggle */}
                 <div className="p-3">
                   <button
@@ -628,20 +710,39 @@ export default function BuilderPage() {
                   </div>
                 )}
 
+                {/* Effects Settings Toggle */}
+                <div className="p-3">
+                  <button
+                    onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+                    className={cn(
+                      'w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-200',
+                      showEffectsPanel
+                        ? 'border-pink-400 bg-pink-50'
+                        : 'border-gray-200 hover:border-pink-300 bg-gradient-to-r hover:from-pink-50 hover:to-purple-50'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-pink-600" />
+                      <span className="text-sm font-semibold text-gray-900">Interactive Effects</span>
+                    </div>
+                    <span className="text-gray-400 text-xs">
+                      {showEffectsPanel ? '▲' : '▼'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Effects Panel */}
+                {showEffectsPanel && (
+                  <div className="px-3 pb-4">
+                    <EffectsPanel />
+                  </div>
+                )}
+
                 {/* Divider */}
                 <div className="border-t" />
 
-                {/* Section Editor */}
-                {activeSection ? (
-                  <div className="p-4">
-                    <SectionEditor />
-                  </div>
-                ) : (
-                  <div className="p-8 text-center text-gray-400">
-                    <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Select a section to edit</p>
-                  </div>
-                )}
+                {/* Section Editor — accordion style, all sections listed */}
+                <SectionEditor />
               </div>
             </motion.div>
 
@@ -676,7 +777,7 @@ export default function BuilderPage() {
                   </AnimatePresence>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500">
-                    Add a section to see the preview
+                    Add a category to see the preview
                   </div>
                 )}
               </div>
@@ -713,11 +814,6 @@ export default function BuilderPage() {
         onSelectSection={handleSelectSection}
         onOpenAddSection={() => setShowAddSection(true)}
       />
-
-      {/* AI Website Builder Chat */}
-      {showAIChat && (
-        <AIWebsiteChat onClose={() => setShowAIChat(false)} />
-      )}
     </div>
   );
 }

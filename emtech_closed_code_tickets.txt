@@ -1,0 +1,1109 @@
+================================================================================
+EMMTECH Closed Tickets Containing Code Snippets
+Total unique tickets: 1092
+Generated from Jira sdsdev site (devops.sdsdev.co.kr)
+================================================================================
+
+Search categories used:
+  import, function, Exception, patch, dumpstate, adb, logcat,
+  NullPointerException, commit, public class, git, diff, stacktrace
+
+--------------------------------------------------------------------------------
+Ticket Key           Categories                                         Summary
+--------------------------------------------------------------------------------
+EMMTECH-87           dumpstate, function                                [00221709] Issues with in-app purchases
+EMMTECH-93           function                                           [00223173] How to change EMM provider information
+EMMTECH-94           function                                           [00223276] Customer cannot exit Kiosk
+EMMTECH-101          dumpstate                                          [00223264] Issues with lock and unlock SIM PIN
+EMMTECH-107          function                                           [customer] [00223536] Banned Google Account
+EMMTECH-108          dumpstate                                          [00223298] Devices after enrollment and register at KM, does not look the same
+EMMTECH-111          function                                           [00219000] Super admin stefan-andrej.bilbija on tenant testing.roche.com can login via SSO but does not have the Invite button
+EMMTECH-114          Exception, dumpstate                               [00223424] Kiosk crashes after device update
+EMMTECH-116          function                                           [00223886] Configuring the Base VPN profile
+EMMTECH-117          dumpstate                                          [00223648] Status bar is hidden (Android P and Q)
+EMMTECH-123          Exception, dumpstate, public class                 [00224201] Some public apps are crashing on A125M devices
+EMMTECH-131          Exception, dumpstate, function                     [00224322] With Multi App Kiosk Home Button and Recent Button is not avaibale
+EMMTECH-132          adb                                                [ETS][00223418] Not possible to remove device from KM
+EMMTECH-136          function                                           [00224491] [ETS] EMM/OAUTH/Token endpoint returning identical tokens when that is not expected
+EMMTECH-142          dumpstate                                          [00224615] MS Power BI app slow performance with Knox Manage
+EMMTECH-146          Exception, dumpstate, function                     [00224841] Bookmark crashes when open the camera app
+EMMTECH-151          function                                           [00223040]After factory reset device command Google FRP is triggered
+EMMTECH-153          dumpstate, patch                                   [00224792] License expired status with event based kiosk
+EMMTECH-157          dumpstate                                          [00225187] New kiosk app is not updating on devices
+EMMTECH-159          Exception, dumpstate, function                     [00224748] Internal Application Not Removing from 2 users
+EMMTECH-167          NullPointerException                               [00224785] Problem running Optimum app in Samsung Knox Manage
+EMMTECH-179          Exception                                          [00225298] Failed to add Managed Google Play Account
+EMMTECH-190          Exception                                          [00223554] Onecom // Business West // Integrate LDAP Error code
+EMMTECH-212          dumpstate                                          [00225953] Uninstallation Prevention List policy doesn't work with Separated Apps
+EMMTECH-213          patch                                              [00224920] SSO is not working for client
+EMMTECH-217          Exception, dumpstate                               [00225679] Cannot access External SD in Work Profile
+EMMTECH-218          function                                           [00225211] NFC issue in Kiosk
+EMMTECH-221          function                                           [00225944] S pen context menu policy doesn't work
+EMMTECH-222          dumpstate, function                                [00226035] Failed to collect location
+EMMTECH-230          stacktrace                                         [00225871] Sync issue with AD
+EMMTECH-236          Exception, function                                [00226389] Kiosk Crashes When Launching Camera via Bookmark
+EMMTECH-238          patch                                              [00226417] Re-arrange icons option in Multi app kiosk mode is not working correctly
+EMMTECH-240          Exception, function                                [00225938][ETS] KMA ERROR F4015
+EMMTECH-244          dumpstate                                          [00226666] KSP connection issue
+EMMTECH-245          function                                           [00226564] Application installation(update) in Kiosk mode
+EMMTECH-247          import                                             [Grazioli Francesco] [00225246] Api access error
+EMMTECH-264          Exception, dumpstate                               [00226869] Multi-app kiosk crashes on AT&T tablets
+EMMTECH-265          Exception, dumpstate                               [00226667] Tab A7-Lite Crushing with Knox Manage Kiosk
+EMMTECH-266          dumpstate                                          [00226061] System apps on shared device mode
+EMMTECH-275          function                                           [00227039] MGPP app is getting updated before corresponding setup in KM
+EMMTECH-287          patch                                              [00227157] BUG when adding an MGP app to KM console
+EMMTECH-291          Exception, NullPointerException                    [00226981] Enrolled failure and Device delete failure
+EMMTECH-293          patch                                              [00226362] AD integration not working
+EMMTECH-295          function                                           [00226663] Device Enrollment - Add profile issue
+EMMTECH-305          function, patch                                    [FIITJEE Limited] [00227270] Able to access complete device settings
+EMMTECH-328          Exception, dumpstate                               [Artesis A.S] [00225491] License Problem
+EMMTECH-343          Exception, import                                  [00227260] App permission error on fully managed device
+EMMTECH-352          function                                           [00228049]Clarifications on data usage collection
+EMMTECH-354          dumpstate, patch                                   [00227956] Time & Date issues
+EMMTECH-355          dumpstate, patch                                   [00226849] Cannot see apps in MGP
+EMMTECH-370          dumpstate                                          [00228460] "Keyguard" and "Screen On when Plugged into Charger" policies issues
+EMMTECH-375          dumpstate                                          [00228484] Issues with Kiosk with Kaspersky app
+EMMTECH-400          dumpstate                                          [00228303] MGP issue
+EMMTECH-405          dumpstate, patch                                   [00220898] Not possible to update some apps
+EMMTECH-408          dumpstate                                          [00226975] Remote support issue 
+EMMTECH-413          dumpstate                                          [00229105] Kiosk Mode covers (overwrite) message from the app
+EMMTECH-428          import                                             [iOS][00229413] [ETS] FirstGroup | KM | IOS devices never enrolled are appearing in Device list as "Unenrolled"
+EMMTECH-430          dumpstate                                          [00229382] applications: Not installed automatically
+EMMTECH-440          function                                           [00229375][ETS] App removing Knox Manage Data and log out
+EMMTECH-445          dumpstate                                          [00228955] Issues using remote support - RSA-5003 error
+EMMTECH-452          Exception, function                                [00229648] location tracking history inaccurate
+EMMTECH-453          dumpstate                                          [00229692] Event SIM is not working
+EMMTECH-457          Exception, dumpstate                               [00228956] Enrollment issues
+EMMTECH-461          dumpstate                                          [00229927][ETS]Enrollment Error: KMA_C1005 Unavailable Device The device is blocked or does not exist.
+EMMTECH-467          patch                                              [00228668] Problems with the Remote Support for Knox Manage app 
+EMMTECH-468          function                                           [00230079][00230080] Login issues after Azure AD integration
+EMMTECH-474          dumpstate, patch                                   [00228214] Kiosk Allowing Access to Restricted Settings
+EMMTECH-475          public class                                       [00229588] API "selectUserWithID" returns "500 Internal Server Error" Response Message
+EMMTECH-489          dumpstate                                          [00228578] Possibility to disable work profile
+EMMTECH-507          dumpstate                                          [00229874] Cant restore device
+EMMTECH-510          dumpstate, function                                [ETS] Error KMA_D9001 when install the configration
+EMMTECH-511          dumpstate, function                                [00230272] Error when accessing a functionality of a company application in the KM
+EMMTECH-531          Exception, NullPointerException, patch             [00228838]Font size setting issue in multiple kiosk mode
+EMMTECH-535          patch                                              [00230806] log4j vulnerability Cloud connector
+EMMTECH-540          patch                                              [00229920] Convert License command doesn't work
+EMMTECH-546          Exception                                          [00229802] AD Sync issue
+EMMTECH-549          dumpstate, function                                [00230962]Devices falling off Knox Manage
+EMMTECH-553          dumpstate                                          [00229241][ETS] Install or Update App command doesn't work when simultaneously sent to 20 batch users
+EMMTECH-563          dumpstate                                          [00230834]External certificate suddenly asking for password and fails to install
+EMMTECH-564          patch                                              [00231330] No Android 12 version in the OS version search condition of Limited enrollment   
+EMMTECH-567          Exception, NullPointerException, dumpstate         [00231114] Updating apps on disconnected devices
+EMMTECH-577          Exception, dumpstate, patch                        [00231424] Breaks lockTaskMode when exiting Outlook
+EMMTECH-582          Exception, function                                [00231493] Force Close using "Shared Devices" from KM with KAI
+EMMTECH-586          dumpstate                                          [00231675] Status bar hidden , android 11
+EMMTECH-587          patch                                              [00231690] User automate sync is not working - Azure LDAP
+EMMTECH-591          Exception, function                                [00231508] Client couldn't install internal application on Shared devices phones
+EMMTECH-593          function, patch                                    [00231853] LOG4J - questions from the customer
+EMMTECH-596          patch                                              [00231820] MGP Account Not Registered
+EMMTECH-599          function                                           [iOS][ETS] 00032988 - Issue with iOS Devices enrolling.
+EMMTECH-618          dumpstate                                          [00231943] Samsung Knox Manage / Android Enterprise / Installation einer internen App
+EMMTECH-619          dumpstate                                          [Suncoast Cabs] [00231712] Issue with MTI Driver app
+EMMTECH-624          dumpstate                                          [00232315]Update License on Device not working
+EMMTECH-625          dumpstate                                          [00232044] Unable to enroll the device - cannot remove device from the license
+EMMTECH-630          import                                             [00232539] [ETS] Policy Password Section are grayed out in one profile yet available in another
+EMMTECH-634          Exception, import                                  [00232110] Samsung Knox Certificate Authority Integration
+EMMTECH-636          dumpstate                                          [00227659] System update policy doesn't work
+EMMTECH-640          Exception, dumpstate                               [00232212] A12 - APN deployment
+EMMTECH-643          dumpstate                                          [00232081]No se ve la barra de notificaciones
+EMMTECH-647          Exception, dumpstate                               [00231214] Company Created App Crashes in Knox Manage
+EMMTECH-648          dumpstate                                          [KM][00232527] KM Firewall rules fail after device reboot
+EMMTECH-653          adb, dumpstate                                     [00232753]Smart View on KM Kiosk mode
+EMMTECH-654          function                                           [Sydtrafik] [00231839] Multipath TCP - Is it possible?
+EMMTECH-660          import, patch                                      [00233064/00241948]user name length on Active directory
+EMMTECH-664          function                                           [00231939] Device can leave the kiosk
+EMMTECH-665          dumpstate, function                                [PROJEK LEBUHRAYA USAHASAMA BERHAD] [00233077] KPE License Activation Issue in Knox Manage
+EMMTECH-670          patch                                              [00229830] Remote Support view goes blank when device is in landscape orientation
+EMMTECH-676          dumpstate                                          [00233479] MGP Account Not Registered
+EMMTECH-681          dumpstate                                          [00231906] "Meet" application does not connect
+EMMTECH-686          function, patch                                    [00233583] Unassigned MultiKiosk app installed
+EMMTECH-694          dumpstate                                          [00233631] Devices expired but license is still valid
+EMMTECH-701          patch                                              [00232918][ETS] Web Remote Viewer image is compressed and low quality
+EMMTECH-706          patch                                              [Bandhan Financial services privatelimited] [00233915] Issue on KM Portal - Export to CSV
+EMMTECH-712          function                                           [Taxa 4x35] [00233275] Tablets indicate licens issue when newly enrolled
+EMMTECH-719          dumpstate                                          [00233137] Tablet can't connect to Wifi network
+EMMTECH-723          Exception, dumpstate, function                     [00234091]Wi-Fi spark// Knox Manage // Clear Data Application Device Admin Issue
+EMMTECH-736          dumpstate                                          [00232184] MGP application does not work on KM
+EMMTECH-749          dumpstate                                          [00234700] Tablets have not been seen and unable to push out urgent app
+EMMTECH-755          Exception                                          [00233973] Failed to enroll devices in Knox Manage with EE license generated second time (KMA_F5003)
+EMMTECH-758          patch                                              [00233266] Error message kio_code_002 in kiosk mode with Knox Browser
+EMMTECH-761          dumpstate                                          [00232689] Factory Reset un-enrolls device
+EMMTECH-762          function                                           [00233913]OneComm // Auto-assign organisation to AD user
+EMMTECH-766          function                                           [testsielindia] [00234846] Need Confirmation for Policies in WPCOD
+EMMTECH-792          dumpstate                                          [00234082] Cannot enter unenrolment code
+EMMTECH-798          function                                           [00235423] split screen with two apps does not work in kiosk mode
+EMMTECH-802          patch                                              [00233495] displaying mobile numbers in KM
+EMMTECH-803          Exception                                          [00235411] question, external ip adresses
+EMMTECH-804          Exception                                          [00235351] Devices stuck on expired status
+EMMTECH-815          import                                             [00235669]Unable to add PEGI 18 gambling application to the KM
+EMMTECH-829          dumpstate                                          [00235328] notification banner and quick access
+EMMTECH-833          Exception, dumpstate                               [00234952] Recently used apps disappear
+EMMTECH-835          adb, dumpstate                                     [00235720] Unable to unenroll offline device
+EMMTECH-837          Exception                                          [00235369] Internal banking app is not visible in private play store
+EMMTECH-860          function                                           [00235858] Knox Devices Location Log - QUESTION
+EMMTECH-861          patch                                              [00236362] QR Code missing for Android Management API enrollment
+EMMTECH-866          Exception, dumpstate                               [00235596] Application failed to lunch
+EMMTECH-870          Exception, dumpstate, function                     [00236097] Kiosk won't install - keeps on status installing
+EMMTECH-872          function                                           [00236086]User is not authenticating
+EMMTECH-874          dumpstate                                          [00236716] Force Update Option is not automatically updating device agent.
+EMMTECH-875          patch                                              [00232918][ETS] Web Remote Viewer image is compressed and low quality
+EMMTECH-901          Exception                                          [iOS][00236367] Sync DEP Device Error
+EMMTECH-902          Exception                                          [iOS][00236367] Sync DEP Device Error
+EMMTECH-903          dumpstate                                          [Customer][00236791] SIM Card issue with kiosk
+EMMTECH-908          function                                           [iOS][00235882]Profile Policy Updates
+EMMTECH-913          function                                           [00236672] [ETS] Users report
+EMMTECH-915          Exception, dumpstate                               [00235913] Issue with installing Kiosk
+EMMTECH-918          dumpstate                                          [00236318] Black screen for Knox remote support for Work Profile on Company-Owned Devices
+EMMTECH-923          patch                                              [00237294][ETS] ESC34914 | Knox Manage - unable to export application reports.
+EMMTECH-928          dumpstate                                          [00235934]Use of mobile data for updates
+EMMTECH-929          dumpstate                                          [00235779] Remote support issue on A22
+EMMTECH-930          dumpstate, function                                [00236768]Kiosk mode disable recent apps
+EMMTECH-931          patch                                              [00237034] Can't export device list as a CSV file
+EMMTECH-935          function, import                                   [00237222] It's possible to sync work and personal profile contacts
+EMMTECH-938          patch                                              [00236887] User is not able to change Date and Time- Knox Manage (GVK EMRI).
+EMMTECH-946          patch                                              [00236347] Cloud Connector sync issue
+EMMTECH-948          function                                           [00237662][ETS] Will Knox Manage add support for getEnrollmentSpecificId via AppConfig
+EMMTECH-951          Exception, dumpstate                               [00233436] Problème autorisation installation application
+EMMTECH-958          dumpstate                                          [00236215]Can't make firmware update to the device
+EMMTECH-975          import                                             [00237260] Lockscreen password issue
+EMMTECH-976          Exception, patch                                   [00237494] Cloud connector issue
+EMMTECH-977          patch                                              [00237452] LDAP Syncing groups error
+EMMTECH-982          function                                           [00238079] AdminID cannot be changed
+EMMTECH-988          import                                             [00238098][ETS] LDAP SYNC doesn't delete user accounts that are deleted in our Active Directory
+EMMTECH-1015         import                                             [00238433] issue when updating internal app
+EMMTECH-1019         patch                                              [00238404]Error sincronización programada con Directorio Activo
+EMMTECH-1021         dumpstate                                          [00236403] Knox disabling physical buttons when policy is to allow them
+EMMTECH-1032         patch                                              [00238593] Azure AD issue on scheduled sync
+EMMTECH-1033         dumpstate                                          [00238497] App block on Knox Manage
+EMMTECH-1036         dumpstate                                          [00238712] Bottom Toolbar on all Tablets is only showing one button
+EMMTECH-1040         function                                           [00238374] APN settings are not applied on device
+EMMTECH-1041         dumpstate                                          [00238240] Device notification bar does not work
+EMMTECH-1044         dumpstate, import                                  [Srisawad] [00238657] Info not available in Kiosk Mode
+EMMTECH-1049         dumpstate                                          [00238458] Agent app issue after upgrade to Android 12
+EMMTECH-1055         dumpstate, function                                [00237981]APN Setting Android Enterprise
+EMMTECH-1064         patch, stacktrace                                  [00238304] Sync service issue
+EMMTECH-1067         function                                           [00239837]LDAP/AD Sync not functioning
+EMMTECH-1069         function                                           [00237273] Knox Manage Reports
+EMMTECH-1070         logcat                                             [00238897] Knox Manage Kiosk Prevents Kiosked App from running in Single Kiosk Mode on Boot
+EMMTECH-1078         dumpstate                                          [ETS][00238868] Play Store abnormal battery usage
+EMMTECH-1080         function, patch                                    [00240167] Knox Manage Remote Support Connects to Two different devices with same Serial #
+EMMTECH-1093         function                                           [00240265] [URC][KM] Reset User Password Not Working
+EMMTECH-1106         dumpstate                                          [00239948] Internal app does not work on A13 devices
+EMMTECH-1109         Exception, dumpstate                               [00240065] Video Conferencing in App after Tablet Device Reboot
+EMMTECH-1124         patch                                              [00240876] Remote Support for Knox Manage
+EMMTECH-1127         dumpstate                                          [ETS][00239769] Device in Kiosk Mode cannot accept a  WiFi EULA
+EMMTECH-1133         dumpstate                                          [00238049] Customer can't log into an app called "AVL Logic"
+EMMTECH-1141         dumpstate                                          [00240892]Phone reboot to recovery mode
+EMMTECH-1142         function                                           [ETS][00241172] Mobile Data Only feature
+EMMTECH-1146         function                                           [00240812] Apps udate distribution 
+EMMTECH-1147         function                                           [00241158] Remote support for all devices not working
+EMMTECH-1156         Exception                                          [00241480] Active Directory Sync Fail
+EMMTECH-1157         Exception                                          [00241480] Active Directory Sync Fail
+EMMTECH-1163         patch                                              [00241473]Erreur deploiement
+EMMTECH-1167         patch                                              [00241291]  Modificating users / AE
+EMMTECH-1175         Exception, dumpstate                               [00241815] Unable to use knox remote support
+EMMTECH-1185         patch                                              [00237632]  Adding apps via group assignment has a delay
+EMMTECH-1192         Exception                                          [00239851] LDAP Sync issue
+EMMTECH-1205         Exception, patch                                   [00242128]Samsung Tablet (R52N403QTXB) Will Not Load Kiosk
+EMMTECH-1206         logcat                                             [ETS][00242354] Android 12 devices not applying APN Profiles
+EMMTECH-1214         Exception                                          [00242219] [Ajinomoto]: Failed to add MGP
+EMMTECH-1217         patch                                              [00241615] User's Android Management Type rolls back to former setting
+EMMTECH-1220         dumpstate                                          [00242326]Factory reset not executing in tablets
+EMMTECH-1222         function                                           [00242319] Bookmarks to webpages with login pup up do not work in kiosk
+EMMTECH-1223         patch                                              [00242484][Customer] License showing expired
+EMMTECH-1231         dumpstate                                          [00241605] Devices Not Checking In
+EMMTECH-1236         Exception                                          [00242768] Suddenly all the Android Enterprise policies disappeared while I was modifying the Production profile
+EMMTECH-1238         Exception, function                                [Customer][00242987] URL exception
+EMMTECH-1242         patch                                              [00242805][Customer] License showing expired
+EMMTECH-1255         function                                           [00243157] Library content - user cannot update .pdf, .doc, .xls
+EMMTECH-1256         function                                           [00243438] Option to pass login credentials from KM-Agent to phone
+EMMTECH-1258         Exception, dumpstate                               [ETS] [00242304] Remote Support (22.05) unable to navigate file menu of SM-T307U
+EMMTECH-1269         dumpstate                                          [00243721] Device stuck in a Kiosk mode
+EMMTECH-1278         Exception                                          [00243856] Haryana Education- Kiosk app is not updating automatically
+EMMTECH-1279         function                                           [00243934] Issue with Knox Remote Support on WPCOD (black screen on web console)
+EMMTECH-1285         commit, dumpstate                                  [00243913] Bluetooth Scanning is not working inside work profile
+EMMTECH-1286         function                                           [00242927][Customer] Factory reset not allowed
+EMMTECH-1290         dumpstate                                          [00243644] Deployed Certificate in Work Profile don't work in app
+EMMTECH-1291         dumpstate                                          [00243740] Application is not installed.
+EMMTECH-1294         dumpstate                                          [ETS] Internal Application does not work properly (Permission denied)
+EMMTECH-1295         adb, diff, dumpstate, function, logcat             [ETS][00242354] can't push APN configs to OS 12 devices
+EMMTECH-1303         Exception                                          [00244025] Automatic installation of application from MGP
+EMMTECH-1304         function                                           [00244159] weird device's IMEI format
+EMMTECH-1311         Exception                                          [00243463] Issues with when remote connecting while using TeamViewer
+EMMTECH-1314         Exception                                          [Internal] MDM Mode. Can't download (PIT)
+EMMTECH-1318         function                                           [00244115] Share devices possibilities on Samsung phone
+EMMTECH-1321         dumpstate                                          [00244099] KME Profile / KM Enrollment
+EMMTECH-1323         dumpstate                                          [Holcim (Australia) Pty Ltd] [00244777] [ETS] Expire Device in Knox Manage
+EMMTECH-1328         function                                           [00243802] Single App Kiosk Mode repeatedly prompting for appear on top permission on A7 Lite
+EMMTECH-1330         Exception                                          [00244992] Novagem Staff App Not Installing or opening in Managed Apps
+EMMTECH-1333         import                                             [PTG Energy] [00244787] Cannot enroll to KM
+EMMTECH-1337         function                                           [00242467] Nextcloud are unsable on all Device
+EMMTECH-1343         dumpstate, function                                [00245142] Issues to deactivate KPE license
+EMMTECH-1355         function                                           [00244772] Empty license error
+EMMTECH-1356         Exception                                          [00245144] Network proxy settings to Knox Manage
+EMMTECH-1397         function                                           [00246094] Delete content possibility
+EMMTECH-1398         dumpstate                                          [00246119] Error KMA_B5013 when enroll BYOD with AD user
+EMMTECH-1404         Exception, dumpstate                               [ETS][00245988] Internal app crashes
+EMMTECH-1405         Exception, dumpstate                               [00245928] Apps not showing up in Google Play
+EMMTECH-1418         function                                           [00246042] Location Service issue
+EMMTECH-1419         dumpstate                                          [00245640] Route4me Route Planner App Fails to launch After it is Closed
+EMMTECH-1423         function                                           [00246477] Knox Manage REST API: Get Device Detail By Google Device Id
+EMMTECH-1426         dumpstate                                          [00246079] Automatic uninstall of apps doesn't work
+EMMTECH-1427         Exception, function                                [00246764] Internal Application Install and Uninstall fail
+EMMTECH-1462         function                                           [00246545] KM Alert issue
+EMMTECH-1471         function                                           [00247343][Customer] Unknown user return on Audit Log
+EMMTECH-1473         Exception                                          [Haryana Education] [00247472] Tablet exiting from Kiosk Application by exploring "Add Network" & "play.google.com"
+EMMTECH-1482         function                                           [ETS] [00247650] Change the license on a device from 'Knox Manage' to 'Knox Suite' without interaction of the person of the device
+EMMTECH-1492         dumpstate                                          [00247790] Knox Remote Support on WPCOD: Black screen
+EMMTECH-1493         dumpstate                                          [00247957] Geofencing locks device even when device stays on-site
+EMMTECH-1494         function                                           [BSB FASHION][00247923] KM-Kiosk Browser Issue
+EMMTECH-1512         function                                           [00246613] Knox browser does not respect Galaxy Tablet Active Pro "Display/Screen Zoom" Setting
+EMMTECH-1515         function                                           [Lubbers Logistics Group][00248531] whitelist only one video from youtube
+EMMTECH-1519         dumpstate                                          [00248328][ETS] Issue with Smart Switch app on SM-S908
+EMMTECH-1525         dumpstate, function                                [00248557] PendingUserAction error when installing an internal app
+EMMTECH-1535         dumpstate                                          [00242681] App doesn't appear on the Play Store for manual installation
+EMMTECH-1541         function                                           [00249317] [ETS] [MOE}Bulk tag error mesage2019
+EMMTECH-1543         Exception, dumpstate, function                     [00249159] Shared device mode: Unable to install internal applications
+EMMTECH-1544         Exception, patch                                   [00243431] Knox Remote Support - Not working still
+EMMTECH-1546         function                                           [00248376] [ETS] Report to include Device Alias
+EMMTECH-1549         dumpstate                                          [00248980] abnormal symptom when opening application in kiosk mode the screen is inaccessible
+EMMTECH-1550         function                                           [Customer][00249533] RS and Screenshot issue
+EMMTECH-1556         Exception                                          [00245403] VPN+ Proxy PAC issue
+EMMTECH-1563         Exception                                          [00248903] Devices can't use the web app
+EMMTECH-1566         dumpstate                                          [00249554] New set up is not working as desired
+EMMTECH-1570         patch                                              [Customer][00249762] Issue to navigate on file browser on remote support
+EMMTECH-1571         import                                             [00249199] LDAP sync issue with KM - users
+EMMTECH-1579         dumpstate                                          [00249516] not able to auto install the app com.edelvives.digitalplus
+EMMTECH-1591         dumpstate                                          [00250111] Tab Active 3, Sim Code input page is overlapped from Kiosk App
+EMMTECH-1595         function                                           [00249844] Knox license expired
+EMMTECH-1617         dumpstate                                          [IT Sydtrafik] [00249616] "Blue light" not working in kiosk with Android 12
+EMMTECH-1618         function                                           [Florian Sibout][00250396] Forcer un navigateur en mode privé sur ANDROID
+EMMTECH-1633         dumpstate                                          [00250774] Knox Manage making tablets use INSANE amounts of data in play store
+EMMTECH-1640         function                                           [00250724] QUESTION Permitir todo el catalogo de Google Play en perfil Knox Manage
+EMMTECH-1641         patch                                              [00250264] AD sync fails
+EMMTECH-1642         Exception, dumpstate                               [00250302] Samsung Active3 Tablet Not Starting with Knox Manage
+EMMTECH-1648         function                                           [00250855] Homekey doesn't work on Android 12
+EMMTECH-1649         dumpstate                                          [00250417] AE multiple APN config issue
+EMMTECH-1653         dumpstate, function                                [00251219] Devices communicate with KM - status expired - all are visible in KM
+EMMTECH-1658         dumpstate                                          [00250852] WLAN not auto distributed and installed
+EMMTECH-1659         dumpstate                                          [00249376] Shared device + KAI doesn't work properly
+EMMTECH-1674         dumpstate                                          [250739] Knox Manage single app Kiosk can be bypassed
+EMMTECH-1675         dumpstate, function                                [00248570] Samsung Devices - Random Device Reboots
+EMMTECH-1687         function                                           [00251516] Cloud Connector Install Fails to Install to Custom Directory
+EMMTECH-1695         dumpstate                                          [00249562] KME Enrolment: Fully Managed vs. Work Profile on Company Owned Device
+EMMTECH-1698         dumpstate, import, patch                           [00251274] [ETS] [MOE]Firewall Policy not applied
+EMMTECH-1702         dumpstate                                          [Arne Mayhold] [00251515] Gesichtserkennung kann nicht aktiviert werden
+EMMTECH-1703         patch                                              [00251177] Legacy devices still remain expired after update license command
+EMMTECH-1725         patch                                              [00252458] Error KMA_B5006 on device enrolling with Knox Manage.
+EMMTECH-1726         Exception, adb, logcat                             [00251953] App update issue
+EMMTECH-1736         function                                           [Jane Scharling Andersen] [00252755] Knox Remote - Force Run Function
+EMMTECH-1737         dumpstate                                          [00251312] Uenrnollment failture, device remains at Kiosk 
+EMMTECH-1739         Exception, dumpstate, patch                        [00251277] [ETS] [SEEG]KSP policy not applied
+EMMTECH-1745         function, patch                                    [253058] [ETS] devices getting automatic factory reset on their own
+EMMTECH-1749         Exception                                          [00253023] M DODERO COMPANIA GENERAL DE S // Problemas dispositivos KNOX enrolados.
+EMMTECH-1751         patch                                              [00253192] KMA_B5007 Server Provisioning Error
+EMMTECH-1752         function                                           [00252394]  Case Configurations for Windows Laptops in Knox Manage
+EMMTECH-1755         dumpstate                                          [00252868][Cableway AG] KM Updates App blocked
+EMMTECH-1758         dumpstate, import, patch                           [HISPAPOST S.A] [00253273] App manage configuration
+EMMTECH-1759         patch                                              [00253040] New super admin issues with profile
+EMMTECH-1760         function                                           [Isala Ziekenhuis] [00253041] Isala Hospital: Add the device name to kiosk app
+EMMTECH-1766         Exception, dumpstate, patch                        [00253124] Device can't accept Wifi configuration
+EMMTECH-1774         dumpstate                                          [Customer][00251397] Managed configuration doesn't apply the first time
+EMMTECH-1780         Exception                                          [00252565] Geolocation on app with Kiosk
+EMMTECH-1785         Exception                                          [Hayden Wilson-Mosey][00253140] Devices Reset
+EMMTECH-1786         patch                                              [Waberer's International Nyrt] [00253366] Expired phones while they has enough licenses
+EMMTECH-1791         patch                                              [00253369] Legacy - policy is visible as cancelled
+EMMTECH-1794         import                                             [00253593] Cannot establish connection with NDES
+EMMTECH-1803         dumpstate, patch                                   [Customer][00252535] Issues to sync Gmail app
+EMMTECH-1805         patch                                              [Kasselwasser] [00249288] Maximum Screen timeout
+EMMTECH-1809         dumpstate                                          [00253676] Kiosk - settings display shows all apps
+EMMTECH-1821         dumpstate                                          [00251514] Knox Remote Support tool is not good enough
+EMMTECH-1829         dumpstate, patch                                   [ETS][00253338] Unable to access folders in KM RS File Explorer
+EMMTECH-1833         import                                             [00253255] Zugriff der Kontakte App auf lokalen Speicher
+EMMTECH-1842         dumpstate                                          [Linzee Strang][00252108] Software update postponing indefinitely
+EMMTECH-1844         patch                                              [Customer][00253416] Dashboard license issue
+EMMTECH-1859         Exception                                          [Isabel Soler][00254822] Internal application does not open PDF
+EMMTECH-1860         dumpstate                                          [ETS][00254946] Devices previously enrolled to Knox Manage are not auto-updating apps over mobile network
+EMMTECH-1862         Exception, NullPointerException                    [Carl Andrews][00253504]POA Verification app isssue
+EMMTECH-1870         patch                                              [00255024] Unable to create KME profile under KM console
+EMMTECH-1877         function                                           [Customer][00254216] Issues to Reset Workspace (Container) Password
+EMMTECH-1883         dumpstate                                          [Load and Go][00254547] Knox Remote Support not available
+EMMTECH-1896         Exception, dumpstate                               [00255344] Internal app does not work in Kiosk mode
+EMMTECH-1905         dumpstate                                          [LMDR] [00254365] S22 Handset reloads Intermittently
+EMMTECH-1916         dumpstate, function                                [ETS][00255691][KM] App not installing
+EMMTECH-1920         Exception                                          [123 Shared][00254240] Kiosk Crash with internal app
+EMMTECH-1927         dumpstate, function, import                        [Jinu Jacob][00255760] Application not working with knox
+EMMTECH-1945         function                                           [MainPort][00256063] MGP Account not registered
+EMMTECH-1954         patch                                              [00256025] Knox Manage - Single App kiosk: Managed config is not sent to devices after enrollment is complete
+EMMTECH-1963         import                                             [Xavi Falla][00256345] Stop Auto enroll windows device
+EMMTECH-1996         dumpstate                                          [00256827] Application qui refuse de s'installer
+EMMTECH-1997         Exception, function                                [Customer][00255821] Private APN issue
+EMMTECH-1998         import                                             [00255931] Accounts showing up incorrectly with AD Sync
+EMMTECH-2002         Exception                                          [Customer][00255933] User unable to enroll device
+EMMTECH-2004         function                                           [00255435] [SM-R915N/경찰청] 녹스매니저 앱 업그레이드
+EMMTECH-2017         Exception                                          [Annegret Weigelt][00256905] Remote support not working
+EMMTECH-2018         patch                                              [Sydtrafik][00256801]Reopening af Ticket 00249616 - Blue light filter in kiosk mode
+EMMTECH-2020         function                                           [Customer][00256941] Private APN for ATT issue
+EMMTECH-2023         function, import                                   [00256943] KME Portal & Knox Manage :Device Enrollment KME not in sync
+EMMTECH-2032         function                                           [00257661] Problem with APK install
+EMMTECH-2040         function                                           [Milton Keynes College][00257648] Licence Activation Failed
+EMMTECH-2049         dumpstate                                          [00257630] Youtube cannot be opened in a browser
+EMMTECH-2050         Exception, NullPointerException, patch             [Customer][00256623] SingleAppKiosk unexpectedly restarts.
+EMMTECH-2061         dumpstate                                          [Customer][00258480] Kiosk - Settings app opening error
+EMMTECH-2065         commit, dumpstate, function                        [00258525] Please fix Kiosk update mechanism. It's broken and dowgrades apps.
+EMMTECH-2082         Exception                                          [00258586] Valid IPs
+EMMTECH-2087         dumpstate                                          [ETS] [00258725] Wallpaper and logo banner images missing on device after Knox Manage Kiosk app update.
+EMMTECH-2100         Exception                                          [00258901] Adullam / KM // AD sync
+EMMTECH-2106         function                                           [00258737] Knox Manage Tenant ID changed to smaract.com.smaract.com
+EMMTECH-2111         Exception, dumpstate                               [00258822] Content In Documents Folder Path Is Being Auto Deleted Randomly
+EMMTECH-2113         import                                             [Trant Engineering Ltd][00258991] KM LDAP Sync question
+EMMTECH-2114         Exception                                          [00257523] GLS_Internal app doesn't install until Knox Manage agent is manually launched on enrolled devices
+EMMTECH-2140         adb, logcat, patch                                 [Customer][00258664] Kiosk - Settings app opening error
+EMMTECH-2141         function                                           [Customer][00258749] License seats don't match after performing unenroll
+EMMTECH-2150         Exception                                          [00259643] Valid IPs for deploy azure AD app
+EMMTECH-2160         NullPointerException, dumpstate                    [00259202] Dysfonctionnements sur Tab A2016
+EMMTECH-2162         Exception                                          [Cor Oskam][00259110]In House app installation fails when enrolling
+EMMTECH-2163         Exception                                           [Stumbea Mihai][00259657]LDAP Sync error, can't enroll users
+EMMTECH-2166         dumpstate                                          [00259633] Samsung Tablet Spinning
+EMMTECH-2182         function                                           [00260255] Knox Manage Issues
+EMMTECH-2190         adb                                                [Customer][00258242]Application installation issue
+EMMTECH-2204         function                                           [Ntt Data Spain Infrastructures] [00259987] Problems with register of devices related to Azure
+EMMTECH-2206         dumpstate, function                                [00259531] Permission Appear on Top, Storage
+EMMTECH-2217         Exception                                          [00260807] Postgres SQL server error in Buld add users
+EMMTECH-2224         Exception, dumpstate                               [ABOX][00260241] RSA - 5003 Cannot connect to server
+EMMTECH-2231         patch                                              [00260201]Android 13 TAB A8 and Knox Manage in Kiosk Mode - Cannot unlock lock screen and show kiosk app
+EMMTECH-2249         import                                             [00261199] API connection not working or invalid for creating authentication token
+EMMTECH-2255         patch                                              [00260329] Issue with application distributed as MGP Private Web in Kiosk
+EMMTECH-2260         function                                           [ETS][Remy Beulink][00261446] Information about Knox remote support
+EMMTECH-2262         Exception                                          [00257267] Certificate issue on R OS
+EMMTECH-2264         patch                                              [00261704] License replacement issue 
+EMMTECH-2280         adb, commit, dumpstate                             [00261382] [ETS] No apps installed
+EMMTECH-2287         patch                                              [00262215] KMA D9001 Error
+EMMTECH-2291         adb, logcat                                        [00259621] App auto update is no longer automatic
+EMMTECH-2293         Exception, function                                [00261857] KNOX REMOTE SUPPORT NO LONGER FUNCTIONING
+EMMTECH-2295         function                                           [Howdens Joinery] [00261663] Device Command Send from Group Level
+EMMTECH-2306         function, patch                                    [00262575] Search Engine Error
+EMMTECH-2313         function                                           [Customer][00261276] Remote support - disabled button
+EMMTECH-2316         adb, logcat                                        [Joel Lopez][00262299] Application Updates Failing
+EMMTECH-2321         import                                             [iOS][00262739] iPad knox enrollment issue
+EMMTECH-2331         Exception, adb, patch                              [00262582] app not working when used in kiosk mode
+EMMTECH-2336         Exception, patch                                   [marina charnet][00262910] Cannot display PDFs from a web page
+EMMTECH-2349         Exception, adb                                     [ETS][00263257] Kiosk app blocked by KM policy
+EMMTECH-2357         function                                           [iOS][00262418] Manage on Ipad - Landscape view not functioning
+EMMTECH-2390         dumpstate                                          [00263703] Application is crashing on the devices - MS Planner
+EMMTECH-2393         Exception, function                                [00263308] BT Group_Cannot share pdf from Adobe Reader due to apparent admin policy
+EMMTECH-2399         dumpstate                                          [blaud knox][00263382] Knox Service plugin policies in Knox Manage don't update
+EMMTECH-2420         dumpstate, function                                [00257248] Kiosk settings open slow
+EMMTECH-2424         function                                           [00264094][ETS][Legacy] Internal app not updating
+EMMTECH-2426         function                                           [00263850] The web mode kiosk is restarted
+EMMTECH-2433         Exception, NullPointerException, patch             [Customer][00264544] Kiosk app is crashing
+EMMTECH-2434         function                                           [Westdeutsche Lotterie GmbH & Co. OHG][00264211] Smart view is not showing on Kiosk
+EMMTECH-2440         function                                           [Customer][00263490] Azure AD sync users is requiring PW
+EMMTECH-2441         Exception, adb                                     [00260036] issue with external devices and Kiosk
+EMMTECH-2448         dumpstate                                          [Customer][00264368] Google Lens doesn't work on Kiosk mode
+EMMTECH-2460         Exception                                          [Customer][00262002] LDAP SYNC HAS FAILED
+EMMTECH-2469         function                                           [00264329] Installing CA certificate inside the Work Profile
+EMMTECH-2472         dumpstate                                          [Non-Samsung][00264526] How to close crashed applications in Kiosk Mode
+EMMTECH-2478         dumpstate                                          [Bpi direct banko Inc][00258838] Unable to open Loan Collector App (Isolated Case)
+EMMTECH-2495         Exception, function                                [Customer][00265294]MGP Account not registered
+EMMTECH-2506         function                                           [00265788] Knox Manage - Google Account filtering inquiry
+EMMTECH-2510         function                                           [Email] 경찰청 can't update contact to watch device.
+EMMTECH-2514         Exception                                          [customer][00265783] AD Azure sync
+EMMTECH-2516         function, public class                             [00265627] Internal app permissions
+EMMTECH-2523         dumpstate, function                                [00265404] External biometric device does not recognize in Kisok mode
+EMMTECH-2546         patch                                              [00266083] [ETS] Xylem - issue with call blocking in KM
+EMMTECH-2550         adb, logcat                                        [00266003] Pause app activity if unused
+EMMTECH-2553         function                                           [ETS][00266348] The camera application triggers location accuracy to be active
+EMMTECH-2554         function                                           [ETS][Customer][00266334] Apps not found in Managed Google Play
+EMMTECH-2563         patch                                              [00266894] Cloud Connector Vulnerability
+EMMTECH-2580         adb, function                                      [Customer][00266747]Knox Manage./WearOS- Application not running on Watch 4/5 device
+EMMTECH-2582         Exception                                          [Customer][00267269] com.bell.ptt crashing on Kiosk mode
+EMMTECH-2587         patch                                              [ETS][00267338] Unable to download the devices list
+EMMTECH-2589         dumpstate                                          [00266954] Phones going into Airplane Mode
+EMMTECH-2607         Exception                                          [00266706] Contacts and app permissions
+EMMTECH-2618         dumpstate, function                                [00266656] Device restart
+EMMTECH-2619         dumpstate                                          [00267728] The device gets rebooted into Safe Mode
+EMMTECH-2620         dumpstate                                          [Customer][00266342] Never auto update settings
+EMMTECH-2629         adb, logcat                                        [00268244] App Automatic Update not working
+EMMTECH-2632         dumpstate, function                                [00268164] BizApp on Knox Manage
+EMMTECH-2633         import                                             [Customer][00267748]Azure AD Can't enroll
+EMMTECH-2635         Exception, dumpstate                               [BW Offshore Singapore] [00265374] Failed to install assgined application
+EMMTECH-2645         function                                           [Fabryka Bezpieczeństwa][00264970] KnoxManage Android 9/FullyManaged file write problem
+EMMTECH-2651         Exception, adb                                     [00268309] limited number of active users in a shared device
+EMMTECH-2655         dumpstate                                          [00267685] Phone Contacts and "Sync"
+EMMTECH-2656         function                                           [UAT][00268369]Access to Remote Support App for UAT 23.06
+EMMTECH-2658         Exception                                          [iOS][00266515] Unable to unenroll multiple iOS devices under Knox Manage
+EMMTECH-2662         import                                             [Customer][00268676] How to import and update an URL blocklist
+EMMTECH-2664         dumpstate, function                                [Vector Ronda][00268761]Event Profile for SIM Change event is not working properly
+EMMTECH-2669         patch                                              [ETS][customer][00268881] Create Google account option disappeared
+EMMTECH-2671         function                                           [00268869] IP information when 'Export to CSV' 
+EMMTECH-2673         Exception                                          [00268226] Issue with Group Sync- license
+EMMTECH-2678         dumpstate                                          [Customer][ETS][00268804]Brilliant KM - Device not enrolled properly
+EMMTECH-2681         Exception                                          [Customer][00268119] ad sync user error
+EMMTECH-2688         function                                           [00269144] Private DNS
+EMMTECH-2709         patch                                              [00269285, 00269314, 00269315] RS app thrown error after v23.06 release
+EMMTECH-2712         dumpstate                                          [Jon Vicente][00269179] Apps are uninstalled from Personal Space
+EMMTECH-2715         dumpstate                                          [00267799] Blank screen on Remote Supoprt
+EMMTECH-2720         dumpstate, function                                [ETS] [00269207] Maximum falied sign-in attempts not working
+EMMTECH-2722         patch                                              [00269722] KM Wear OS Stuck command
+EMMTECH-2724         patch                                              [iOS][00269773] iOS devices not installing apps after enrollment
+EMMTECH-2732         commit, function, git, patch                       [00269988] June SMR - WiFi profiles with EAP-TLS plus NDES for cert enrollment are not installing on devices with Knox manage
+EMMTECH-2736         dumpstate                                          [YellowFox GmbH][00269692] Remote Support App is not Auto installing After updated to Latest version
+EMMTECH-2761         dumpstate                                          [Customer][00269383] Reset lock device password command failure
+EMMTECH-2783         dumpstate, function, patch                         [ETS][Customer][00270684] Wifi settings via KM profile is failing
+EMMTECH-2787         patch                                              [iOS][00270887] "Profile not applied" for ipads
+EMMTECH-2788         function                                           [Základní škola Gajdošova][00271130] Missing input field for input license key in KSP
+EMMTECH-2789         function                                           [00270932] Offline Unenrollment Code & Exit Kiosk Code going back to January,20th,2021.
+EMMTECH-2808         dumpstate, function                                [Customer][00271212] screen brightness setting
+EMMTECH-2826         function, import                                   [Customer][00270696] Password special characters for user bulk import
+EMMTECH-2829         patch                                              [ETS][00271614] Vulnerability - Requesting CPE Details for Knox Manage and other Knox solutions.
+EMMTECH-2831         Exception                                          [ETS][Customer][00271304] Permitted and prohibited internet URL through Knox Manage
+EMMTECH-2834         patch                                              [Customer][00270604] Remote Support is not working
+EMMTECH-2837         dumpstate                                          [Customer][00271595] Cannot add MGP account
+EMMTECH-2844         function                                           [Customer][00271348] Bookmark Can't create a shortcut for a website.
+EMMTECH-2854         dumpstate                                          [00271826] Installing internal app into Work profile of COPE device fails
+EMMTECH-2869         Exception, function                                [customer][00271598] App does not give notifications
+EMMTECH-2872         function                                           [Non-Samsung] [00271976] Deployment of Samsung Knox on Xiaomi Phone
+EMMTECH-2873         patch                                              [Customer ][00271651] KMA_D9001 when installing the wi-fi profile
+EMMTECH-2875         dumpstate                                          [Customer][00271559] Gmail app not syncing on KM devices
+EMMTECH-2876         dumpstate, function, patch                         [00272187][Haryana] KME-KM enrollment not happending in device
+EMMTECH-2881         dumpstate                                          [00271766] Location Tracking issue In Internal application
+EMMTECH-2889         dumpstate                                          [Customer][00270849] GPS not tracking
+EMMTECH-2891         function                                           [00272399] Tenant removal request
+EMMTECH-2895         function                                           [Adendo GmbH][00272065]Forced Execution of KRS is not working
+EMMTECH-2917         dumpstate                                          [Xylem Learning][00272797] Able to exit Kiosk in KM
+EMMTECH-2927         dumpstate                                          [Customer][00271589] Apps don't install on some wear devices
+EMMTECH-2939         function                                           Internal Question
+EMMTECH-2946         dumpstate                                          [Customer][00272536] Tablet restart problem
+EMMTECH-2949         patch                                              [Internal] Unable to enroll ZFlip 5 devices - KMA_C1015
+EMMTECH-2957         Exception                                          [Közlekedéstudományi ] [00273030] KAVK duplicated registration, KM tenant deletion
+EMMTECH-2985         dumpstate                                          [Urgent][Customer][00273939]Error KMA_F5004 - License Activation failed , Unable to enroll the device
+EMMTECH-2987         patch                                              [ETS][Customer][00273935] KMA_C1015 error after software update
+EMMTECH-2997         dumpstate                                          [00274158] WearOS Key remapping not working
+EMMTECH-3022         Exception                                          [00274307] KMA_D9001 WLAN Settings not pushing to device
+EMMTECH-3045         dumpstate                                          00275028 - [KM]Internal application not installed in the work profile
+EMMTECH-3052         dumpstate                                          [Customer][00274886]no Home button or back button
+EMMTECH-3058         patch                                              [Customer][00274863] Kiosk Mode does not work on Android 13
+EMMTECH-3068         dumpstate                                          [00274571] Работоспособность приложения SoftPos в режиме Kiosk
+EMMTECH-3077         dumpstate                                          [00274222] Cant use home button on Tablet
+EMMTECH-3084         function                                           [Customer][00275988] Complaint after KM sub admin changes (Group/Org)
+EMMTECH-3092         function                                           [00276107][ETS] Service Admins unable to unenroll devices, error message 'access denied'.
+EMMTECH-3094         patch                                              [Internal] Behavior of see history menu in license details
+EMMTECH-3100         dumpstate                                          [Customer][00270496] Account persists in Samsung E-Mail as internal app
+EMMTECH-3123         Exception, patch                                   [00276488] [ETS] Zonar Systems  KM EMM API | Error 500 when attempting to retrieve a log
+EMMTECH-3124         dumpstate                                          [Customer][00274588] App doesn't uninstall
+EMMTECH-3142         dumpstate                                          [Customer][00275613]Cannot download app onto devices
+EMMTECH-3148         dumpstate                                          [Customer][00276870] Issue after update of app
+EMMTECH-3149         import, patch                                      [ETS][00276954] Unable to add the KoamTacON MGP app to KM console
+EMMTECH-3156         function                                           [Customer][00276815] Issue with Edge panel and Kiosk
+EMMTECH-3157         Exception, patch                                   [00276399] Unable to add a MGP account
+EMMTECH-3181         dumpstate, patch                                   [Customer][00277381] KMA-D9001 error
+EMMTECH-3191         function                                           [Customer][00277778]VPN Always ON
+EMMTECH-3216         Exception, patch                                   [00278167] Error message : exception encountered during decryption knox manage
+EMMTECH-3218         Exception                                          [00278306] [ETS] how to change the 'Set time zone based on location' in Knox Manage.
+EMMTECH-3220         patch                                              [Urgent][Customer][00278494] Error KMA_D9001
+EMMTECH-3233         patch                                              [Customer][00277909]  The error "Security policy prevents turning on device administrators"
+EMMTECH-3234         dumpstate                                          [Customer][00276928] Single app mode the application si not launched automatically
+EMMTECH-3236         Exception                                          [customer][00276588] Issue with app + KM
+EMMTECH-3246         dumpstate                                          [00278857] Shared device issue / domain user enrolment
+EMMTECH-3256         Exception                                          [00278835] Get serial number on 3rd party app
+EMMTECH-3265         Exception                                          [00278742][Korean Air] The PDF file doesn't open on KM Agent
+EMMTECH-3268         Exception                                          [ETS][PT Sinergi Wahana Gemilang][00279363]  Device fails to update license command
+EMMTECH-3272         function                                           [00278219] Location history issue
+EMMTECH-3273         dumpstate                                          [00276272] Profiles are not applied correttly to the device.
+EMMTECH-3277         dumpstate                                          [Customer][00278474] License Activation Failed
+EMMTECH-3297         dumpstate                                          [00278800] Chrome Webpage issues
+EMMTECH-3315         dumpstate, import                                  [Customer][00279035][ETS]Home and recents button disappear after restart
+EMMTECH-3322         dumpstate, function                                [00280267] AJINOMOTO : [KM] Web App does not install automatically
+EMMTECH-3345         patch                                              [Internal Question] mainline Update
+EMMTECH-3353         dumpstate                                          [00280379] WiFi profile with certficates issue - cannot be installed on the device
+EMMTECH-3417         adb, dumpstate                                     [Customer][00279568] Starting Android or Phone is starting loop
+EMMTECH-3423         adb, logcat                                        [EES-CLEMESSY][00281442] factory Reset command not deleting data
+EMMTECH-3449         NullPointerException, patch                        [Customer][00282185]Unable to connect using Knox Remote Support
+EMMTECH-3455         dumpstate                                          [customer][00281427] Register phone number
+EMMTECH-3456         patch                                              [00282186]Configuring a device, selecting user shows no data
+EMMTECH-3458         patch                                              [00282327] Error on expired license key
+EMMTECH-3459         dumpstate, function                                [00281875] KM doesn't update its license "Expired" status on some connected devices
+EMMTECH-3460         Exception                                          [Email] Failure (1901193) - Exception Error. when updating license
+EMMTECH-3464         patch                                              [Internal] KM enorllment is not working and KM thrown ANR after reboot
+EMMTECH-3467         function                                           [00281810] Admins cannot change support account password
+EMMTECH-3470         dumpstate, patch                                   [00282583] Provisioning the phone is asking for password instead of auto-signing
+EMMTECH-3479         patch                                              [Customer][00282426]Phones locked on the Knox Manage connection screen
+EMMTECH-3481         function                                           [Customer][00282691] Device stuck with KRS license
+EMMTECH-3490         dumpstate, patch                                   [00281488] Watches Won't Take App Update
+EMMTECH-3495         dumpstate                                          [00282200] Bug: EAP-TLS config force a screen lock
+EMMTECH-3497         dumpstate, function                                [00282841][ETS] App non installing or updating
+EMMTECH-3505         dumpstate                                          [00280839] Power ON and Power OFF policy is not applied to the device witha profile
+EMMTECH-3513         dumpstate                                          [customer][00281567] Custom certificates are not installed
+EMMTECH-3518         patch                                              [00283007] About the "Sound mode / Volume adjustment" setting on Wear OS
+EMMTECH-3526         patch                                              [00283602] Group sync not working correctly
+EMMTECH-3530         Exception                                          [00282834] Knox Remote Support Quality
+EMMTECH-3537         Exception                                          [Internal] Queries regarding Last seen,Command History in KM
+EMMTECH-3540         Exception, import                                  [00283716] [ETS] Consult KM connectivity network map
+EMMTECH-3544         patch                                              [00283215] Azure AD Sync Hung
+EMMTECH-3551         function                                           [00283838] cannot enroll device to knox manage
+EMMTECH-3559         Exception, dumpstate                               [Customer][00283704] App not working-in Kiosk mode
+EMMTECH-3567         dumpstate                                          [00284061] Knox Firewall Not working
+EMMTECH-3569         function                                           [Customer][00283913] Location tracking inaccurate
+EMMTECH-3577         dumpstate                                          [Customer][00283008] Error 51010: An error occurred with setWallPaper
+EMMTECH-3579         dumpstate                                          [00282606] Kiosk: Phone & SMS: Alert "Permissions are required to display badges for the app"
+EMMTECH-3581         dumpstate                                          [ETS][00283662] Azure AD (Graph API) enrollment with issues - WPCOD and Work Profile
+EMMTECH-3583         Exception, adb, patch                              [00283537] App Uninstall Issue
+EMMTECH-3589         Exception                                          [00284113] Location settings Knox manage and Android
+EMMTECH-3595         import                                             [customer][00283926] 23.12 update MFA not working
+EMMTECH-3604         Exception                                          [00284066] Apps not Auto-Updating on Device post 23.12 update
+EMMTECH-3608         function                                           [iOS] [00284594] iOS Devices are disconnecting
+EMMTECH-3613         dumpstate                                          [Customer][00281813]Not able to use call forwarding
+EMMTECH-3614         import, patch                                      [00284394] Issue to sync users automatically with Azure AD
+EMMTECH-3625         Exception                                          [00282490] APN configuration via KSP probleme
+EMMTECH-3634         dumpstate                                          [00284581] error KMA_D9001 - Android Enterprise Wi-Fi enrollment with 802.1xEAP fails
+EMMTECH-3645         function, import                                   [Customer][00285125] Unable to install certificate on device - KMA_D9005 error
+EMMTECH-3646         function                                           [Customer][00285095] Behavior of system updates
+EMMTECH-3648         Exception                                          [Internal] KM + KAI integration
+EMMTECH-3654         function, patch                                    [Customer][00283411]Settings of "double support"
+EMMTECH-3656         dumpstate                                          [00285379] [ETS] Camera not availble
+EMMTECH-3657         dumpstate, patch                                   [00285482] [ETS] Sapir_Camera app suddenly doesn't work anymore
+EMMTECH-3660         dumpstate                                          [Customer][00285598]Unable to update license in the device
+EMMTECH-3677         dumpstate                                          [Non-Samsung] [00284854] Sim card connexion
+EMMTECH-3694         dumpstate                                          [00284117] Unable to remove eSIM
+EMMTECH-3699         Exception, function                                [Customer][00285905]Internal app update failure on Android 14
+EMMTECH-3700         dumpstate                                          [customer][00286018]Knox Manage - Exit Kiosk Code Missing
+EMMTECH-3707         patch                                              [Customer][ETS][00284614] Blocking an app component using profile
+EMMTECH-3710         patch                                              [Customer][00286071] Kiosk pages don't appear on Portuguese and Spanish console
+EMMTECH-3711         function                                           [00286091][ETS] Knox Manage "Command History" function
+EMMTECH-3712         Exception, dumpstate                               [00286052] APN Configuration Not Being Installed
+EMMTECH-3752         Exception                                          [00286613] Cannot change device license from KLM12 to KLM09
+EMMTECH-3763         function                                           [00286820] Kiosk Screen Lock Issue
+EMMTECH-3772         dumpstate                                          [Customer][00286584]Unable to install Microsoft One Note app
+EMMTECH-3776         function                                           [00287173] Deploying Web Progressive Applications
+EMMTECH-3785         dumpstate                                          [Internal][WearOS] Key Remapping // WearOS System Apps
+EMMTECH-3800         dumpstate                                          [Customer] [00286381] Installation of APK with internal store
+EMMTECH-3807         dumpstate, function                                [00287270] [ETS] Attempted app removal
+EMMTECH-3820         function                                           [00287327] Tag i Knox Manage for EE devices.
+EMMTECH-3821         dumpstate                                          [00286183] Log in using Google account on the already installed application
+EMMTECH-3824         function, patch                                    [customer][00286543]Android enrollment not possible. Error code: KMA_F4014
+EMMTECH-3834         dumpstate                                          [00287806] MGP App "F5 Access" not applying managed configuration
+EMMTECH-3838         dumpstate                                          [Customer][00287660]Activate NFC Payments
+EMMTECH-3840         Exception, dumpstate                               [00287861] Server cannot comunicate with device's agents behind proxy
+EMMTECH-3846         patch                                              [Customer][00287933]Camera not working after unlocking the device
+EMMTECH-3867         dumpstate, function                                [00287657] Live Translate/Call Assist not Working on S24 RDU Devices after KM Policy push
+EMMTECH-3868         function                                           [Customer][00288478]Synchro On-premise AD
+EMMTECH-3871         function                                           [Customer][00288576] Unable to take photos in Application Clobotics
+EMMTECH-3872         Exception                                          [Fredrik & Louisa AS][00288589] KM Portal Redirecting to Dashboard Page
+EMMTECH-3876         dumpstate                                          [00287542] Geofencing isn't working as expected using Knox Manage
+EMMTECH-3890         Exception                                          [customer][00288884]Knox manage not responding message
+EMMTECH-3908         dumpstate                                          [Customer][00288651]KM Unable to use Camera
+EMMTECH-3912         dumpstate                                          [ETS][00288056] Knox Remote Tool
+EMMTECH-3917         Exception                                          [00286119] MBH Bank Firewall Exceptions
+EMMTECH-3918         dumpstate                                          [00287895] Automatic application launch problem
+EMMTECH-3928         dumpstate                                          [Non-Samsung] [00289301] Problem with Motorola
+EMMTECH-3931         function                                           [00289003] Knox Manage - error message
+EMMTECH-3945         Exception, patch                                   [Customer][00289574] SCC connection timeout
+EMMTECH-3966         Exception                                          [Customer][00289092]Firewall  blocks communication between SamsungKnox
+EMMTECH-3969         dumpstate                                          [UAT] Wear OS policy additions
+EMMTECH-3976         Exception, dumpstate                               [Customer][00289835]Configuration APN
+EMMTECH-4001         adb, function, patch                               [00290503] Kiosk won't install.
+EMMTECH-4016         dumpstate, function                                [00290829] Cannot enroll any mobile phone anymore
+EMMTECH-4020         dumpstate                                          [SELF TEST] Kiosk Notification and systme bar error
+EMMTECH-4022         patch                                              [Customer][00290978]Descending Kiosk
+EMMTECH-4030         dumpstate                                          [Customer][00288921] WearOS - Unable to setup an eSIM mobile plan in France
+EMMTECH-4036         Exception, function                                [Customer][00291130] Add the Google Chrome app to the App Permission-Issue with runtime permission
+EMMTECH-4046         dumpstate, function                                [Customer][00291271] Fall detection policy doesn't apply to Watch 6
+EMMTECH-4063         function                                           [00291140] 2024-04 KM // fall detection is not triggered
+EMMTECH-4064         patch                                              [00291975] Kiosk not installing
+EMMTECH-4075         patch                                              [Urgent][Customer][00291218]Exit kiosk is not visible
+EMMTECH-4089         function, import                                   [Customer][00292330]Device alias
+EMMTECH-4109         patch                                              [Customer][00292349] Kiosk Mode - App Install Blocked
+EMMTECH-4116         dumpstate                                          [Customer][00292351]APN installation error KMA_D9001.
+EMMTECH-4119         Exception                                          [00290968][B2B/T630N/SKBS] KM USB host storage (OTG) policy does not applied
+EMMTECH-4131         function                                           [00292695] Point d'accès Wifi
+EMMTECH-4132         dumpstate                                          [00288896] Failure (1901035) - EMM Agent error occurred [DownloadStatusPending]
+EMMTECH-4137         function                                           [00292820] profile>policy>phone>mic/recording concept
+EMMTECH-4141         dumpstate                                          [00292145] User can leave kiosk and factory reset the device
+EMMTECH-4171         import                                             [ETS][00292552] could not find the user
+EMMTECH-4172         Exception                                          [00293444] Device Can't Manage - Intranet
+EMMTECH-4174         dumpstate                                          [Customer][00292600]KNOX Remote Support - Black screen & Ethernet issue
+EMMTECH-4185         Exception, NullPointerException                    [00287897] Devices Unreachable/Disconnected in Knox Manage despite being connected
+EMMTECH-4186         Exception, dumpstate                               [ETS][Customer][00292872]Incorrect lock screen behavior in Kiosk mode
+EMMTECH-4188         function                                           [00293739] Bulk change for Group and Org.
+EMMTECH-4189         Exception, dumpstate, function                     [Customer][00293503]Unable to access Settings in Kiosk mode.
+EMMTECH-4195         function                                           [00292805] KM WearOS policy is not applied
+EMMTECH-4196         function                                           [Customer][00291463] Need to remove a device admin app
+EMMTECH-4200         Exception                                          [Customer][00293851]Knox Remote Support error
+EMMTECH-4201         Exception                                          [00293529] SmartThings
+EMMTECH-4202         patch                                              [00293980] Haryana Education - Unable to download device details report list
+EMMTECH-4205         function                                           [iOS][00294032] Revisar perguntas do MDM
+EMMTECH-4207         dumpstate                                          [Customer][00293490]Issue with background app with Kiosk
+EMMTECH-4212         dumpstate                                          [00293848] [ETS] Gmail app x Knox Manage Issue
+EMMTECH-4213         Exception, dumpstate                               [Customer][00294022]Applications Not Working with Location
+EMMTECH-4218         dumpstate                                          [00293346] WearOS device loses mobile network connection when kiosk is applied
+EMMTECH-4227         dumpstate                                          [Customer][00294087]Voice input in Samsung Keyboard not available in recent One UI 6.1 update
+EMMTECH-4235         Exception, dumpstate                               [ETS customer][00289572] App permission issue.
+EMMTECH-4244         dumpstate                                          [00293434] Error a la hora de instalar una aplicación interna en los dispositivos
+EMMTECH-4250         Exception                                          [PHC Telecom (G)] [00294100] Tenant ID delete
+EMMTECH-4263         patch                                              [00294479] [Howdens Joinery] Unable to export to Excel
+EMMTECH-4265         function                                           [Customer][00291958] App appareil photo
+EMMTECH-4266         Exception, dumpstate                               [00292070] Serious Software issue detected
+EMMTECH-4271         function                                           [Non-Samsung][00292762] ERROR EN APLICACION KNOX
+EMMTECH-4273         Exception                                          [Customer][00294863]Disable location notifications
+EMMTECH-4282         patch                                              [00289695] Pulse Secure (Ivanti Secure Access Client) app issue
+EMMTECH-4288         Exception                                          [Customer][00295145]Whats App is not installing in workspace
+EMMTECH-4294         dumpstate                                          [00295294] Gerät Orten
+EMMTECH-4295         Exception, function                                [ETS][00294891] User Certificate fails to install
+EMMTECH-4302         function, patch                                    [Customer][00294586]NFC issue
+EMMTECH-4309         function                                           [Customer][00292862] Chrome password manager
+EMMTECH-4313         dumpstate, function                                [Customer][00294181]Galaxy A05(SM-A055F) Profile Policy & Chrome Policy was not working
+EMMTECH-4314         function                                           [iOS] [00295433] iOS - "Last seen" not updating even though device active
+EMMTECH-4316         dumpstate                                          [customer][00294565] WiFi automatically deactivates on the device
+EMMTECH-4351         adb, dumpstate                                     [00296005] Problemas actualizando aplicacion interna en wear os knox manage
+EMMTECH-4363         function                                           [Windows] [00296550] AUMID Edge e Kiosk Browser
+EMMTECH-4364         dumpstate                                          [Customer][00295288] "the knox security policy prevents this option"
+EMMTECH-4366         dumpstate                                          [UAT] Exit Staging Mode Attempt Limit and Take Action if Attempts Are Exceeded policies don't work
+EMMTECH-4377         import                                             [Customer][00296380] Can't modify LDAP users mapping
+EMMTECH-4383         dumpstate, function                                [00296803]  Case Removing Device Admin App
+EMMTECH-4392         import                                             [Customer][00296730] Stuck in Bootloop after Restart
+EMMTECH-4406         function                                           [customer][00297160] Kiosk - Notification - Bug
+EMMTECH-4412         dumpstate                                          [ETS][Customer][00296103]  KM enrollment keeps asking username and password (only happen to A15 serries)
+EMMTECH-4418         patch                                              [Customer][00297456]Sub-Admin unable to access Knox Remote Support
+EMMTECH-4434         dumpstate                                          [00296855] Knox Manage WiFi Configuration Issue on Wear OS Devices
+EMMTECH-4444         Exception, NullPointerException                    [Customer][00297720]Unable to attach Image and Signature from the app
+EMMTECH-4446         import                                             [ETS][00298080] Users sync error. More than 30k of all users
+EMMTECH-4447         dumpstate, patch                                   [ETS][00298217/00298315] Devices are falsely reporting OS compromised
+EMMTECH-4449         function                                           [Customer][00297616] No notifications after a change of a profile policy
+EMMTECH-4456         dumpstate                                          [customer][00297743] Kiosk - Geofencing event profile - Kiosk is delated
+EMMTECH-4461         dumpstate                                          [00296118] Problem with fall detection in wear os
+EMMTECH-4472         dumpstate                                          [Customer][00298468]Applications do not install automatically
+EMMTECH-4473         patch                                              [00298342/00298199] EFOTA Connection with KM keeps disconnecting
+EMMTECH-4478         dumpstate                                          [00297621] [ETS] Goglio_Device loses MGP account in WPCOD
+EMMTECH-4481         Exception, dumpstate                               [00298617] Échec de mise à jour de l'application (APK maison) MaMatmut via Knox Manage (2)
+EMMTECH-4482         Exception, dumpstate                               [00297449] Application Crashing
+EMMTECH-4483         dumpstate                                          [iOS][00298068] Problème Knox suite au renouvellement des licences
+EMMTECH-4487         dumpstate                                          [00298759]  Case Devices are losing their APN as of today, bricking devices that are installed remotely.
+EMMTECH-4489         patch                                              [00298089] Devices do not renew certificate for EAP-TLS Wifi-Connection
+EMMTECH-4491         import                                             [Customer] [00298414] Error Code: 10004 - LDAP error code 32
+EMMTECH-4499         dumpstate                                          [00299084] License problem that prevents several management actions such as application installation because they are visible as expired licenses even though they are valid.
+EMMTECH-4526         function                                           [Customer][00299450] Disable Call Blocking option for android
+EMMTECH-4528         dumpstate                                          [Customer][00299542] Location Data Mismatch - KM API
+EMMTECH-4534         function                                           [Customer][00298059] app not updating from 2.6 to 2.9
+EMMTECH-4549         import                                             [ETS][customer][00299774]Changing sync services - Questions
+EMMTECH-4561         function, patch                                    [00299853,00299986,00300764] Devices Randomly Enter 'Compromised' State
+EMMTECH-4575         patch                                              [00300361] Critical Patch Update Oracle
+EMMTECH-4576         Exception                                          [Customer][00300369] LDAP SYNC HAS FAILED - Error 10004
+EMMTECH-4600         Exception, NullPointerException                    [00300611] Native Dialer in kiosk don't work
+EMMTECH-4607         function                                           [iOS][00301057] Application configuration
+EMMTECH-4617         patch                                              [Customer][ETS][00299103]Kiosk Print screen Forwarding not possible with OS Version 14
+EMMTECH-4620         function                                           [00301631]  [ETS] Request Stopping Sync Entra ID to Knox Manage
+EMMTECH-4621         Exception, dumpstate                               [00300767, 00299638]Our main apps that we use our knox tablets for doesnt open in kiosk mode all of a sudden
+EMMTECH-4628         patch                                              [00301707] Error when pushing content to all the devices
+EMMTECH-4629         patch                                              [00301717] Pushing new updates to Kiosks
+EMMTECH-4645         adb                                                [Customer][00301712]Device Stuck in installing Kiosk app
+EMMTECH-4646         dumpstate                                          [00302177] Firewall Policy Study (Policies Not Working)
+EMMTECH-4648         patch                                              [customer][00301545]Security Policy prevents use of Camera
+EMMTECH-4652         dumpstate                                          [00301059] Microsoft Teams App Disappearing From Phones
+EMMTECH-4671         Exception                                          [ETS][Customer][00302280] License activation count is different
+EMMTECH-4689         Exception, dumpstate                               [00303264] ADCS User Certificate Issue Failed - KMA_D9008
+EMMTECH-4691         dumpstate, function                                [00302776] Devices suddently locked themselves with different types of locking screen on "screen-locking DISABLED" devices causing multiple interface devices totally un-usable during working hours.
+EMMTECH-4701         Exception, dumpstate, function                     [ETS][customer][00301479]Rolling out empty content files
+EMMTECH-4703         function, patch                                    [00303579] Knox Remote Support Security Concern
+EMMTECH-4710         dumpstate                                          [Customer][00302416]Unable to check device location
+EMMTECH-4714         dumpstate                                          [Customer][00303174] Unable to push device command through KM successfully
+EMMTECH-4720         dumpstate                                          [00303799][KoreanAir] Managed Google Play App not execute
+EMMTECH-4723         dumpstate, function, patch                         [Customer][00303539]Unable to uninstall app from Work profile
+EMMTECH-4731         function                                           [UAT] Terminology updates for Android Enterprise policies
+EMMTECH-4732         function                                           [ETS][00303561] Customer can't use the partial search in Managed Google Play collection section
+EMMTECH-4738         function, patch                                    [Customer][00304077]Quick panel & notification disable problem wearos
+EMMTECH-4744         function                                           [Customer][00304301] White screen is coming when using apk in KM
+EMMTECH-4745         NullPointerException                               [00304030] Policy conflict with Application
+EMMTECH-4749         Exception, function                                [Customer][00304283]Firewall connections to open between SCC and CA
+EMMTECH-4753         dumpstate                                          [Customer][00304195] Picture in picture not working in KIOSK mode.
+EMMTECH-4761         import                                             [iOS] [00304395] Error while importing Apple VPP token
+EMMTECH-4762         dumpstate, patch                                   [00303577] Battery Drain - Watch6 + KManage in pair & detach + my-eforce app
+EMMTECH-4778         patch                                              [Customer][00304195] default Uncheck options need in Unenroll command.
+EMMTECH-4781         patch                                              [Customer][00304892]Modified app not getting pushed to the device automatically.
+EMMTECH-4787         patch                                              [ETS][00304879] Error KMA_F9002 - KME Devices
+EMMTECH-4790         Exception, dumpstate                               [00305071] Firewall rules are bypassed
+EMMTECH-4798         dumpstate                                          [00304437] Knox Manage for Wearables - Verizon issue with Watch FE
+EMMTECH-4800         dumpstate                                          [Customer][00304603]Unable to check device location
+EMMTECH-4803         function                                           [00305005,00306621] problem with devices bloacked by changing the sim
+EMMTECH-4810         import                                             [Customer][00305340]Export Geofence conditions
+EMMTECH-4818         dumpstate, function                                [Customer][00304523] Can't connect to WiFi after UI 5.1.1 upgrade
+EMMTECH-4823         dumpstate                                          [Customer][00305344] Issue to install certificate - KME_D9008
+EMMTECH-4825         Exception                                          [00305590] Not possible to grant app permission in Profile due misfunction
+EMMTECH-4826         function                                           [00305537] Enroll a device as fulley mananged with AMAPI
+EMMTECH-4832         dumpstate                                          [Customer][00305359] Knox manage enrollment stucks!
+EMMTECH-4855         function                                           [Customer][00305316] Account issues with Remote Access
+EMMTECH-4858         dumpstate, patch                                   [customer][00306333]Work Profile - Suryoday Bank - Install app issue
+EMMTECH-4860         dumpstate                                          [ETS][00305046]  Apps are automatically removed even if they are assigned through Organization/Group
+EMMTECH-4861         dumpstate, function                                [00304514] Screen Brightness not updating with profile
+EMMTECH-4878         dumpstate, function                                [00304994] Local WiFi SSID without internet, connection set to "disabled" after some time
+EMMTECH-4879         dumpstate                                          [00306299] application set to auto install is not installing for some devices.
+EMMTECH-4895         function                                           [Customer][00306768]FIITJEE Global School- Knox Manage Policy Breach again to all user device -
+EMMTECH-4896         dumpstate, function                                [00306492] [ETS] SOLGROUP_Apps not responding only in Knox managed devices
+EMMTECH-4902         patch                                              [Customer][00306674]Unable to get schedule report
+EMMTECH-4916         dumpstate, patch                                   [00307013] Problemas al validar en un equipo Compartido Persistente
+EMMTECH-4926         patch                                              [customer][ETS][00307124]Wrong version of app displayed in Knox Manage
+EMMTECH-4927         dumpstate, function                                [00305207] [WEAR OS] Water lock can't be turned off if long press is configured in Knox Manage
+EMMTECH-4937         dumpstate                                          [Customer][00307066] Tablets disconnect from the network
+EMMTECH-4943         Exception                                          [customer][00307322]Issues port / firewall check
+EMMTECH-4962         dumpstate                                          [00307771] Kicked from Knox Manage Remote Access
+EMMTECH-4972         Exception, dumpstate                               [Customer][00307766] no settings app visible
+EMMTECH-4993         import                                             [iOS][00308280] Request for Centralized Contact Management via Samsung Knox for Samsung Xcover and iPhone
+EMMTECH-4995         dumpstate                                          [00308251] [byod.suryodaybank.com] Unable to enroll in KM
+EMMTECH-4997         Exception, dumpstate                               [SCC] [S2024111300000354] [ETS][00308009] Not possible to register outlook app via Work profile on company owned device
+EMMTECH-4999         function                                           [SCC] [S2024111400000173] [00308382] Device Mobile No as Lookup code - API
+EMMTECH-5005         dumpstate                                          [SCC] [S2024111500000029] EMMTECH-4818: [Customer][00304523] Can&#039;t connect to WiFi after UI 5.1.1 upgrade
+EMMTECH-5006         adb, dumpstate, logcat                             [SCC] [S2024111500000009] [Customer][00308187] Can&#039;t install MGP application
+EMMTECH-5020         patch                                              [Customer][00308719] Group by Location is showing wrong device count.
+EMMTECH-5038         function                                           [iOS] [00308941] Change VPP Token
+EMMTECH-5041         dumpstate                                          [00307732] [bandhanbank.com]  Need to Auto Run "Sophos" Application
+EMMTECH-5042         dumpstate                                          [SCC] [S2024112100000401] [00308823] Message indicating that a reset will be performed within 1h50
+EMMTECH-5051         function                                           [Customer][00309042] Find possible cause of why "do not Disturb" mode was enabled
+EMMTECH-5057         Exception                                          [00308616] Falha no Controle Remoto
+EMMTECH-5058         function                                           [iOS][00308989] IOS Update / Download
+EMMTECH-5061         function                                           [SCC] [S2024112500000280] [customer][ETS][00307295]BUG when syncing with AD
+EMMTECH-5066         Exception                                          [00308143] Devices not connecting to WiFi as configured
+EMMTECH-5069         dumpstate                                          [SCC] [S2024112700000344] [ETS][00307765] Kiosk application (Single Kiosk) cannot be updated on the device
+EMMTECH-5099         function                                           [Customer][00309835]Block Deactivation of eSIM card.
+EMMTECH-5103         dumpstate                                          [SCC] [S2024120500000033/Knox Manage]{[00307053] [ETS] Navigation Bar Missing-Samsung S8 tab}
+EMMTECH-5104         function                                           [SCC] [S2024120500000062/Knox Manage]{[Customer][00309372]  Device location issue}
+EMMTECH-5126         patch                                              [SCC] [S2024121100000036/Knox Manage]{[00309323]A couple of Wear OS issues}
+EMMTECH-5136         dumpstate, patch                                   [00310453] [ETS] School2024 WIFI not installed in tablet after Cert provided
+EMMTECH-5138         Exception                                          [Customer][00309610]Apps are installed from Google play without assign apps in KM
+EMMTECH-5140         dumpstate                                          [SCC] [S2024121300000313/Knox Manage]{[ETS][00309364] Missing default apps}
+EMMTECH-5143         function                                           [00310008] Knox Manage using Intune MAM
+EMMTECH-5165         Exception                                          [SCC] [S2024121900000435/Knox Manage] [00310032] &#034;App Restriction / Runtime Permissions for all apps&#034; set to &#034;grant&#034; does not give permiss
+EMMTECH-5169         function                                           [SCC] [S2024122000000265/Knox Manage] [00311010] Questions regarding Ping ID integration with Knox Manage
+EMMTECH-5170         Exception, dumpstate                               [SCC] [S2024122000000333/Knox Manage] [00309674] Bandhan Bank- Issue &#034;USB not detected or USB permission not given&#034;
+EMMTECH-5172         dumpstate, logcat                                  [SCC] [S2024122100000050/Knox Manage] [Customer][00310725] Hard Fall detection don&#039;t work
+EMMTECH-5175         function                                           [00310370] [ETS] 00050506 | Knox Remote Support | Remote File Explorer | Files Show Multiple Times
+EMMTECH-5177         function                                           [Customer][00309342] Incorrect location reported by KM
+EMMTECH-5180         function                                           [00311092] Unable to Export to Excel from KM
+EMMTECH-5184         function                                           [Non-Samsung][00311129][ETS] SOLGROUP_Maximum "Number of Active Devices per User" set to 1 doesn't work if a device goes into "Disconnected" status
+EMMTECH-5185         patch                                              [00311360][ETS] [0005252] Knox Manage Commands and API Calls Result in Failures
+EMMTECH-5188         function                                           [00311392] Transfer data collected as 0 in Report
+EMMTECH-5197         dumpstate                                          [Customer][00311394] KM Kiosk block background process (calling)
+EMMTECH-5198         dumpstate                                          [SCC] [S2025010400000007/Knox Manage] [Customer][00309625] Screen on when plugged in setting not working
+EMMTECH-5201         dumpstate                                          [00310960] Error KIO_Code_002
+EMMTECH-5210         Exception, function                                [00311809] Samsung Knox Device Offline but can be accessed via Knox Remote Support
+EMMTECH-5211         dumpstate, patch                                   [SCC] [S2025010800000320/Knox Manage] [00311634] Camera is not working even though nothing in the profile says block camera.
+EMMTECH-5226         dumpstate                                          [SCC] [S2025011300000100/Knox Manage] [00310605] Knox Remote Support stops
+EMMTECH-5230         function                                           [SCC] [S2025011400000029/Knox Manage] [customer][00311994] Cloud connector issue
+EMMTECH-5236         dumpstate                                          [ETS][Customer][00312283] Mobile phone number does not show in device detail information
+EMMTECH-5272         import                                             [SCC] [S2025012200000236/Knox Manage] [00312418] Import AD user attribute
+EMMTECH-5280         Exception                                          [SCC] [S2025012400000031/Knox Manage] [Customer][ETS][00311928] MGP (public) apps don&#039;t install
+EMMTECH-5285         function                                           [Customer][00313126] USB Policy Violation error in audit logs
+EMMTECH-5287         Exception, NullPointerException, patch             [00312927] KM crashes and content folder is empty
+EMMTECH-5290         dumpstate                                          [SCC] [S2025012900000105/Knox Manage] [00313337] Interpreter app in Kiosk mode
+EMMTECH-5293         Exception                                          [Customer][00313332]License error KMA_F5011
+EMMTECH-5304         Exception, import                                  [SCC] [S2025020300000153/Knox Manage] [00313349]Cloud Connector issue
+EMMTECH-5335         function                                           [SCC] [S2025020600000292/Knox Manage] [00312144] LICENCIAS KNOX SUITE
+EMMTECH-5345         patch                                              [iOS][00314068] resetting a device after unenrollment
+EMMTECH-5349         function                                           [SCC] [S2025020700000392/Knox Manage] [00313818] Issue with Bulk Manage Tags &amp; Aliases
+EMMTECH-5356         Exception                                          [Customer][00314045]Notifications are not showing in Notification panel.
+EMMTECH-5360         function                                           [SCC] [S2025021100000010/Knox Manage] [00314166] License Replacement
+EMMTECH-5362         Exception, patch                                   [00314411] [MOE] [ETS] Stop KNOX agent Message appearing on tablet
+EMMTECH-5390         patch                                              [00314609][00314700] Knox Manage App is stopping since last update (v25.01)
+EMMTECH-5393         function                                           [00314769] Query of shared device
+EMMTECH-5400         Exception, dumpstate                               [Customer][00314898]Push profile command not received to devices
+EMMTECH-5414         function                                           [ETS][00314548] Python Script - Customer unable to run script to get list of apps installed on devices.
+EMMTECH-5433         function                                           [SCC] [S2025022600000261/Knox Manage] [ETS][00315508] Config of Identity connection and assign &#039;organization&#039; different than default
+EMMTECH-5442         dumpstate                                          [00315044] Reopening 00313570 - Knox Remote Support Issue
+EMMTECH-5443         adb                                                [SCC] [S2025022800000328/Knox Manage] [00314505, 00318313] Dself application scanning app doesnt work in single kiosk mode
+EMMTECH-5445         function                                           [SCC] [S2025030300000141/Knox Manage] [00315885] Replacing user account data with LDAP
+EMMTECH-5453         commit, function                                   [00315976] New Devices Consuming Existing License Causing minus Usage
+EMMTECH-5454         Exception                                          [SCC] [S2025030400000317/Knox Manage] [ETS customer][00315665] LDAPS usage for the sync
+EMMTECH-5459         Exception, dumpstate                               [Customer][00315068]Location permissions cannot be managed by device user
+EMMTECH-5460         dumpstate                                          [Customer][00312792] KM Kiosk - exit with physical keyboard and Default Home screen.  
+EMMTECH-5463         adb, diff, logcat                                  [00316155] [B2B/T636N/Korean Air] KM pushed profile AE & Knox version diff
+EMMTECH-5464         Exception, function, patch                         [Customer][00315503]Navigation buttons/keys are not showing
+EMMTECH-5476         dumpstate, function                                [SCC] [S2025031000000368/Knox Manage] [00316531] [ETS] Stop KNOX agent Message appearing on tablet_with no google account
+EMMTECH-5477         Exception                                          [SCC] [S2025031100000033/Knox Manage] [CUSTOMER][00315214]Kiosk Calculator and Clock app shows up as not installed
+EMMTECH-5483         Exception                                          [SCC] [S2025031100000529/Knox Manage] [00315247] VIP - Unable to sync the user
+EMMTECH-5485         dumpstate                                          [SCC] [S2025031200000279/Knox Manage] [customer][00315425] KM Issue: Knox bypasses through the Factory Reset option
+EMMTECH-5492         function                                           [SCC] [S2025031300000434/Knox Manage] [00316680] Setting up &#034;Certificate Authority&#034; against local SCEP/NDES is failing
+EMMTECH-5516         dumpstate, function                                [SCC] [S2025032000000077/Knox Manage] [CUSTOMER][00314701][ETS]Switching the Tab A (X-200) from Android 13 to 14 shows problems
+EMMTECH-5519         dumpstate                                          [SCC] [S2025032000000457/Knox Manage] [00316898] Back button does not work when browsing files
+EMMTECH-5521         function                                           [SCC] [S2025032100000323/Knox Manage] [00315095] Knox License Seat Number Mismatch
+EMMTECH-5528         function                                           [00317751] Inquiry about KM license
+EMMTECH-5537         dumpstate                                          [Customer][00317879]Always on VPN with Ivanti doesnt work
+EMMTECH-5546         function                                           [SCC] [S2025032700000460/Knox Manage] [00317904] Triggering App Action on Samsung S25+ in Kiosk Mode via Knox SDK
+EMMTECH-5547         Exception                                          [SCC] [S2025032800000037/Knox Manage] [Customer][00316662]Issues with Knox Manage and Manage Google Play - Customer ID 6239948782
+EMMTECH-5560         function, import                                   [Customer][00316486]Device Alias ​​in INFO Key
+EMMTECH-5582         dumpstate, patch                                   [SCC] [S2025040400000245/Knox Manage] [00318403] Managed app config is not applying on Knox Manage internal app (uploaded .apk)
+EMMTECH-5587         Exception, stacktrace                              [00318578] Unable to configure CA
+EMMTECH-5593         function                                           [SCC] [S2025041000000051/Knox Manage] [00318130] Can&#039;t use location in Knox Browser inside Kiosk
+EMMTECH-5594         patch                                              [Email] Missing search field in "Install or Update App" device command
+EMMTECH-5606         patch                                              [iOS][00318958]Setting up the Ipad
+EMMTECH-5608         function, patch                                    [SCC] [S2025041500000024/Knox Manage] [00319089] Make / modify single kiosk not working
+EMMTECH-5620         dumpstate                                          [SCC] [S2025041600000299/Knox Manage] [00318104] Kiosk App Error
+EMMTECH-5631         function                                           [00319311] SOLGROUP_OEMConfig apps have all configurations activated by default
+EMMTECH-5640         patch                                              [Customer][00319405]Cannot update Kiosk App
+EMMTECH-5644         dumpstate, function                                [SCC] [S2025042300000333/Knox Manage] [00320028] Issue with SIM Card Detection During Enrollment
+EMMTECH-5645         Exception, dumpstate, patch                        [SCC] [S2025042400000028/Knox Manage] [Customer][00318920] Connexion WI-FI
+EMMTECH-5646         dumpstate, patch                                   [00319152] Knox Manage Settings Intermittently Applied
+EMMTECH-5659         patch                                              [SCC] [S2025042600000024/Knox Manage] [Customer][00320212] User duplication error
+EMMTECH-5662         dumpstate                                          [SCC] [S2025042800000303/Knox Manage] [00320152] Samsung knox manage problem with the installation and assignment of the Internal app
+EMMTECH-5667         function                                           [SCC] [S2025043000000032/Knox Manage] [Customer][ETS][00319322] Switch off: Search for nearby devices (Google Fast Pair)
+EMMTECH-5675         Exception                                          [ETS][Customer][00320719] LDAP Sync Failure – Error 10004 During Knox Manage Configuration
+EMMTECH-5695         patch                                              [SCC] [S2025050900000051/Knox Manage] [Customer][00321058] Knox Manage profiles assignment issue
+EMMTECH-5711         dumpstate                                          [00319406]Default keyboard setting not applying correctly
+EMMTECH-5720         import                                             [Customer][00320490] Ldap  synchronisation service
+EMMTECH-5735         dumpstate                                          [00319011] Knox Manage Update Failures
+EMMTECH-5746         function                                           [00321339] [ETS] - Knox Manage Wear OS Kiosk issue
+EMMTECH-5752         function                                           [Customer][00321834]Issue with Dynamic Groups – Incorrect Device Assignment
+EMMTECH-5759         Exception, function                                [SCC] [S2025052300000065/Knox Manage] [ETS][Customer][00322261]Discrepancy in Synced Group Membership – AD Users Not Reflected in KM
+EMMTECH-5790         Exception                                          [00322258] Knox Manage Questions on configuring clean browsing DNS
+EMMTECH-5795         dumpstate                                          [SCC] [S2025053100000017/Knox Manage] [00322669] TELIO - Código de Bloqueo de Pantalla
+EMMTECH-5797         function                                           [SCC] [S2025053100000040/Knox Manage] [00321886] MGP is blank even with successfully assigned apps
+EMMTECH-5798         patch                                              [SCC] [S2025053100000057/Knox Manage] [00321962] Watch Face not displaying the complications with third party app data source providers
+EMMTECH-5804         function                                           [SCC] [S2025060300000170/Knox Manage] [00321884] Creating Dynamic Group issue
+EMMTECH-5805         adb, logcat                                        [00321935] Samsung Knox Manage - Apps Not Updating on Android Tablets
+EMMTECH-5807         dumpstate, function                                [00322913] Shared device behavior 
+EMMTECH-5813         dumpstate                                          [Non-Samsung][00322462] [SEEG][Erada] Upload option not working
+EMMTECH-5814         function                                           [Customer][00322938]KM unenrollment command not works
+EMMTECH-5816         function, patch                                    [SCC] [S2025060700000013/Knox Manage] [00323230] Galaxy watch 5: Intermittent Wi-Fi Disablement in Between Charging
+EMMTECH-5817         dumpstate, function                                [SCC] [S2025060700000032/Knox Manage] [Customer][ETS][00323121] Keep Alive settings
+EMMTECH-5838         dumpstate, function                                [SCC] [S2025061200000160/Knox Manage] [00321334] Certificate renewal failure
+EMMTECH-5840         Exception, dumpstate                               [SCC] [S2025061200000317/Knox Manage] [00322240] Blacklist / whitelist for calling isn&#039;t working correctly
+EMMTECH-5852         dumpstate                                          [00314571] Configuration not being received by the device (watch)
+EMMTECH-5853         function                                           [Customer][00323403] Certificate Installation Issue – KMA_D9006 
+EMMTECH-5856         dumpstate                                          [SCC] [S2025061600000207/Knox Manage] [00323308] Certificate Not Trusted
+EMMTECH-5861         Exception                                          [Email] EntraID - Multiple tenants (EMMTECH-5788 continued)
+EMMTECH-5862         dumpstate                                          [00323599] KM enrolled wearables losing ability to change from 24 hr time to 12 hr time.
+EMMTECH-5865         function                                           [ETS][00322048] Bluetooth Wand pairing request error in Android Locktask
+EMMTECH-5869         Exception, dumpstate                               [SCC] [S2025061900000023/Knox Manage] [Customer][00323910]Knox Remote – not working on firewall
+EMMTECH-5886         function                                           [SCC] [S2025062400000321/Knox Manage] Handling Knox Manage cases in Support Portal.
+EMMTECH-5905         Exception, dumpstate                               [Customer][00323896] system keeps asking for the password every 20 minutes
+EMMTECH-5909         dumpstate, function                                [00323907] Namah Application lagging issue with Knox Mange
+EMMTECH-5914         function                                           [SCC] [S2025070100000047/Knox Manage] [customer][00321715]Issue to uneroll device from KM
+EMMTECH-5921         function                                           [SCC] [S2025070100000315/Knox Manage] [00325045] Knox Manage API - Get Device Application List - Returns wrong app version
+EMMTECH-5925         dumpstate                                          [SCC] [S2025070200000335/Knox Manage] [00325015] [ETS] User cannot open map&#039;s location
+EMMTECH-5930         Exception                                          [SCC] [S2025070300000357/Knox Manage] [00325013] KM - Dynamic groups rules
+EMMTECH-5932         function                                           [SCC] [S2025070400000030/Knox Manage] [customer][00325101]Samsung SDS Cloud Connector will not start
+EMMTECH-5934         dumpstate                                          [SCC] [S2025070500000004/Knox Manage] [00322334] [ETS] Sudden disconnection and randominca problem of the devices - AngelEye
+EMMTECH-5944         dumpstate                                          [SCC] [S2025071000000295/Knox Manage] [ETS][00325776] [ETS] Teamviewer on Android 15 - no Remote Control
+EMMTECH-5949         Exception                                          [Customer][00325828] Devices completely stuck in Kiosk
+EMMTECH-5955         function                                           [SCC] [S2025071400000157/Knox Manage] [ETS][00325530] Android Enterprise Email Adresse issue / Customer ID: 5781775933
+EMMTECH-5960         Exception, dumpstate                               [SCC] [S2025071500000528/Knox Manage] [00326110] Knox Manage cant enroll new KIOSK devices
+EMMTECH-5973         dumpstate                                          [Customer][00326171]Apps not reinstalling after unassigning
+EMMTECH-5977         Exception                                          [00326262] Unable to populate group in knox manage
+EMMTECH-5983         Exception, patch                                   [SCC] [S2025072100000461/Knox Manage] [00326521] [ETS] Cloud Connector Questions
+EMMTECH-5984         Exception                                          [Customer][00325420]app not working in kiosk 
+EMMTECH-6008         dumpstate                                          [00327030] Unable to issue Certificates to new enrolled devices
+EMMTECH-6022         function                                           [SCC] [S2025073100000038/Knox Manage] [customer][00326060]Health Platform not visible on wearable devices
+EMMTECH-6023         commit, dumpstate                                  [00327084] [ETS] WhatsApp Messenger won't install on devices enrolled in Knox AE
+EMMTECH-6028         dumpstate                                          [00325441] "Allow Notifications"
+EMMTECH-6031         Exception                                          [Customer][00327212] App Crashing While in Kiosk mode
+EMMTECH-6045         Exception, patch                                   [00327968] AD group sync pending
+EMMTECH-6047         function                                           [00327932] SOLGROUP_Knox Manage Kiosk preview visualisation error after 25.07 update
+EMMTECH-6051         function                                           [Internal] KM direct login OTP SMS not sent
+EMMTECH-6054         function                                           [00328172] [ETS] Super admin doesn't have permission to change password in Knox Manage portal
+EMMTECH-6063         function                                           [Customer][00328276]Chrome whitelist managed configuration blocks pdf downloads
+EMMTECH-6073         dumpstate                                          [SCC] [S2025081400000024/Knox Manage] [Customer][00326572]Teams Not Downloading
+EMMTECH-6074         function                                           [00328261] Knox Browser Printing
+EMMTECH-6077         dumpstate                                          [Customer][00327357] Issued when we use kiosk unique app mode
+EMMTECH-6085         Exception                                          [iOS][00328373] Application install failed and push config failed
+EMMTECH-6092         function                                           [SCC] [S2025081900000527/Knox Manage] [00328376] Problème d’accès aux profils Knox Manage – Page blanche et erreur JavaScript
+EMMTECH-6093         patch                                              [SCC] [S2025081900000557/Knox Manage] [00326521] Sirti_Which open (free) JDK can be used to install the Knox Cloud Connector? (Follow up)
+EMMTECH-6096         Exception, dumpstate, function                     [SCC] [S2025082000000029/Knox Manage] [Customer][00328779] Navigation Bar Automatically Disabled in Kiosk Mode
+EMMTECH-6098         Exception                                          [SCC] [S2025082000000473/Knox Manage] [00329095] Many 429 errors from API client
+EMMTECH-6099         function                                           [ETS][Customer][00329125] GLS_25.07 Rate limits quota API issue
+EMMTECH-6100         dumpstate                                          [SCC] [S2025082000000526/Knox Manage] [Customer][00327881] Camera app is not opening - KIO_CODE_002
+EMMTECH-6106         function                                           [00329041] My device still enrolled but it doesn't appear on Knox Manage
+EMMTECH-6108         Exception, function                                [SCC] [S2025082300000013/Knox Manage] [Customer][00329266] New AD group not in sync
+EMMTECH-6124         Exception                                          [ETS][Customer][00329384]Android Auto not working
+EMMTECH-6125         patch, stacktrace                                  [00329692] SCC connection issue
+EMMTECH-6132         function                                           [SCC] [S2025082900000480/Knox Manage] [00327872] Groups in KM in relation with other services
+EMMTECH-6143         patch                                              [00329978] Galaxy Watch 6 and 7 failing to activate with pair and detach
+EMMTECH-6157         Exception, dumpstate                               [SCC] [S2025090500000034/Knox Manage] [Customer][00330019] App suddenly can&#039;t send notifications in Kiosk
+EMMTECH-6174         Exception                                          [SCC] [S2025091100000407/Knox Manage] [00330262] Tenant removal
+EMMTECH-6175         Exception                                          [ETS][00331150][*Urgent*] Unable to clear browser cache for Knox Manage Kiosk app
+EMMTECH-6189         dumpstate, function                                [Non-Samsung][00331398] Wifi y Bluetooth no funciona en Kiosk
+EMMTECH-6194         Exception, dumpstate                               [SCC] [S2025091700000021/Knox Manage] [ETS][Customer][00331353] Can&#039;t enable notifications for OS13
+EMMTECH-6195         adb                                                [SCC] [S2025091700000059/Knox Manage] [Customer][00327232] Remote control app doesn&#039;t work on Kiosk mode
+EMMTECH-6196         dumpstate                                          [SCC] [S2025091700000080/Knox Manage] [Customer][00330875] Geofencing profile doesn't work properly
+EMMTECH-6198         function, patch                                    [00329071] [ETS] Search functionality issue
+EMMTECH-6201         dumpstate                                          [SCC] [S2025091800000018/Knox Manage] [Customer][00330855]Erro - Wifi autenticado no kiosk
+EMMTECH-6211         dumpstate                                          [SCC] [S2025092000000004/Knox Manage] [Customer][00331639]Continuidad Case#00329842 Error KMA_D9001
+EMMTECH-6217         function                                           [SCC] [S2025092300000050/Knox Manage] [Customer][00331855] Entra ID not sync new user additions
+EMMTECH-6223         dumpstate                                          [Customer][00332021]User failing to check in shared device mode
+EMMTECH-6224         function                                           [Customer][00331923] Knox - Goole Play
+EMMTECH-6236         dumpstate, function                                [SCC] [S2025092500000443/Knox Manage] [00330440] Telefon Pop-Up Fenster
+EMMTECH-6254         function                                           [Customer][00332541]PPSX file not allowed to open in kiosk
+EMMTECH-6271         dumpstate, logcat                                  [SCC] [S2025100400000014/Knox Manage] [00327842][ETS] Wi-Fi certificates configuration
+EMMTECH-6273         dumpstate, logcat                                  [SCC] [S2025100600000054/Knox Manage] [00332640] Tablet Dimming Issue Case
+EMMTECH-6274         Exception, dumpstate                               [SCC] [S2025100800000241/Knox Manage] [00331225] Units keep getting locked - unprovoked
+EMMTECH-6280         function                                           [SCC] [S2025101000000066/Knox Manage] [Customer][00332784] AECC - Knox Manage License marked EOL
+EMMTECH-6296         Exception                                          [00333733] False positive malicious software
+EMMTECH-6302         import                                             [iOS][00333911] Activation of the “iOS Custom Configuration Profile” feature in Knox Manage EU08
+EMMTECH-6304         function                                           [SCC] [S2025101800000001/Knox Manage] [00333839] KEYPASS API Integration Issue with Knox – BRL Customer
+EMMTECH-6310         Exception                                          [SCC] [S2025102100000492/Knox Manage] [ETS] [00334365] Can&#039;t add user
+EMMTECH-6314         import                                             [00333867] SCIM connection does not import user email field
+EMMTECH-6318         patch                                              [00334343] [B2B/대한항공/T575N] KM App 미설치 이슈 문의
+EMMTECH-6319         dumpstate                                          [ETS][00333615] VPN Profile Not Applied or Removed, urgent
+EMMTECH-6347         Exception, function                                [SCC] [S2025102900000336/Knox Manage] [00334786] PKI Certificate Authentication for VPN Connection
+EMMTECH-6355         import                                             [iOS][00334911]Impossible d’importer le certificat APNs renouvelé
+EMMTECH-6364         Exception                                          [Customer][00329088] Knox Remote Support won't automatically start
+EMMTECH-6373         dumpstate, function                                [SCC] [S2025110400000017/Knox Manage] [00335033] Migrated devices offline
+EMMTECH-6376         patch                                              [iOS][00335335] ios not all profile settings saved
+EMMTECH-6380         dumpstate                                          [00333204] [ETS] App automatic updates issue
+EMMTECH-6389         dumpstate                                          [Customer][00335123]Location tracking
+EMMTECH-6395         dumpstate                                          [00335627] [ETS] PNM duplicate IMEIs case investigation
+EMMTECH-6409         patch                                              [SCC] [S2025111200000359/Knox Manage] [00336096] Enabling AOD on Galaxy Watch 7/8 Forcibly Enables TSW and RWW
+EMMTECH-6420         dumpstate                                          [SCC] [S2025111400000455/Knox Manage][00335165] Pop-Up Phone
+EMMTECH-6430         dumpstate, patch                                   [SCC] [S2025111800000046/Knox Manage] [ETS][Customer][00336409] Some devices don&#039;t apply the profile manually after enrollment
+EMMTECH-6435         Exception                                          [SCC] [S2025111900000036/Knox Manage] [Customer][00336690] [ETS] Documentation addition: WAS server also connects on port 45001
+EMMTECH-6448         patch                                              [Internal] Customer tenant search is not working well in TMS
+EMMTECH-6459         dumpstate                                          [SCC] [S2025112400000342/Knox Manage] [ETS][00335136] Knox Manage kiosk mode lockscreen conflicts with entering SIM pincode
+EMMTECH-6464         Exception, function                                [Windows][00336328][ETS] Knox Manage for Windows
+EMMTECH-6469         dumpstate, import                                  [Non-Samsung][00336894] Problems install Internal Apps to Kiosk 
+EMMTECH-6480         Exception, dumpstate, function                     [SCC] [S2025112800000037/Knox Manage] [Customer][00336345]Imposibilidad de configurar nuestro aplicativo, no aparece la opción &#034;Pausar act
+EMMTECH-6492         dumpstate, function                                [SCC] [S2025120300000491/Knox Manage] [00333696] Bug Report: Automatic Date &amp; Time Fails to Sync After Reboot from Battery Depletion
+EMMTECH-6499         function                                           [Internal][NC] Creating dynamic group intermittent failure
+EMMTECH-6502         function                                           [00338269][ETS] ESC00057665 | Knox Manage | Local Admin Account - Requesting recreation of Leo Honebrink's admin account.
+EMMTECH-6508         function                                           [00338199] Content getting re downloaded 100 times in one click
+EMMTECH-6512         dumpstate                                          [SCC] [S2025120500000389/Knox Manage] [00337394]
+EMMTECH-6520         dumpstate                                          [SCC] [S2025120800000216/Knox Manage] [00337305] Kiosk mode: Power key triggers Samsung lock screen instead of display off
+EMMTECH-6529         import                                             [iOS][00338629]Suite ticket 00334911 - Impossible d’importer le certificat APNs renouvelé
+EMMTECH-6533         Exception                                          [SCC] [S2025121000000345/Knox Manage] [00338409] FQDN - Customer questions
+EMMTECH-6552         function                                           [SCC] [S2025121500000470/Knox Manage] [00336846] Unable to add new WearOS token
+EMMTECH-6572         dumpstate                                          [SCC] [S2025121900000037/Knox Manage] [Customer][00339517] Devices logged out after license expired in KM - ESAF Bank
+EMMTECH-6588         function                                           [iOS][00340391]25.11 IOS Update command issue
+EMMTECH-6596         function                                           [00337842] Long-press Power Key cannot shut down 
+EMMTECH-6600         function                                           [Windows][00340710]Knox Manage + Windows IoT support question
+EMMTECH-6611         dumpstate                                          [Non-Samsung][00341025]Les applications ne s'installent pas sur le smartphone
+EMMTECH-6615         patch                                              [SCC] [S2026011300000009/Knox Manage] [Customer][00341211] Modify app version doesn&#039;t update the managed config
+EMMTECH-6629         dumpstate                                          [Customer][00341564]Query Automatically update
+EMMTECH-6635         patch                                              [00341094] [ETS] Lock account: Studio IN. Customer ID:7768794502
+EMMTECH-6640         patch                                              [00341466] knox manage device enrollment profile
+EMMTECH-6649         function                                           [00342189] Settings and Exit Kiosk Buttons are not working in ' i ' Buttion
+EMMTECH-6662         Exception, dumpstate                               [SCC] [Knox Manage][S2026012300000041] [00340590] Movework Technologie – Secure Network Port Opening
+EMMTECH-6676         function                                           [SCC] [Knox Manage][S2026012600000396] [00341870]Knox Manage License Problem
+EMMTECH-6678         dumpstate                                          [SCC] [Knox Manage][S2026012700000529] [00342668] LM Global Telecoms // KRS Issues
+EMMTECH-6679         dumpstate, patch                                   [00342048] Clarification Required: Incorrect Application Variant Installed Despite Correct Package Name in Knox Manage
+EMMTECH-6686         dumpstate, function                                [SCC] [Knox Manage][S2026012900000014] [Customer][00339959] PDK Access Control App Issues
+EMMTECH-6688         function                                           [00343026] Knox Remote Support Secret Key Renew not working
+EMMTECH-6690         dumpstate                                          [Non-Samsung][00342665]Unable to enroll Motorola G35
+EMMTECH-6695         patch                                              [SCC] [Knox Manage][S2026013100000003] [00342796]Cloud Connect AD-On Premise Sync Failed
+EMMTECH-6698         function                                           [00342890] CRISTALLA: Request for Additional Information on Geofencing Capabilities
+EMMTECH-6702         Exception                                          [SCC] [Knox Manage][S2026020200000467] [00343461] Can not add new Wear OS Token for Enrollment
+EMMTECH-6703         function                                           [SCC] [Knox Manage][S2026020300000018] [Internal] The auto correct option is removed with the Android 16 update
+EMMTECH-6716         function                                           [Customer][00343488]Turn off phone with side button
+EMMTECH-6730         dumpstate                                          [SCC] [Knox Manage][S2026021000000050] [Customer][00343928][ETS] Limited enrollment issue
+EMMTECH-6733         function                                           [KM] [00343597][ETS] Group device command didn't taking effect to the device
+EMMTECH-6738         function                                           [Internal] Hide Apps policy
+EMMTECH-6748         dumpstate                                          [SCC] [Knox Manage][S2026021300000256] [00344550] No puedo actualizar aplicaciones - error when tries to update any app from the MGP.
+EMMTECH-6759         dumpstate                                          [KM] [Customer][00344792]Issue with OTP SMS Delivery to Work Profile in Knox Manage
+EMMTECH-6766         function                                           [Non-Samsung][00344343]No funciona la camara en una app publica - Tenant ID del cliente: momentumtf.es
+EMMTECH-6767         adb, dumpstate, function                           [Non-Samsung][00345083]VOIP with know manage not working
+EMMTECH-6773         dumpstate                                          [Internal] - Potential KM bugs
+EMMTECH-6784         dumpstate                                          [SCC] [Knox Manage][S2026022800000104] [Customer][00344519] KM with BYOD - Does not Sync Contacts
+EMMTECH-6787         Exception, dumpstate                               [SCC] [Knox Manage][S2026030200000148] [00345358] Knox Remote Support is not working on any device
+EMMTECH-6800         function                                           [KM] [00346470] MFA setup using Knox Browser
+EMMTECH-6802         dumpstate, logcat                                  [Non-Samsung][00345516]20260223_SOL_Managed Configuration issue
+EMMTECH-6810         Exception, dumpstate, function                     [SCC] [Knox Manage][S2026030500000540] [00345696] [ETS] Device unable to install app Credit Recovery Mekaar
+EMMTECH-6811         Exception                                          [KM] [00346285][ETS] lack of screen visibility on the console during remote takeover
+EMMTECH-6817         Exception, dumpstate, function                     [SCC] [Knox Manage][S2026031000000102] [Customer][00346322] Watch face freezing on Watch 8
+EMMTECH-6821         Exception                                          [SCC] [Knox Manage][S2026031000000548] [00346591] Certificate Authority (CA) Samsung Cloud Connector Firewall Ports
+EMMTECH-6825         dumpstate                                          [Non-Samsung][00346237]I can't install Internal app to Kiosk in Samsung WAF (WAF)
+EMMTECH-6829         dumpstate                                          [SCC] [Knox Manage][S2026031300000019] [00347167] MS Authenticator issue with Knox Manage
+EMMTECH-6839         dumpstate, function                                [SCC] [Knox Manage][S2026031600000594] [KM][00346913]BAS app distribution failed
+EMMTECH-6846         dumpstate                                          [SCC] [Knox Manage][S2026031800000076] [KM][00346648]Content being removed automatically
+EMMTECH-6851         function                                           [SCC] [Knox Manage][S2026031900000169] [00347441][Customer] Can&#039;t update to KLM12 license
+EMMTECH-6863         adb                                                [SCC] [Knox Manage][S2026032400000103] [Customer][00338635] WearOS Knox Manage Agent losing connection
+EMMTECH-6875         Exception, dumpstate                               [SCC] [Knox Manage][S2026032600000511] [KM] [00348066] [ETS] Applications being terminated due to insufficient memory
+EMMTECH-6876         function                                           [KM] [Customer][00347742] Screen Timeout
+EMMTECH-6880         function                                           [KM] [00347353] Policy not running well
+EMMTECH-6886         dumpstate                                          [Customer][00347807] Unable to update KM agent, Kiosk app and some intermal apps
+EMMTECH-6888         Exception, function                                [SCC] [Knox Manage][S2026033100000511] [00348334] Deep Settings Customization didnt work under New Console
+EMMTECH-6903         Exception                                          [SCC] [Knox Manage][S2026040200000481] [00349135]Knox Manage – AD/LDAP group sync corruption
+EMMTECH-6908         function                                           [iOS][00349174]devices do not respond to any commands after purchasing a license
+EMMTECH-6921         function                                           [Non-Samsung][00349451]Bluetooth en Kiosk
+EMMTECH-6930         dumpstate                                          [Non-Samsung][00346846]Problème enrôlement téléphone - Suite ticket 00345134
+EMMTECH-6942         patch                                              [KM] [00348489] We have a device with device health as Bad (-45)
+EMMTECH-6949         dumpstate                                          [KM] [00350261] KRS-KM | RSV disconnects after a short time duration
+EMMTECH-6969         dumpstate                                          [KM] [00350145] Knox manage Enrollment Issue
+EMMTECH-6974         Exception, dumpstate                               [KM][00350622]Disconnections in Knox remote support
+EMMTECH-6977         function                                           [iOS][00350561]iphone and passcode lockout
+EMMTECH-6983         dumpstate                                          [SCC] [Knox Manage][S2026042400000299] [ETS][Customer][00347364]Device Location Dashboard in Knox is reporting inaccurate locations for the
+EMMTECH-6992         dumpstate, function                                [SCC] [Knox Manage][S2026042800000517] [00350276] Clear Screen Lock No longer works on Android 15/16
+EMMTECH-6996         Exception, dumpstate, function                     [Non-Samsung][00350732]SOLGROUP_Kiosk not working properly on Zebra TC27
+EMMTECH-7007         dumpstate                                          [SCC] [Knox Manage][S2026050500000184] [00350604] Problem with WiFi certificate from internal CA, via NDES
+EMMTECH-7010         Exception                                          [KM] [00350230] Knox remote support closes out after just a couple of seconds very often
+EMMTECH-7011         function                                           [KM][00351549] knox manage api issues with device command
+EMMTECH-7013         function                                           [KM][00350284]Whatsapp not OPEN in Knox Work space
+EMMTECH-7021         dumpstate, function                                [SCC] [Knox Manage][S2026050800000364] [00349837][ETS][Customer]Issue with Devices Stuck on Kiosk App Installation
+EMMTECH-7022         function                                           [SCC] [Knox Manage][S2026050800000507] [Customer][00352221] Icon from public apps are not loading
+EMMTECH-7027         function, import                                   [SCC] [Knox Manage][S2026051100000491] [00352284] [ETS] Samsung Galaxy Tab SM‑T515 / Galaxy A40 (Android 11) – intermittent loss of client
+EMMTECH-7031         dumpstate                                          [KM][00350812] GVK Green
+EMMTECH-7034         Exception                                          [SCC] [Knox Manage][S2026051300000113] [Customer][ETS][00352027]LDAP user does not sync after AD account recreation – backend cleanup reque
+EMMTECH-7046         Exception                                          [KM][00352813] KM firewall exception
+EMMTECH-7047         Exception, dumpstate                               [KM][00351936] Unable to start Knox Remote Support
+EMMTECH-7048         import                                             [SCC] [Knox Manage][S2026051800000381] [00352543] [KM] A message appears stating that the password is incorrect
+EMMTECH-7054         dumpstate                                          [SCC] [Knox Manage][S2026051900000386] [00351496] [ETS] KRS issue  - [ETS] Knox Remote Support is not working
+EMMTECH-7059         import                                             [iOS][00353162]Customer ADE and VPP token sync failures
+EMMTECH-7064         dumpstate, function                                [KM] [00351972] KNOX Manage API - App Update
+EMMTECH-7065         Exception                                          [KM][00353326] Wi-Fi 연결 관련 KM 버그리포트 분석 및 정책 문의
+EMMTECH-7067         adb                                                [SCC] [Knox Manage][S2026052200000078] [SFDC][00351975]Need to allow adb uninstall com.amazon.bivis.cottontail to a kiosk
+EMMTECH-7072         dumpstate                                          [SCC] [Knox Manage][S2026052500000093] [00352995] [KM] Follow-up case 00339665 Wi-fi issues KM managed devices KSP wifi config BLAUD-i2605
+EMMTECH-7073         function                                           [SCC] [Knox Manage][S2026052500000098] [00352164] [KM] mobile data not available
+EMMTECH-7079         Exception, function                                [SCC] [Knox Manage][S2026052700000536] [00352539] Knox Kiosk Blocks Bluetooth &amp; Screenshots under 3rd party app
+EMMTECH-7088         function                                           [SCC] [Knox Manage][S2026052900000027] [SFDC][00352851]Whatsapp personal app is hidden in the Work Profile
+EMMTECH-7089         dumpstate, patch                                   [SCC] [Knox Manage][S2026052900000020] [Customer][00352507] Single App Kiosk displaying blank or white screen (randomly)
+EMMTECH-7090         Exception, commit, git                             [KM][00353455] Device reboots when attempting to make a call after ONE UI 8.5 update
+EMMTECH-7120         Exception, NullPointerException                    [SCC] [Knox Manage][S2026061000000049][00354894] Device crash after running the TomTom app in Kiosk mode
+EMMTECH-7127         dumpstate                                          [SCC] [Knox Manage][S2026061000000513] [00354726] [KM] Case created with Samsung Denmark
+EMMTECH-7132         Exception, dumpstate                               [SCC] [Knox Manage][S2026061300000057] [Customer][00354462] Devices disconnected from Wi-Fi
+EMMTECH-7135         dumpstate                                          [KM][00355165][ETS] Shadowbox Issue
+EMMTECH-7159         dumpstate, patch                                   [KM][00355499] Knox Manage - Failed to Send Device Command
+EMMTECH-7168         Exception                                          [KM][00355623][ETS] Internal APK not installing on Tab Active 3
+EMMTECH-7183         patch                                              [KM][ETS][00355655] org admins are being removed
+EMMTECH-7184         Exception, dumpstate, patch                        [KM][ETS][00355850] Devices not Checking In
+EMMTECH-7185         dumpstate                                          [KM][00355848]Moving devices to a Knox Manage Group causes the device to get stuck on an "installing kiosk please wait" screen.
+EMMTECH-7186         patch                                              [SCC] [Knox Manage][S2026061900000238] [customer] [KM] [00355740] Device user assignment Knox manage
+EMMTECH-7188         patch                                              [KM][00355715]Sub admin's assigned groups get deleted after login
+EMMTECH-7189         dumpstate                                          [Non-Samsung][00355395]El cliente no puede añadir cuentas de Google en los dispositivos Motorola.
+EMMTECH-7190         patch                                              [iOS][00355554]Boutique d'application Knox Manage iOS HS
+EMMTECH-7200         patch                                              [iOS][00356165]Knox Manage iOS Agent v26.06 - Infinite loading spinner in store
+EMMTECH-7201         patch                                              [KM] [00356377] After KM update unable to login tablet in shared mode.
+EMMTECH-7202         Exception, patch                                   [KM][00355901]KNOX Enrollment Issue
+EMMTECH-7203         import                                             [KM][00356350]Knox Manage - Google Workspace Integration - Synchronization Behavior for Groups and Users
+EMMTECH-7207         function                                           [SCC] [Knox Manage][S2026062500000005] [00355912] Wear OS Knox Manage: How to use Managed configurations management delegation scope for Mo
+EMMTECH-7210         Exception                                          [SCC] [Knox Manage][S2026062500000025] [SFDC][00355768][ETS] LDAP over TLS (LDAPS) integration issue via Samsung Cloud Connector
+EMMTECH-7215         function, patch                                    [KM][00355824, 00355991, 00356099] Kiosk Clear Cache function
+EMMTECH-7218         patch                                              [KM][00356281] Incorrect Sub Admin Access & Permission
+EMMTECH-7226         import                                             [SCC] [Knox Manage][S2026062400000472] [00355762] synchronisation error between entraID and knoxmanage
+EMMTECH-7227         dumpstate                                          [SCC] [Knox Manage][S2026062700000033] [SFDC][00355515] XCover 7 issue with MPN network registration
+EMMTECH-7228         patch                                              [KM][00356707][ETS] Login loop trying to get to knox manage console
+EMMTECH-7229         patch                                              [iOS][00355247]IOS devices unable to perform commands
+EMMTECH-7236         patch                                              [SCC] [Knox Manage][S2026070100000029] [Customer][00355749] Subadmins lost their roles after 26.06
+EMMTECH-7237         git                                                [KM][00356968]API Bearer token issues
+EMMTECH-7241         function                                           [SCC] TEST
+EMMTECH-7242         patch                                              [SCC] [Knox Manage][S2026070100000410] [00356319] devices, profiles, and Organizations disappeared from Knox Manage
+EMMTECH-7247         adb, patch                                         [KM][00356686] KSP OBEXOBJECTPUSH_UUID Bluetooth file transfer restriction is not persistent after reboot
+EMMTECH-7250         dumpstate                                          [SCC] [Knox Manage][S2026070400000001][00356334] blocage ajout de comptes emails dans l&#039; application samsung e-mail
+EMMTECH-7251         patch                                              [KM][00357231]VARSITY EDIFICATION MANAGEMENT PRIVATE LIMITED
+EMMTECH-7255         dumpstate, function                                [SCC] [Knox Manage][S2026070700000008] [Customer][00355842] Event profile and Kiosk issues
+EMMTECH-7261         patch                                              [KM][00357673]Unable to Access Camera in Staging User
+EMMTECH-7263         dumpstate, patch                                   [KM][00357772] Varsity (Sri Chaitanya): Exit Kiosk Devices.
+EMMTECH-7294         Exception                                          [SCC] [Knox Manage][S2026071600000278] [00358455] tenant removal
+EMMTECH-7297         dumpstate                                          [SCC] [Knox Manage][S2026071700000090] [customer][00358448][KM] Watch&#039;s hardware key remapping doesn&#039;t work after last release
+EMMTECH-7302         function                                           [iOS][00358061]Force iOS updates command deprecated
+EMMTECH-7304         Exception                                          [Non-Samsung][00358521]ocultar aplicacion
+EMMTECH-7317         Exception, function                                [SCC] [Knox Manage][S2026072100000071] [Customer][00358731] KM Agent Crashes After Location Permission Denied via Runtime Permission Policy
+EMMTECH-7336         dumpstate                                          [SCC] [Knox Manage][S2026072300000434] [Customer][00357889] device issue after enroll to KM
+EMMTECH-7339         dumpstate                                          [SCC] [Knox Manage][S2026072400000013] [Customer][ETS][00357560] Settings app not visible after exiting Kiosk
+EMMTECH-7358         dumpstate                                          [Customer][00358357] [KSP]Unable to change Screen Timeout settings
+EMMTECH-7364         Exception                                          [SCC] [Knox Manage][S2026080100000016] [SFDC][00358378]Large list of contacts is not saved on the phone
+EMMTECH-7367         function                                           [Non-Samsung][00359380]Comportement anormal des terminaux enrollés
+EMMTECH-7373         function                                           [SCC] [Knox Manage][S2026080300000484] [00359763] Request for verification of Apache Log4j vulnerabilities in Samsung Cloud Connector 2.7.1
+EMMTECH-7383         import                                             [SCC] [Knox Manage][S2026080600000038] [Customer][ETS][00359952] Can't save a profile
+EMMTECH-7404         function, patch                                    [SCC] [Knox Manage][S2026072200000511] [Customer][ETS[00358439]Security Issue – Microsoft Entra ID
+EMMTECH-7405         function, patch                                    [SCC] [Knox Manage][S2026072200000511] [Customer][ETS[00358439]Security Issue – Microsoft Entra ID
+
+================================================================================
+Total: 1092 unique closed tickets with code-related content
+================================================================================

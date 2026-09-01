@@ -28,10 +28,6 @@ export function PressEditor({ section, onUpdate }: PressEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Press / Featured In</h2>
-        <p className="text-sm text-gray-700">Showcase press logos and media mentions.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

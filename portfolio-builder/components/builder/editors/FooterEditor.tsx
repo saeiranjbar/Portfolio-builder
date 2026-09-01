@@ -15,12 +15,6 @@ interface FooterEditorProps {
 export function FooterEditor({ section, onUpdate }: FooterEditorProps) {
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Footer Section</h2>
-        <p className="text-sm text-gray-500">
-          Footer appears at the bottom of your portfolio.
-        </p>
-      </div>
 
       {/* Copyright Text */}
       <CollapsibleSection title="Copyright Text" icon={Type} defaultOpen>

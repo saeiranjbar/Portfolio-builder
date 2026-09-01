@@ -12,7 +12,9 @@ export interface FreeFormElement {
   position?: ElementPosition;
   visible: boolean;
   defaultPosition: ElementPosition;
+  zIndex?: number;
 }
+
 
 interface FreeFormSectionProps {
   sectionId: string;
@@ -57,11 +59,68 @@ export function FreeFormSection({
     onPositionChange,
   });
 
+  // Measure actual content height to ensure background extends to the bottom.
+  // Absolutely positioned elements don't affect parent height, so we measure
+  // the actual bottom edge of all children and set minHeight accordingly.
+  const [measuredHeight, setMeasuredHeight] = React.useState<number | null>(null);
+  const elementRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Build a stable dependency string from element positions + content keys
+  // so the effect re-runs when positions change but not on every render.
+  const positionKey = visibleElements
+    .map((el) => `${el.key}:${(el.position || el.defaultPosition).x},${(el.position || el.defaultPosition).y}`)
+    .join('|');
+
+  React.useLayoutEffect(() => {
+    if (!sectionRef.current) return;
+    const measure = () => {
+      let maxBottom = 0;
+      const sectionRect = sectionRef.current?.getBoundingClientRect();
+      if (!sectionRect) return;
+      for (const el of visibleElements) {
+        const node = elementRefs.current[el.key];
+        if (!node) continue;
+        const rect = node.getBoundingClientRect();
+        const bottomRelativeToSection = rect.bottom - sectionRect.top;
+        if (bottomRelativeToSection > maxBottom) {
+          maxBottom = bottomRelativeToSection;
+        }
+      }
+      const vh = window.innerHeight;
+      const heightInVh = (maxBottom / vh) * 100 + 15;
+      setMeasuredHeight(Math.max(20, heightInVh));
+    };
+    measure();
+    // Re-measure shortly after (images/fonts may load)
+    const timeout = setTimeout(measure, 300);
+
+    // Observe size changes on all visible elements so the section height
+    // updates when content changes (e.g. PDF viewer height slider).
+    const observers: ResizeObserver[] = [];
+    for (const el of visibleElements) {
+      const node = elementRefs.current[el.key];
+      if (!node) continue;
+      const obs = new ResizeObserver(() => measure());
+      obs.observe(node);
+      observers.push(obs);
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      observers.forEach((o) => o.disconnect());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionKey]);
+
+
+  const minHeightValue = measuredHeight ? `${measuredHeight}vh` : 'auto';
+
   return (
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
-      className={cn('relative overflow-hidden', minHeight, className)}
-      style={backgroundStyle}
+      className={cn('relative', className)}
+      style={{ ...backgroundStyle, minHeight: minHeightValue, paddingBottom: '4rem' }}
+
     >
       {children}
 
@@ -79,18 +138,20 @@ export function FreeFormSection({
         />
       )}
 
-      {/* Draggable elements */}
+      {/* Draggable elements — top-aligned to position so tall content renders below the drop point */}
       {visibleElements.map((el) => {
         const pos = el.position || el.defaultPosition;
         return (
           <div
             key={el.key}
+            ref={(node) => { elementRefs.current[el.key] = node; }}
             className={cn(
-              'absolute transform -translate-x-1/2 -translate-y-1/2',
-              !previewMode && 'cursor-move',
-              dragging === el.key && 'z-10'
+              'absolute transform -translate-x-1/2',
+              !previewMode && 'cursor-move'
             )}
-            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+            style={{ left: `${pos.x}%`, top: `${pos.y}%`, zIndex: dragging === el.key ? 30 : (el.zIndex ?? 1) }}
+
+
             onMouseDown={!previewMode ? (e) => handleMouseDown(e, el.key) : undefined}
             onTouchStart={!previewMode ? (e) => handleTouchStart(e, el.key) : undefined}
           >

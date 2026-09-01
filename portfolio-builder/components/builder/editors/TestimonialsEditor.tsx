@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ImageUploader } from '../ImageUploader';
 import { Plus, Trash2, Type, MessageSquare } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { TextStyleControls } from '../TextStyleControls';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 
@@ -46,12 +46,6 @@ export function TestimonialsEditor({ section, onUpdate }: TestimonialsEditorProp
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Testimonials Section</h2>
-        <p className="text-sm text-gray-500">
-          Client and colleague recommendations.
-        </p>
-      </div>
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
@@ -63,12 +57,6 @@ export function TestimonialsEditor({ section, onUpdate }: TestimonialsEditorProp
           value={section.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="What People Say"
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Section Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -159,6 +147,13 @@ export function TestimonialsEditor({ section, onUpdate }: TestimonialsEditorProp
           </div>
         )}
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[{ key: 'title', label: 'Section Title' }]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
   );
 }

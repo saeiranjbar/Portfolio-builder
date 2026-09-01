@@ -16,10 +16,6 @@ interface CTABannerEditorProps {
 export function CTABannerEditor({ section, onUpdate }: CTABannerEditorProps) {
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">CTA Banner</h2>
-        <p className="text-sm text-gray-700">A call-to-action banner to convert visitors before the footer.</p>
-      </div>
 
       {/* Title */}
       <CollapsibleSection title="Title" icon={Type} defaultOpen

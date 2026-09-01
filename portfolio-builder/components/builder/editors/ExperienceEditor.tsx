@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Type, Briefcase } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { TextStyleControls } from '../TextStyleControls';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { MonthPicker } from '@/components/ui/month-picker';
 
@@ -47,12 +47,6 @@ export function ExperienceEditor({ section, onUpdate }: ExperienceEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Experience Section</h2>
-        <p className="text-sm text-gray-500">
-          Your work history and professional experience.
-        </p>
-      </div>
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
@@ -63,12 +57,6 @@ export function ExperienceEditor({ section, onUpdate }: ExperienceEditorProps) {
         <Input
           value={section.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
-        />
-        <TextStyleControls
-          textStyles={section.textStyles}
-          fieldKey="title"
-          fieldLabel="Section Title"
-          onUpdate={(textStyles) => onUpdate({ textStyles })}
         />
       </CollapsibleSection>
 
@@ -166,6 +154,13 @@ export function ExperienceEditor({ section, onUpdate }: ExperienceEditorProps) {
           </div>
         )}
       </CollapsibleSection>
+
+      {/* Unified Text Styles for all text elements */}
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[{ key: 'title', label: 'Section Title' }]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />
     </div>
   );
 }

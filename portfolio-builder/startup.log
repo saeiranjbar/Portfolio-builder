@@ -1,0 +1,14 @@
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:8080
+- Network:       http://105.146.10.78:8080
+- Environments: .env.local, .env
+✓ Ready in 11.4s
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          59948
+- Dir:          C:\Users\s.ranjbar\Documents\Cline\Portfolio Builder\portfolio-builder
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 59948 /F to stop it.
+[?25h

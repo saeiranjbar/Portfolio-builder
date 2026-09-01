@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira & Confluence Manager"
+  short_description: "Search, draft, and manage Jira and Confluence work"
+  default_prompt: "Use $managing-jira-confluence to find and summarize my open Jira issues."

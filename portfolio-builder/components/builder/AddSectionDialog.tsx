@@ -6,13 +6,12 @@ import { sectionConfig } from '@/lib/templates';
 import { SectionType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-  User, FileText, Briefcase, Star, Building, GraduationCap,
-  MessageSquare, Mail, Share2, PanelBottom, Megaphone, Layers,
-  Workflow, BarChart3, Trophy, Newspaper, BadgeCheck, Image as ImageIcon
+  FileText, Briefcase, Star, Building, GraduationCap, MessageSquare, Mail,
+  Share2, PanelBottom, Megaphone, Layers, Workflow, BarChart3, Trophy,
+  Newspaper, BadgeCheck
 } from 'lucide-react';
 
-const sectionIcons: Record<string, React.ElementType> = {
-  hero: User,
+const categoryIcons: Record<string, React.ElementType> = {
   about: FileText,
   projects: Briefcase,
   skills: Star,
@@ -31,53 +30,58 @@ const sectionIcons: Record<string, React.ElementType> = {
   certifications: BadgeCheck,
 };
 
-
-
 interface AddSectionDialogProps {
   onSectionAdded?: (sectionId: string) => void;
 }
 
 export function AddSectionDialog({ onSectionAdded }: AddSectionDialogProps) {
   const { portfolio, addSection } = usePortfolioStore();
-
-  const existingTypes = portfolio.sections.map((s) => s.type);
-  const availableTypes = Object.entries(sectionConfig).filter(
-    ([type]) => !existingTypes.includes(type as SectionType) || type === 'hero'
+  const existingTypes = new Set(portfolio.sections.map((section) => section.type));
+  const availableCategories = Object.entries(sectionConfig).filter(
+    ([type]) => type !== 'hero' && !existingTypes.has(type as SectionType)
   );
 
-  const handleAddSection = (type: SectionType) => {
+  const handleAddCategory = (type: SectionType) => {
     addSection(type);
     setTimeout(() => {
-      const addedSection = usePortfolioStore.getState().portfolio.sections[usePortfolioStore.getState().portfolio.sections.length - 1];
-      if (addedSection && onSectionAdded) {
-        onSectionAdded(addedSection.id);
-      }
+      const sections = usePortfolioStore.getState().portfolio.sections;
+      const addedCategory = sections[sections.length - 1];
+      if (addedCategory && onSectionAdded) onSectionAdded(addedCategory.id);
     }, 0);
   };
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">Select a section type to add to your portfolio:</p>
-      <div className="grid grid-cols-2 gap-3">
-        {availableTypes.map(([type, config]) => {
-          const Icon = sectionIcons[type] || FileText;
-          return (
-            <button
-              key={type}
-              onClick={() => handleAddSection(type as SectionType)}
-              className={cn(
-                'flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left'
-              )}
-            >
-              <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center">
-                <Icon className="w-6 h-6 text-gray-900" />
-              </div>
-              <span className="text-sm font-medium text-gray-900">{config.name}</span>
-              <span className="text-xs text-gray-500 text-center">{config.description}</span>
-            </button>
-          );
-        })}
+      <div>
+        <p className="text-sm font-medium text-gray-900">Add a category to this landing page</p>
+        <p className="mt-1 text-sm text-gray-600">Every category uses this page’s central theme. Hero is already your starting category.</p>
       </div>
+
+      {availableCategories.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3">
+          {availableCategories.map(([type, config]) => {
+            const Icon = categoryIcons[type] || FileText;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleAddCategory(type as SectionType)}
+                className={cn('flex flex-col items-center gap-2 rounded-2xl border border-gray-200 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50 hover:shadow-md')}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50">
+                  <Icon className="h-6 w-6 text-gray-900" />
+                </div>
+                <span className="text-sm font-medium text-gray-900">{config.name}</span>
+                <span className="text-center text-xs text-gray-500">{config.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+          All available categories have already been added.
+        </p>
+      )}
     </div>
   );
 }

@@ -342,13 +342,20 @@ const getThreeJSUrl = (url: string): string | null => {
 // Lightbox component for full-screen image viewing
 const Lightbox: React.FC<{ src: string; alt: string; onClose: () => void }> = ({ src, alt, onClose }) => {
   React.useEffect(() => {
+    // Set a flag so parent modals know not to handle Escape
+    document.body.setAttribute('data-lightbox-open', 'true');
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        e.preventDefault();
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.body.removeAttribute('data-lightbox-open');
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
   }, [onClose]);
 
   return (

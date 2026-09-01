@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig } from './types';
+import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig, PortfolioEffects } from './types';
 import { defaultTheme } from './templates';
 import { PageSeo, SiteData, SiteDataSchema } from './site-types';
 import {
@@ -20,6 +20,8 @@ export interface EditorPage {
   slug: string; // '' = home
   title: string;
   seo?: PageSeo;
+  themeMode: 'inherit' | 'custom';
+  themeOverride?: Theme;
   sections: PortfolioSection[];
 }
 
@@ -144,13 +146,16 @@ interface PortfolioState {
   togglePreviewMode: () => void;
   setViewMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
   resetPortfolio: () => void;
+  createBlankFlexibleSite: () => void;
   markClean: () => void;
   // Layout mode actions
   setLayoutMode: (mode: LayoutMode) => void;
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
+  // Interactive effects
+  updateEffects: (updates: Partial<PortfolioEffects>) => void;
 
   // Page actions (multi-page site)
-  addPage: (title: string, slug?: string) => void;
+  addPage: (title: string, slug?: string, options?: { sectionType?: SectionType; themeMode?: 'inherit' | 'custom'; themeOverride?: Theme }) => void;
   removePage: (pageId: string) => void;
   switchPage: (pageId: string) => void;
   updatePageMeta: (pageId: string, updates: Partial<Pick<EditorPage, 'title' | 'slug' | 'seo'>>) => void;
@@ -170,9 +175,9 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const defaultNavbar: NavbarConfig = {
   enabled: true,
-  logo: 'Your Name',
+  logo: '',
   logoType: 'text',
-  showCTAButton: true,
+  showCTAButton: false,
   ctaButtonText: 'Hire Me',
   ctaButtonLink: '#contact',
   sticky: true,
@@ -208,26 +213,25 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         backgroundType: 'gradient',
         backgroundValue: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         backgroundOverlayOpacity: 0,
-        avatarPosition: { x: 50, y: 30 },
-        namePosition: { x: 50, y: 50 },
-        titlePosition: { x: 50, y: 60 },
-        subtitlePosition: { x: 50, y: 68 },
-        bioPosition: { x: 50, y: 78 },
-        ctaButtonsPosition: { x: 50, y: 88 },
+        avatarPosition: { x: 50, y: 8 },
+        namePosition: { x: 50, y: 18 },
+        titlePosition: { x: 50, y: 28 },
+        subtitlePosition: { x: 50, y: 38 },
+        bioPosition: { x: 50, y: 50 },
+        ctaButtonsPosition: { x: 50, y: 75 },
         avatarSize: 'medium',
         showName: true,
         showTitle: true,
         showSubtitle: true,
         showBio: true,
         showAvatar: true,
-        showScrollIndicator: true,
-        ctaButtons: [
-          { id: generateId(), label: 'View My Work', link: '#projects', variant: 'primary' },
-          { id: generateId(), label: 'Contact Me', link: '#contact', variant: 'outline' },
-        ],
-        layout: 'free',
+        showScrollIndicator: false,
+        ctaButtons: [],
+        layout: 'centered',
+        freeFormEnabled: false,
         snapEnabled: true,
         galleryImages: [],
+        galleryVideos: [],
       };
     case 'about':
 
@@ -257,10 +261,12 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         ctaButtonLink: '',
         videoUrl: '',
         videoType: 'youtube',
+        showVideo: true,
         languages: [],
         showSocialLinks: false,
         galleryImages: [],
       };
+
 
     case 'projects':
 
@@ -272,7 +278,7 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         categories: [],
         projects: [],
         layout: 'grid',
-        columnCount: 3,
+        columnCount: 2,
         aspectRatio: '1:1',
       };
     case 'skills':
@@ -480,6 +486,26 @@ const defaultPortfolio: PortfolioData = {
   customCSS: '',
   layoutMode: 'flexible',
   simpleLayout: defaultSimpleLayout,
+  effects: {
+    mouseColorShift: {
+      enabled: false,
+      startColor: '#3b82f6',
+      endColor: '#8b5cf6',
+      intensity: 30,
+    },
+    splashButton: {
+      enabled: false,
+      text: 'Click Me!',
+      link: '#contact',
+      color: '#3b82f6',
+      position: 'bottom-center',
+    },
+    colorRibbon: {
+      enabled: false,
+      color: '#8b5cf6',
+      intensity: 40,
+    },
+  },
 };
 
 // Deep clone helper for history snapshots
@@ -495,7 +521,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       previewMode: false,
       viewMode: 'desktop',
       isDirty: false,
-      pages: [{ id: 'home', slug: '', title: 'Home', sections: defaultPortfolio.sections }],
+      pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: defaultPortfolio.sections }],
       currentPageId: 'home',
       past: [],
       future: [],
@@ -529,7 +555,8 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       addSection: (type) =>
         set((state) => {
-          const newSection = createDefaultSection(type);
+          // Categories share the landing page canvas; they do not receive a copied background.
+          const newSection = { ...createDefaultSection(type), freeFormEnabled: false, snapEnabled: true } as PortfolioSection;
           const newPortfolio: PortfolioData = {
             ...state.portfolio,
             updatedAt: new Date().toISOString(),
@@ -781,9 +808,31 @@ export const usePortfolioStore = create<PortfolioState>()(
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             portfolio: fresh,
-            pages: [{ id: 'home', slug: '', title: 'Home', sections: fresh.sections }],
+            pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: fresh.sections }],
             currentPageId: 'home',
             selectedSectionId: null,
+            future: [],
+            isDirty: false,
+          };
+        }),
+
+      createBlankFlexibleSite: () =>
+        set((state) => {
+          const sections = [createDefaultSection('hero')];
+          const fresh: PortfolioData = {
+            ...defaultPortfolio,
+            id: generateId(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            sections,
+            layoutMode: 'flexible',
+          };
+          return {
+            past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+            portfolio: fresh,
+            pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections }],
+            currentPageId: 'home',
+            selectedSectionId: sections[0].id,
             future: [],
             isDirty: false,
           };
@@ -822,16 +871,45 @@ export const usePortfolioStore = create<PortfolioState>()(
           };
         }),
 
+      // Interactive effects
+      updateEffects: (updates: Partial<PortfolioEffects>) =>
+        set((state) => {
+          const currentEffects = state.portfolio.effects || {
+            mouseColorShift: { enabled: false, startColor: '#3b82f6', endColor: '#8b5cf6', intensity: 30 },
+            splashButton: { enabled: false, text: 'Click Me!', link: '#contact', color: '#3b82f6', position: 'bottom-center' as const },
+            colorRibbon: { enabled: false, color: '#8b5cf6', intensity: 40 },
+          };
+          const newEffects: PortfolioEffects = {
+            mouseColorShift: { ...currentEffects.mouseColorShift, ...(updates.mouseColorShift || {}) },
+            splashButton: { ...currentEffects.splashButton, ...(updates.splashButton || {}) },
+            colorRibbon: { ...currentEffects.colorRibbon, ...(updates.colorRibbon || {}) },
+          };
+          const newPortfolio: PortfolioData = {
+            ...state.portfolio,
+            updatedAt: new Date().toISOString(),
+            effects: newEffects,
+          };
+          return {
+            past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+            portfolio: newPortfolio,
+            future: [],
+            isDirty: true,
+          };
+        }),
+
       // --- Page actions (multi-page site) ---
 
-      addPage: (title, slug) =>
+      addPage: (title, slug, options) =>
         set((state) => {
           const taken = new Set(state.pages.map((p) => p.slug));
+          const themeMode = options?.themeMode ?? 'inherit';
           const newPage: EditorPage = {
             id: generateId(),
             slug: slug !== undefined ? slug : uniqueSlug(title, taken),
             title,
-            sections: [createDefaultSection('hero')],
+            themeMode,
+            themeOverride: themeMode === 'custom' ? (options?.themeOverride ?? state.portfolio.theme) : undefined,
+            sections: [createDefaultSection(options?.sectionType ?? 'hero')],
           };
           // Persist the outgoing page's live sections, then switch to the new page.
           const pages = state.pages.map((p) =>
@@ -901,6 +979,8 @@ export const usePortfolioStore = create<PortfolioState>()(
           slug: p.slug,
           title: p.title,
           seo: p.seo,
+          themeMode: p.themeMode,
+          themeOverride: p.themeOverride,
           sections: p.id === state.currentPageId ? state.portfolio.sections : p.sections,
         }));
         const site = portfolioToSiteData(state.portfolio);
@@ -915,6 +995,8 @@ export const usePortfolioStore = create<PortfolioState>()(
             slug: p.slug,
             title: p.title,
             seo: p.seo,
+            themeMode: p.themeMode ?? 'inherit',
+            themeOverride: p.themeOverride,
             sections: sectionsFromSiteData(p.sections),
           }));
           const first = pages[0];
@@ -980,7 +1062,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         if (version === 0 && persisted?.portfolio && !persisted.pages) {
           return {
             ...persisted,
-            pages: [{ id: 'home', slug: '', title: 'Home', sections: persisted.portfolio.sections ?? [] }],
+            pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: persisted.portfolio.sections ?? [] }],
             currentPageId: 'home',
           };
         }
@@ -993,3 +1075,8 @@ export const usePortfolioStore = create<PortfolioState>()(
 
   )
 );
+
+// Expose store on window for debugging / test scripts (dev only)
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as any).__PORTFOLIO_STORE__ = usePortfolioStore;
+}
