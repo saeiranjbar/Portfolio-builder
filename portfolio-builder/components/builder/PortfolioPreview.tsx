@@ -36,6 +36,7 @@ import { ElementPosition } from '@/lib/types';
 import { BehanceLayout } from './BehanceLayout';
 import { MouseColorShift } from './effects/MouseColorShift';
 import { SplashButton } from './effects/SplashButton';
+import { AnimatedText } from './AnimatedText';
 import { ColorRibbon } from './effects/ColorRibbon';
 
 
@@ -218,7 +219,7 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
       className={cn('h-full overflow-y-auto transition-all duration-300', viewModeClasses[viewMode])}
       style={{ ...landingBackgroundStyle, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative' }}
     >
-      {/* Interactive Effects — only in preview mode */}
+      {/* Interactive Effects Ã¢â‚¬â€ only in preview mode */}
       {isPreview && effects?.mouseColorShift?.enabled && (
         <MouseColorShift
           startColor={effects.mouseColorShift.startColor}
@@ -342,7 +343,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   const [snapLines, setSnapLines] = React.useState<{ vertical?: number; horizontal?: number }>({});
 
   const snapEnabled = section.snapEnabled !== false;
-  const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
+  const SNAP_THRESHOLD = 1; // percentage points Ã¢â‚¬â€ only snaps when extremely close for fine control
 
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? { background: section.backgroundValue }
@@ -359,12 +360,12 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   // That wrapper's background did not always stretch to cover very tall
   // gallery content, leaving a white gap at the bottom of the page.
   // When parallax is enabled with an image background, don't set the
-  // backgroundImage on the section itself — it will be rendered by the
+  // backgroundImage on the section itself Ã¢â‚¬â€ it will be rendered by the
   // Parallax component instead, otherwise it would show through and hide
   // the parallax movement.
   // When useLandingBackground is true and no parallax, keep the section
   // transparent so the parent landingBackgroundStyle shows through
-  // seamlessly — this prevents subtle color mismatches between the hero
+  // seamlessly Ã¢â‚¬â€ this prevents subtle color mismatches between the hero
   // and the sections below it.
   const useParallax = section.parallaxEnabled && section.backgroundType === 'image' && section.backgroundValue;
   const heroSurfaceStyle = useParallax
@@ -510,7 +511,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         elemX = section.galleryImagesPosition.x;
         elemY = section.galleryImagesPosition.y;
       } else {
-        // No saved position — measure current screen position and set it immediately
+        // No saved position Ã¢â‚¬â€ measure current screen position and set it immediately
         // so the gallery switches to absolute positioning without jumping
         const galleryNode = elementRefs.current.galleryImages;
         const galleryRect = galleryNode?.getBoundingClientRect();
@@ -611,7 +612,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   };
 
   const handleMouseMove = React.useCallback((e: MouseEvent) => {
-    // Handle shape resizing — read from ref to always get latest value
+    // Handle shape resizing Ã¢â‚¬â€ read from ref to always get latest value
     const rz = resizingRef.current;
     if (rz) {
       const dx = e.clientX - rz.startMouseX;
@@ -624,21 +625,21 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       const canvasW = canvasRect?.width || 1;
       const canvasH = canvasRect?.height || 1;
-      // nw corner: both decrease — keep right & bottom edges fixed
+      // nw corner: both decrease Ã¢â‚¬â€ keep right & bottom edges fixed
       if (rz.corner === 'nw') { newWidth = rz.startWidth - dx; newHeight = rz.startHeight - dy; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // ne corner: width increases, height decreases — keep left & bottom edges fixed
+      // ne corner: width increases, height decreases Ã¢â‚¬â€ keep left & bottom edges fixed
       else if (rz.corner === 'ne') { newWidth = rz.startWidth + dx; newHeight = rz.startHeight - dy; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // sw corner: width decreases, height increases — keep right & top edges fixed
+      // sw corner: width decreases, height increases Ã¢â‚¬â€ keep right & top edges fixed
       else if (rz.corner === 'sw') { newWidth = rz.startWidth - dx; newHeight = rz.startHeight + dy; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // se corner: both increase — keep left & top edges fixed
+      // se corner: both increase Ã¢â‚¬â€ keep left & top edges fixed
       else if (rz.corner === 'se') { newWidth = rz.startWidth + dx; newHeight = rz.startHeight + dy; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // n edge: only height changes — keep bottom edge fixed
+      // n edge: only height changes Ã¢â‚¬â€ keep bottom edge fixed
       else if (rz.corner === 'n') { newHeight = rz.startHeight - dy; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // s edge: only height changes — keep top edge fixed
+      // s edge: only height changes Ã¢â‚¬â€ keep top edge fixed
       else if (rz.corner === 's') { newHeight = rz.startHeight + dy; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // e edge: only width changes — keep left edge fixed
+      // e edge: only width changes Ã¢â‚¬â€ keep left edge fixed
       else if (rz.corner === 'e') { newWidth = rz.startWidth + dx; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; }
-      // w edge: only width changes — keep right edge fixed
+      // w edge: only width changes Ã¢â‚¬â€ keep right edge fixed
       else if (rz.corner === 'w') { newWidth = rz.startWidth - dx; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; }
       // Clamp to minimum 10px
       newWidth = Math.max(10, newWidth);
@@ -818,7 +819,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     section.galleryVideos && section.galleryVideos.length > 0 ? `gvid:${galleryVidPos.x},${galleryVidPos.y}` : '',
   ].filter(Boolean).join('|');
 
-  // No dynamic height measurement needed — the section height is determined
+  // No dynamic height measurement needed Ã¢â‚¬â€ the section height is determined
   // naturally by its content (canvas + gallery in normal flow).
   // This avoids feedback loops and layout jumps when gallery column count changes.
   React.useLayoutEffect(() => {
@@ -867,12 +868,10 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     return (
       <section ref={sectionRef} className={cn("relative flex flex-col items-center justify-center text-center px-2 pt-20 pb-2", (section.galleryImages?.length || section.galleryVideos?.length) && "min-h-[auto]", section.backgroundType === 'video' && "min-h-screen")} style={heroSurfaceStyle}>
 
-        {/* Background layer — clipped independently so gallery content can overflow freely */}
+        {/* Background layer Ã¢â‚¬â€ clipped independently so gallery content can overflow freely */}
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
           {section.backgroundType === 'video' && section.backgroundValue && (
-            <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-contain">
-              <source src={section.backgroundValue} />
-            </video>
+            <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" />
           )}
           {overlayStyle && Object.keys(overlayStyle).length > 0 && <div style={overlayStyle} />}
         </div>
@@ -882,7 +881,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           )}
           {section.showName !== false && (
-            <h1 className="text-4xl md:text-5xl font-bold" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.name}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           )}
           {section.showTitle !== false && (
             section.typingWords && section.typingWords.length > 0 ? (
@@ -890,14 +889,14 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
                 <TypingAnimation words={section.typingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} />
               </h2>
             ) : (
-              <h2 className="text-xl md:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>{section.title}</h2>
+              <h2 className="text-xl md:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )
           )}
           {section.showSubtitle !== false && (
-            <p className="text-lg" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}>{section.subtitle}</p>
+            <p className="text-lg" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           )}
           {section.showBio !== false && (
-            <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}>{section.bio}</p>
+            <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
           )}
           {section.ctaButtons && section.ctaButtons.length > 0 && (
             <div className="flex gap-4 mt-4">
@@ -1079,7 +1078,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   // When the gallery is dragged (absolutely positioned) it no longer
   // contributes to the section's natural height.  Use the measured
   // galleryFlowHeight (tracked via ResizeObserver) to make the section
-  // tall enough so the background covers the entire gallery — especially
+  // tall enough so the background covers the entire gallery Ã¢â‚¬â€ especially
   // important for a single-column layout which can be very tall.
   const isVideoBg = section.backgroundType === 'video' && !!section.backgroundValue;
   const canvasMinHeight = isVideoBg ? 600 : 480; // taller canvas for video backgrounds
@@ -1111,11 +1110,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   return (
     <section ref={sectionRef} className="relative" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
 
-      {/* Background layer — parallax-enabled when section.parallaxEnabled is true */}
+      {/* Background layer Ã¢â‚¬â€ parallax-enabled when section.parallaxEnabled is true */}
       {section.backgroundType === 'video' && section.backgroundValue && (
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }}>
-          <source src={section.backgroundValue} />
-        </video>
+        <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
       )}
       {section.backgroundType === 'image' && section.backgroundValue && section.parallaxEnabled && (
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
@@ -1142,7 +1139,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
       {/* Fixed-height free-form canvas for text elements (avatar, name, title, subtitle, bio, CTA) */}
       {/* Positions use % within this stable canvas, not the full expanding section */}
       {/* Canvas height is measured from the actual bottom edge of the lowest text element + 20px gap */}
-      {/* Snap guide lines — rendered at the section level so they are visible
+      {/* Snap guide lines Ã¢â‚¬â€ rendered at the section level so they are visible
           across the full section height, including when dragging gallery
           images/videos which live below the 60vh canvas. */}
       {dragging && snapEnabled && snapLines.vertical !== undefined && (
@@ -1160,7 +1157,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
       <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10, pointerEvents: 'none' }}>
 
-        {/* Background Shapes — rendered behind text elements (zIndex 0-9) */}
+        {/* Background Shapes Ã¢â‚¬â€ rendered behind text elements (zIndex 0-9) */}
         {(section.backgroundShapes || []).map((shape) => (
           <div
             key={shape.id}
@@ -1191,7 +1188,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
                 <polygon points="50,0 100,100 0,100" fill={shape.color} />
               </svg>
             )}
-            {/* Corner + edge resize handles — only in edit mode */}
+            {/* Corner + edge resize handles Ã¢â‚¬â€ only in edit mode */}
             {!previewMode && (
               <>
                 {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const).map((handle) => {
@@ -1248,7 +1245,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['name'] = node; }} className={cn(namePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'name' && 'z-20')}
             style={namePos ? { left: `${namePos.x}%`, top: `${namePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'name')}>
-            <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.name}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           </div>
         )}
 
@@ -1262,7 +1259,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
                 <TypingAnimation words={section.typingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} />
               </h2>
             ) : (
-              <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>{section.title}</h2>
+              <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )}
           </div>
         )}
@@ -1272,16 +1269,16 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['subtitle'] = node; }} className={cn(subtitlePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'subtitle' && 'z-20')}
             style={subtitlePos ? { left: `${subtitlePos.x}%`, top: `${subtitlePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'subtitle')}>
-            <p className="text-lg whitespace-nowrap" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}>{section.subtitle}</p>
+            <p className="text-lg whitespace-nowrap" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           </div>
         )}
 
-        {/* Bio — top-aligned so tall content renders below the drop point */}
+        {/* Bio Ã¢â‚¬â€ top-aligned so tall content renders below the drop point */}
         {section.showBio !== false && (
           <div ref={(node) => { elementRefs.current['bio'] = node; }} className={cn(bioPos ? 'absolute transform -translate-x-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'bio' && 'z-20')}
             style={bioPos ? { left: `${bioPos.x}%`, top: `${bioPos.y}%`, zIndex: 10, pointerEvents: 'auto', maxWidth: section.textStyles?.bio?.maxWidth || 'min(500px, 80vw)' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'bio')}>
-            <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}>{section.bio}</p>
+            <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
           </div>
         )}
 
@@ -1341,7 +1338,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
       >
 
 
-      {/* Gallery Images — absolutely positioned: uses autoGalleryTop (measured from bio bottom + 24px) when not dragged, or saved position when dragged */}
+      {/* Gallery Images Ã¢â‚¬â€ absolutely positioned: uses autoGalleryTop (measured from bio bottom + 24px) when not dragged, or saved position when dragged */}
       {section.galleryImages && section.galleryImages.length > 0 && (() => {
         const isDragged = !!section.galleryImagesPosition;
         return (
@@ -1370,7 +1367,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           }}
 
         >
-          {/* Drag handle — only visible in edit mode */}
+          {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
           {!previewMode && (
             <div
               className="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 cursor-move text-white/70 hover:text-white transition-colors select-none"
@@ -1448,7 +1445,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         <div style={{ height: `${galleryFlowHeight + 24}px` }} />
       )}
 
-      {/* Gallery Videos — inside the flow container so they naturally follow
+      {/* Gallery Videos Ã¢â‚¬â€ inside the flow container so they naturally follow
           the gallery images. When not dragged, they flow after the images.
           When dragged (absolute), they can be freely positioned. */}
       {section.galleryVideos && section.galleryVideos.length > 0 && (
@@ -1480,7 +1477,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           onTouchStart={(e) => handleTouchStart(e, 'galleryVideos')}
         >
 
-          {/* Drag handle — only visible in edit mode */}
+          {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
           {!previewMode && (
             <div
               className="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 cursor-move text-white/70 hover:text-white transition-colors select-none"
@@ -1583,7 +1580,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
   const imageBorderClass = section.imageBorder ? `border-4 border-solid` : '';
   const imageShadowClass = section.imageShadow !== false ? 'shadow-lg' : '';
 
-  // Video embed — auto-detect platform from URL, then convert to embeddable URL
+  // Video embed Ã¢â‚¬â€ auto-detect platform from URL, then convert to embeddable URL
   const videoEmbedUrl = section.videoUrl ? (() => {
     const url = section.videoUrl.trim();
     // Auto-detect: check URL first, fall back to stored videoType
@@ -1665,7 +1662,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.title,
         defaultPosition: defaultPositions.title,
 
-        content: <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>,
+        content: <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>,
       },
       {
         key: 'tagline',
@@ -1673,7 +1670,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.tagline,
 
         defaultPosition: defaultPositions.tagline,
-        content: <p className="text-lg italic text-center whitespace-nowrap" style={{ color: '#000000' }}>{section.tagline}</p>,
+        content: <p className="text-lg italic text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}><AnimatedText text={section.tagline} textStyles={section.textStyles?.tagline} /></p>,
 
       },
       {
@@ -1682,7 +1679,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.bio,
         defaultPosition: defaultPositions.bio,
 
-        content: <div style={{ width: section.textStyles?.content?.maxWidth || '384px', textAlign: 'center', boxSizing: 'border-box' }}><p style={getTextStyle(section.textStyles, 'content', { color: theme.colors.text, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' })}>{section.content}</p>{section.secondParagraph && <p className="mt-4" style={{ color: theme.colors.textSecondary, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{section.secondParagraph}</p>}</div>,
+        content: <div style={{ width: section.textStyles?.content?.maxWidth || '384px', textAlign: 'center', boxSizing: 'border-box' }}><p style={getTextStyle(section.textStyles, 'content', { color: theme.colors.text, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' })}><AnimatedText text={section.content} textStyles={section.textStyles?.content} /></p>{section.secondParagraph && <p className="mt-4" style={getTextStyle(section.textStyles, 'secondParagraph', { color: theme.colors.textSecondary, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' })}><AnimatedText text={section.secondParagraph} textStyles={section.textStyles?.secondParagraph} /></p>}</div>,
       },
       {
         key: 'secondImage',
@@ -1713,7 +1710,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.quote,
         defaultPosition: defaultPositions.quote,
 
-        content: <blockquote className="px-6 py-4 border-l-4 italic text-xl max-w-md" style={{ borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` }}>"{section.personalQuote}"</blockquote>,
+        content: <blockquote className="px-6 py-4 border-l-4 italic text-xl max-w-md" style={getTextStyle(section.textStyles, 'personalQuote', { borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` })}>"<AnimatedText text={section.personalQuote} textStyles={section.textStyles?.personalQuote} /></blockquote>,
       },
       {
         key: 'quickFacts',
@@ -1792,13 +1789,13 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         <div className="max-w-4xl mx-auto">
           {/* Title */}
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-4 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-4 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
 
 
           {/* Tagline */}
           {section.showTagline !== false && section.tagline && (
-            <p className="text-lg text-center mb-8 italic" style={{ color: '#000000' }}>
+            <p className="text-lg text-center mb-8 italic" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}>
               {section.tagline}
             </p>
 
@@ -1810,28 +1807,28 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             <div className="w-full">
               {/* Main bio */}
               {section.showBio !== false && (
-                <p className="text-center" style={getTextStyle(section.textStyles, 'content', { color: theme.colors.text, whiteSpace: 'pre-wrap' })}>{section.content}</p>
+                <p className="text-center" style={getTextStyle(section.textStyles, 'content', { color: theme.colors.text, whiteSpace: 'pre-wrap' })}><AnimatedText text={section.content} textStyles={section.textStyles?.content} /></p>
               )}
 
 
               {/* Second paragraph */}
               {section.showBio !== false && section.secondParagraph && (
-                <p className="mt-4" style={{ color: theme.colors.textSecondary, whiteSpace: 'pre-wrap' }}>
+                <p className="mt-4" style={getTextStyle(section.textStyles, 'secondParagraph', { color: theme.colors.textSecondary, whiteSpace: 'pre-wrap' })}>
                   {section.secondParagraph}
                 </p>
               )}
 
-              {/* Personal quote — right after bio, before images */}
+              {/* Personal quote Ã¢â‚¬â€ right after bio, before images */}
               {section.showPersonalQuote !== false && section.personalQuote && (
                 <blockquote
                   className="my-6 px-6 py-4 border-l-4 italic text-xl"
-                  style={{ borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` }}
+                  style={getTextStyle(section.textStyles, 'personalQuote', { borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` })}
                 >
-                  "{section.personalQuote}"
+                  "<AnimatedText text={section.personalQuote} textStyles={section.textStyles?.personalQuote} />
                 </blockquote>
               )}
 
-              {/* Portrait image — after bio */}
+              {/* Portrait image Ã¢â‚¬â€ after bio */}
               {section.showImage !== false && section.imageUrl && (
 
                 <div className="mt-8" style={{ width: `min(${section.imageWidth || 896}px, 100%)`, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -1845,7 +1842,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                 </div>
               )}
 
-              {/* Second image (optional — workspace, secondary photo, etc.) */}
+              {/* Second image (optional Ã¢â‚¬â€ workspace, secondary photo, etc.) */}
               {section.secondImageUrl && (
                 <div className="mt-8" style={{ width: `min(${section.secondImageWidth || 300}px, 100%)`, marginLeft: 'auto', marginRight: 'auto' }}>
                   <OptimizedImage
@@ -1891,12 +1888,12 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
               {section.showLocation !== false && (section.location || section.availabilityStatus) && (
                 <div className="flex flex-wrap items-center gap-4 my-4 text-sm">
                   {section.location && (
-                    <span className="flex items-center gap-1" style={{ color: theme.colors.textSecondary }}>
+                    <span className="flex items-center gap-1" style={getTextStyle(section.textStyles, 'location', { color: theme.colors.textSecondary })}>
                       <MapPin className="w-4 h-4" /> {section.location}
                     </span>
                   )}
                   {section.availabilityStatus && (
-                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#10b98120', color: '#10b981' }}>
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium" style={getTextStyle(section.textStyles, 'availabilityStatus', { backgroundColor: '#10b98120', color: '#10b981' })}>
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       {section.availabilityStatus}
                     </span>
@@ -1924,7 +1921,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                   <a
                     href={section.ctaButtonLink}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all hover:opacity-90"
-                    style={{ border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius }}
+                    style={getTextStyle(section.textStyles, 'ctaButtonText', { border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius })}
                   >
                     {section.ctaButtonText}
                   </a>
@@ -1934,7 +1931,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
 
           </div>
 
-          {/* Resume — embedded PDF viewer or download button (after second image) */}
+          {/* Resume Ã¢â‚¬â€ embedded PDF viewer or download button (after second image) */}
           {section.showResume !== false && section.resumeUrl && (
             (section.resumeDisplayMode || 'embed') === 'embed' ? (
               <div className="mt-8" style={{ width: 'min(916px, 100%)', marginLeft: 'auto', marginRight: 'auto' }}>
@@ -1959,7 +1956,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             )
           )}
 
-          {/* Gallery Images (uniform grid — all tiles same size, blurred background fill + feathered border) */}
+          {/* Gallery Images (uniform grid Ã¢â‚¬â€ all tiles same size, blurred background fill + feathered border) */}
           {section.showGallery !== false && section.galleryImages && section.galleryImages.length > 0 && (() => {
             const featherMask = 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)';
             return (
@@ -2023,12 +2020,12 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
           {/* Debug: show when video URL is set but video doesn't render */}
           {section.videoUrl && !videoEmbedUrl && (
             <div className="mt-8 p-4 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
-              ⚠️ Video URL is set but could not be parsed. URL: "{section.videoUrl}"
+              Ã¢Å¡Â Ã¯Â¸Â Video URL is set but could not be parsed. URL: "{section.videoUrl}"
             </div>
           )}
           {section.videoUrl && videoEmbedUrl && section.showVideo === false && (
             <div className="mt-8 p-4 bg-orange-50 border border-orange-300 rounded-lg text-sm text-orange-800">
-              ⚠️ Video is hidden. Enable the "Show" toggle in the Video Introduction section of the editor.
+              Ã¢Å¡Â Ã¯Â¸Â Video is hidden. Enable the "Show" toggle in the Video Introduction section of the editor.
             </div>
           )}
 
@@ -2180,7 +2177,7 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
     <section className="min-h-screen py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
       <div className="max-w-[1600px] mx-auto">
         {section.showTitle !== false && (
-          <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+          <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
         )}
 
         {hasCategories ? (
@@ -2211,6 +2208,8 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
                   </div>
                   {/* Right side: cover image */}
                   <div className="relative overflow-hidden md:w-1/2" style={{ aspectRatio: aspectStyle }}>
+
+
                     {category.imageUrl ? (
                       <OptimizedImage src={category.imageUrl} alt={category.name} fill className="object-cover transition-transform group-hover:scale-105" />
                     ) : (
@@ -2219,6 +2218,7 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
                       </div>
                     )}
                   </div>
+
                 </div>
               );
             })}
@@ -2314,11 +2314,11 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           {categories.map((category) => (
             <div key={category} className="mb-8">
-              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.colors.primary }}>{category}</h3>
+              <h3 className="text-lg font-semibold mb-4" style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.primary })}>{category}</h3>
               {displayStyle === 'bars' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {section.skills.filter((s) => s.category === category).map((skill) => {
@@ -2329,7 +2329,7 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
                           <Icon className="w-4 h-4" style={{ color: theme.colors.primary }} />
                         </div>
                         <div className="flex-1">
-                          <div className="flex justify-between mb-1"><span style={{ color: theme.colors.text }}>{skill.name}</span><span style={{ color: theme.colors.textSecondary }}>{skill.level}%</span></div>
+                          <div className="flex justify-between mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span><span style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.level}%</span></div>
                           <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} /></div>
                         </div>
                       </div>
@@ -2348,7 +2348,7 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
                           <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
                         </div>
-                        <span className="text-sm mt-2 text-center" style={{ color: theme.colors.text }}>{skill.name}</span>
+                        <span className="text-sm mt-2 text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
                       </div>
                     );
                   })}
@@ -2361,7 +2361,7 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
                     return (
                       <span key={skill.id} className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5" style={{ backgroundColor: `${theme.colors.primary}15`, color: theme.colors.primary }}>
                         <Icon className="w-3.5 h-3.5" />
-                        {skill.name}
+                        <span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.primary })}>{skill.name}</span>
                       </span>
                     );
                   })}
@@ -2376,8 +2376,8 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${theme.colors.primary}15` }}>
                           <Icon className="w-6 h-6" style={{ color: theme.colors.primary }} />
                         </div>
-                        <span className="text-sm font-medium text-center" style={{ color: theme.colors.text }}>{skill.name}</span>
-                        {skill.yearsExperience && <span className="text-xs" style={{ color: theme.colors.textSecondary }}>{skill.yearsExperience}+ years</span>}
+                        <span className="text-sm font-medium text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
+                        {skill.yearsExperience && <span className="text-xs" style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.yearsExperience}+ years</span>}
                       </div>
                     );
                   })}
@@ -2419,8 +2419,8 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
       defaultPosition: defaultPositions.title,
       content: (
         <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
-          {section.title}
-        </h2>
+          <AnimatedText text={section.title} textStyles={section.textStyles?.title} />
+          </h2>
       ),
     });
 
@@ -2436,15 +2436,15 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             {exp.companyLogo && <OptimizedImage src={exp.companyLogo} alt={exp.company} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{exp.position}</h3>
-              <p style={{ color: '#333333' }}>{exp.company}</p>
+            <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
+              <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
             </div>
-            <p className="text-sm mb-2" style={{ color: '#555555' }}>{exp.startDate} - {exp.endDate || 'Present'}{exp.location && ` • ${exp.location}`}</p>
-            <p style={{ color: theme.colors.text }}>{exp.description}</p>
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` ÃÂ¢Ã¢â€šÂ¬Ã‚Â¢ `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+            <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
             {exp.achievements && exp.achievements.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {exp.achievements.map((a, idx) => (
-                  <li key={idx} className="text-sm flex items-start gap-2" style={{ color: theme.colors.textSecondary }}>
+                  <li key={idx} className="text-sm flex items-start gap-2" style={getTextStyle(section.textStyles, 'experienceAchievements', { color: theme.colors.textSecondary })}>
                     <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: theme.colors.primary }} /> {a}
                   </li>
                 ))}
@@ -2478,7 +2478,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="space-y-8">
             {section.experiences.map((exp, i) => (
@@ -2487,15 +2487,15 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
                 {exp.companyLogo && <OptimizedImage src={exp.companyLogo} alt={exp.company} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
 
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{exp.position}</h3>
-                  <p style={{ color: '#333333' }}>{exp.company}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
+                  <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
                 </div>
-                <p className="text-sm mb-2" style={{ color: '#555555' }}>{exp.startDate} - {exp.endDate || 'Present'}{exp.location && ` • ${exp.location}`}</p>
-                <p style={{ color: theme.colors.text }}>{exp.description}</p>
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` ÃÂ¢Ã¢â€šÂ¬Ã‚Â¢ `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+                <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
                 {exp.achievements && exp.achievements.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {exp.achievements.map((a, idx) => (
-                      <li key={idx} className="text-sm flex items-start gap-2" style={{ color: theme.colors.textSecondary }}>
+                      <li key={idx} className="text-sm flex items-start gap-2" style={getTextStyle(section.textStyles, 'experienceAchievements', { color: theme.colors.textSecondary })}>
                         <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: theme.colors.primary }} /> {a}
                       </li>
                     ))}
@@ -2535,8 +2535,8 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
       defaultPosition: defaultPositions.title,
       content: (
         <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
-          {section.title}
-        </h2>
+          <AnimatedText text={section.title} textStyles={section.textStyles?.title} />
+          </h2>
       ),
     });
 
@@ -2551,11 +2551,11 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             {edu.logo && <OptimizedImage src={edu.logo} alt={edu.institution} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{edu.degree} in {edu.field}</h3>
-              <p style={{ color: '#333333' }}>{edu.institution}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: '#1a1a1a' })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: '#1a1a1a' })}>{edu.field}</span></h3>
+              <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: '#333333' })}>{edu.institution}</p>
             </div>
-            <p className="text-sm mb-2" style={{ color: '#555555' }}>{edu.startDate} - {edu.endDate}</p>
-            {edu.description && <p style={{ color: theme.colors.text }}>{edu.description}</p>}
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: '#555555' })}>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: '#555555' })}>{edu.endDate}</span></p>
+            {edu.description && <p style={getTextStyle(section.textStyles, 'educationDescription', { color: theme.colors.text })}>{edu.description}</p>}
           </div>
         ),
       });
@@ -2583,7 +2583,7 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="space-y-8">
             {section.educations.map((edu) => (
@@ -2591,11 +2591,11 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
                 <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 {edu.logo && <OptimizedImage src={edu.logo} alt={edu.institution} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{edu.degree} in {edu.field}</h3>
-                  <p style={{ color: '#333333' }}>{edu.institution}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: '#1a1a1a' })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: '#1a1a1a' })}>{edu.field}</span></h3>
+                  <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: '#333333' })}>{edu.institution}</p>
                 </div>
-                <p className="text-sm mb-2" style={{ color: '#555555' }}>{edu.startDate} - {edu.endDate}</p>
-                {edu.description && <p style={{ color: theme.colors.text }}>{edu.description}</p>}
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: '#555555' })}>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: '#555555' })}>{edu.endDate}</span></p>
+                {edu.description && <p style={getTextStyle(section.textStyles, 'educationDescription', { color: theme.colors.text })}>{edu.description}</p>}
               </div>
             ))}
           </div>
@@ -2620,7 +2620,7 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
         <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
           <div className="max-w-3xl mx-auto text-center">
             {section.showTitle !== false && (
-              <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+              <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )}
             <div className="p-8 rounded-lg shadow-lg" style={{ borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
               {testimonial.rating && (
@@ -2630,25 +2630,25 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
                   ))}
                 </div>
               )}
-              <p className="italic text-lg mb-6" style={{ color: theme.colors.text }}>"{testimonial.content}"</p>
+              <p className="italic text-lg mb-6" style={getTextStyle(section.textStyles, 'testimonialContent', { color: theme.colors.text })}>"{testimonial.content}"</p>
               <div className="flex items-center justify-center gap-3">
                 {testimonial.avatar && <OptimizedImage src={testimonial.avatar} alt={testimonial.name} className="w-12 h-12 rounded-full object-cover" width={48} height={48} />}
 
                 <div>
-                  <p className="font-semibold" style={{ color: theme.colors.text }}>{testimonial.name}</p>
-                  <p className="text-sm" style={{ color: theme.colors.textSecondary }}>{testimonial.role} at {testimonial.company}</p>
+                  <p className="font-semibold" style={getTextStyle(section.textStyles, 'testimonialName', { color: theme.colors.text })}>{testimonial.name}</p>
+                  <p className="text-sm" style={getTextStyle(section.textStyles, 'testimonialRole', { color: theme.colors.textSecondary })}>{testimonial.role} at <span style={getTextStyle(section.textStyles, 'testimonialCompany', { color: theme.colors.textSecondary })}>{testimonial.company}</span></p>
                 </div>
               </div>
             </div>
             {section.testimonials.length > 1 && (
               <div className="flex justify-center gap-4 mt-6">
-                <button onClick={prev} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>←</button>
+                <button onClick={prev} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>Ã¢â€ Â</button>
                 <div className="flex items-center gap-1">
                   {section.testimonials.map((_, i) => (
                     <button key={i} onClick={() => setCurrentIndex(i)} className={cn('w-2 h-2 rounded-full transition-all', i === currentIndex ? 'w-6' : '')} style={{ backgroundColor: i === currentIndex ? theme.colors.primary : '#d1d5db' }} />
                   ))}
                 </div>
-                <button onClick={next} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>→</button>
+                <button onClick={next} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>Ã¢â€ â€™</button>
               </div>
             )}
           </div>
@@ -2662,7 +2662,7 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-6xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <AnimatedStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {section.testimonials.map((t) => (
@@ -2675,13 +2675,13 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
                       ))}
                     </div>
                   )}
-                  <p className="italic mb-4" style={{ color: theme.colors.text }}>"{t.content}"</p>
+                  <p className="italic mb-4" style={getTextStyle(section.textStyles, 'testimonialContent', { color: theme.colors.text })}>"{t.content}"</p>
                   <div className="flex items-center gap-3">
                     {t.avatar && <OptimizedImage src={t.avatar} alt={t.name} className="w-12 h-12 rounded-full object-cover" width={48} height={48} />}
 
                     <div>
-                      <p className="font-semibold" style={{ color: theme.colors.text }}>{t.name}</p>
-                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>{t.role} at {t.company}</p>
+                      <p className="font-semibold" style={getTextStyle(section.textStyles, 'testimonialName', { color: theme.colors.text })}>{t.name}</p>
+                      <p className="text-sm" style={getTextStyle(section.textStyles, 'testimonialRole', { color: theme.colors.textSecondary })}>{t.role} at <span style={getTextStyle(section.textStyles, 'testimonialCompany', { color: theme.colors.textSecondary })}>{t.company}</span></p>
                     </div>
                   </div>
                 </div>
@@ -2724,7 +2724,7 @@ function ContactPreview({ section, theme }: { section: ContactSection; theme: an
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-2xl mx-auto text-center">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="space-y-4 mb-8">
             {section.showEmail !== false && section.email && <a href={`mailto:${section.email}`} className="flex items-center justify-center gap-2 hover:opacity-80"><Mail className="w-5 h-5" style={{ color: theme.colors.primary }} /><span style={getTextStyle(section.textStyles, 'email', { color: theme.colors.text })}>{section.email}</span></a>}
@@ -2803,7 +2803,7 @@ function SocialPreview({ section, theme }: { section: SocialSection; theme: any 
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto text-center">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="flex justify-center gap-4 flex-wrap">
             {section.links.map((link) => {
@@ -2848,9 +2848,9 @@ function FooterPreview({ section, theme }: { section: FooterSection; theme: any 
             <div>
               <h4 className="text-sm font-semibold uppercase mb-4 opacity-70">Contact</h4>
               <div className="space-y-2 text-sm opacity-80">
-                {(section.contactEmail || contactSection?.email) && <p>{section.contactEmail || contactSection?.email}</p>}
-                {(section.contactPhone || contactSection?.phone) && <p>{section.contactPhone || contactSection?.phone}</p>}
-                {(section.contactLocation || contactSection?.location) && <p>{section.contactLocation || contactSection?.location}</p>}
+                {(section.contactEmail || contactSection?.email) && <p style={getTextStyle(section.textStyles, 'contactEmail', { color: 'rgba(255,255,255,0.8)' })}>{section.contactEmail || contactSection?.email}</p>}
+                {(section.contactPhone || contactSection?.phone) && <p style={getTextStyle(section.textStyles, 'contactPhone', { color: 'rgba(255,255,255,0.8)' })}>{section.contactPhone || contactSection?.phone}</p>}
+                {(section.contactLocation || contactSection?.location) && <p style={getTextStyle(section.textStyles, 'contactLocation', { color: 'rgba(255,255,255,0.8)' })}>{section.contactLocation || contactSection?.location}</p>}
               </div>
             </div>
           )}
@@ -2867,7 +2867,7 @@ function FooterPreview({ section, theme }: { section: FooterSection; theme: any 
           )}
         </div>
         <div className="border-t border-white/10 pt-6 flex items-center justify-between">
-          <p className="text-sm opacity-60">{copyright}</p>
+          <p className="text-sm opacity-60" style={getTextStyle(section.textStyles, 'copyright', { color: 'rgba(255,255,255,0.6)' })}>{copyright}</p>
           {section.showBackToTop && (
             <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
               <ArrowUp className="w-4 h-4" />
@@ -2887,10 +2887,10 @@ function CTABannerPreview({ section, theme }: { section: CTABannerSection; theme
       <section className="py-20 px-6 text-center" style={bgStyle}>
         <div className="max-w-2xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}>{section.title}</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           {section.showSubtitle !== false && (
-            <p className="text-lg mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}>{section.subtitle}</p>
+            <p className="text-lg mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           )}
           {section.showButton !== false && (
             <a href={section.buttonLink} onClick={(e) => { if (section.buttonLink.startsWith('#')) { e.preventDefault();
@@ -2928,9 +2928,9 @@ function ServicesPreview({ section, theme }: { section: ServicesSection; theme: 
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-6xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={{ color: theme.colors.textSecondary }}>{section.subtitle}</p>}
+          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           <AnimatedStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {section.services.map((service) => {
               const Icon = iconMap[service.icon] || Star;
@@ -2940,8 +2940,8 @@ function ServicesPreview({ section, theme }: { section: ServicesSection; theme: 
                     <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: `${theme.colors.primary}15` }}>
                       <Icon className="w-7 h-7" style={{ color: theme.colors.primary }} />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2" style={{ color: theme.colors.text }}>{service.title}</h3>
-                    <p className="text-sm" style={{ color: theme.colors.textSecondary }}>{service.description}</p>
+                    <h3 className="text-lg font-semibold mb-2" style={getTextStyle(section.textStyles, 'serviceTitle', { color: theme.colors.text })}>{service.title}</h3>
+                    <p className="text-sm" style={getTextStyle(section.textStyles, 'serviceDescription', { color: theme.colors.textSecondary })}>{service.description}</p>
                   </div>
                 </AnimatedItem>
               );
@@ -2956,157 +2956,40 @@ function ServicesPreview({ section, theme }: { section: ServicesSection; theme: 
 // ============ PROCESS ============
 function ProcessPreview({ section, theme }: { section: ProcessSection; theme: any }) {
   const layout = section.layout || 'horizontal';
-  const [animatingSteps, setAnimatingSteps] = React.useState<Set<number>>(new Set());
-  const [animatingConnectors, setAnimatingConnectors] = React.useState<Set<number>>(new Set());
+  const [activeStep, setActiveStep] = React.useState(0);
 
   React.useEffect(() => {
-    const stepTimers: ReturnType<typeof setTimeout>[] = [];
-    const connectorTimers: ReturnType<typeof setTimeout>[] = [];
+    if (activeStep >= section.steps.length) setActiveStep(Math.max(0, section.steps.length - 1));
+  }, [activeStep, section.steps.length]);
 
-    section.steps.forEach((_, i) => {
-      // Step animates at i * 750ms (600ms animation + 150ms stagger)
-      stepTimers.push(
-        setTimeout(() => {
-          setAnimatingSteps((prev) => new Set([...prev, i]));
-        }, i * 750)
-      );
-      // Connector animates at i * 750 + 600ms (after step animation completes)
-      if (i < section.steps.length - 1) {
-        connectorTimers.push(
-          setTimeout(() => {
-            setAnimatingConnectors((prev) => new Set([...prev, i]));
-          }, i * 750 + 600)
-        );
-      }
-    });
-
-    return () => {
-      stepTimers.forEach(clearTimeout);
-      connectorTimers.forEach(clearTimeout);
-    };
-  }, [section.steps.length]);
+  const accentColor = theme.colors.primary;
+  const tileBackgroundColor = section.tileBackgroundColor || 'rgba(255, 255, 255, 0.55)';
+  const tileBorderColor = section.tileBorderColor || `${accentColor}18`;
 
   return (
     <AnimatedSection>
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-6xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={{ color: theme.colors.textSecondary }}>{section.subtitle}</p>}
-          <div className={cn(layout === 'horizontal' ? 'flex flex-col md:flex-row gap-8' : 'flex flex-col gap-8 max-w-2xl mx-auto')}>
+          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
+          <div
+            className={cn('relative', layout === 'horizontal' ? 'grid grid-cols-1 gap-4 md:gap-5' : 'max-w-3xl mx-auto space-y-3 pl-12 md:space-y-4 md:pl-16')}
+            style={layout === 'horizontal' ? { gridTemplateColumns: `repeat(${Math.min(Math.max(section.steps.length, 1), 5)}, minmax(0, 1fr))` } : undefined}
+          >
             {section.steps.map((step, i) => {
-              const isStepAnimating = animatingSteps.has(i);
-              const isConnectorAnimating = animatingConnectors.has(i);
-
+              const isActive = activeStep === i;
               return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    'flex-1 relative process-step-card group',
-                    layout === 'horizontal' && 'text-center',
-                    isStepAnimating && 'animate-none'
-                  )}
-                  style={{
-                    animation: isStepAnimating ? `process-step-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards` : 'none',
-                    boxShadow: isStepAnimating ? '0 4px 6px rgba(0, 0, 0, 0.1)' : 'none',
-                  }}
-                >
-                  <div className="flex items-center gap-4 mb-4" style={layout === 'horizontal' ? { flexDirection: 'column' as const } : {}}>
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 transition-all duration-300"
-                      style={{
-                        backgroundColor: theme.colors.primary,
-                        animation: isStepAnimating ? `process-number-rotate-in 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards` : 'none',
-                        boxShadow: isStepAnimating ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 4px rgba(0, 0, 0, 0.1)',
-                      }}
-                    >
-                      {step.number}
-                    </div>
-                    {layout === 'horizontal' && i < section.steps.length - 1 && (
-                      <svg
-                        viewBox="0 0 100 30"
-                        width="70"
-                        height="30"
-                        className="hidden md:block arrow-svg"
-                        style={{
-                          opacity: isConnectorAnimating ? 1 : 0,
-                          transition: 'opacity 0.4s ease-out',
-                          transitionDelay: isConnectorAnimating ? '0.15s' : '0s',
-                        }}
-                      >
-                        {/* Static outline arrow */}
-                        <path
-                          d="M 5 15 L 60 15 M 55 10 L 60 15 L 55 20"
-                          className="arrow-path-static"
-                          stroke={theme.colors.primary}
-                          strokeWidth="2"
-                        />
-                        {/* Animated flowing line */}
-                        <path
-                          d="M 5 15 L 60 15 M 55 10 L 60 15 L 55 20"
-                          className={isConnectorAnimating ? 'arrow-path-animated' : ''}
-                          stroke={theme.colors.primary}
-                          strokeWidth="2.5"
-                          strokeDasharray="4, 4"
-                          opacity="0.8"
-                        />
-                      </svg>
-                    )}
+                <button key={step.id} type="button" onClick={() => setActiveStep(i)}
+                  className={cn('group relative z-10 w-full text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4', layout === 'horizontal' ? 'rounded-2xl p-5 md:p-6' : 'flex items-start gap-4 rounded-2xl p-4 md:gap-6 md:p-5', isActive ? 'translate-y-0' : 'md:translate-y-2 hover:translate-y-0')}
+                  style={{ backgroundColor: tileBackgroundColor, border: `1px solid ${isActive ? `${accentColor}55` : tileBorderColor}`, boxShadow: isActive ? `0 18px 45px ${accentColor}18` : '0 5px 18px rgba(15, 23, 42, 0.04)', outlineColor: accentColor }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'stepTitle', { color: theme.colors.text })}>{step.title}</h3>
+                    <span className="flex-shrink-0 text-xs font-semibold tracking-[0.18em]" style={{ color: accentColor }}>STEP 0{step.number}</span>
                   </div>
-                  {layout !== 'horizontal' && i < section.steps.length - 1 && (
-                    <svg
-                      viewBox="0 0 30 100"
-                      width="30"
-                      height="70"
-                      className="arrow-svg mx-auto"
-                      style={{
-                        opacity: isConnectorAnimating ? 1 : 0,
-                        transition: 'opacity 0.4s ease-out',
-                        transitionDelay: isConnectorAnimating ? '0.15s' : '0s',
-                      }}
-                    >
-                      {/* Static outline arrow */}
-                      <path
-                        d="M 15 5 L 15 60 M 10 55 L 15 60 L 20 55"
-                        className="arrow-path-static"
-                        stroke={theme.colors.primary}
-                        strokeWidth="2"
-                      />
-                      {/* Animated flowing line */}
-                      <path
-                        d="M 15 5 L 15 60 M 10 55 L 15 60 L 20 55"
-                        className={isConnectorAnimating ? 'arrow-path-animated-long' : ''}
-                        stroke={theme.colors.primary}
-                        strokeWidth="2.5"
-                        strokeDasharray="4, 4"
-                        opacity="0.8"
-                      />
-                    </svg>
-                  )}
-                  <h3
-                    className="text-lg font-semibold mb-2 transition-all duration-500"
-                    style={{
-                      color: theme.colors.text,
-                      opacity: isStepAnimating ? 1 : 0,
-                      transform: isStepAnimating ? 'translateY(0)' : 'translateY(8px)',
-                      transitionDelay: '0.2s',
-                    }}
-                  >
-                    {step.title}
-                  </h3>
-                  <p
-                    className="text-sm transition-all duration-500"
-                    style={{
-                      color: theme.colors.textSecondary,
-                      opacity: isStepAnimating ? 1 : 0,
-                      transform: isStepAnimating ? 'translateY(0)' : 'translateY(8px)',
-                      transitionDelay: '0.35s',
-                    }}
-                  >
-                    {step.description}
-                  </p>
-                </div>
+                  <p className="mt-3 text-sm leading-6" style={getTextStyle(section.textStyles, 'stepDescription', { color: theme.colors.textSecondary })}>{step.description}</p>
+                </button>
               );
             })}
           </div>
@@ -3115,7 +2998,6 @@ function ProcessPreview({ section, theme }: { section: ProcessSection; theme: an
     </AnimatedSection>
   );
 }
-
 // ============ STATS ============
 function StatsPreview({ section, theme }: { section: StatsSection; theme: any }) {
   return (
@@ -3123,15 +3005,15 @@ function StatsPreview({ section, theme }: { section: StatsSection; theme: any })
       <section className="py-16 px-6" style={{ backgroundColor: theme.colors.primary }}>
         <div className="max-w-5xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-10 text-center text-white">{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-10 text-center text-white" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {section.stats.map((stat) => (
               <div key={stat.id} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2" style={getTextStyle(section.textStyles, 'statValue', { color: '#fff' })}>
                   <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                 </div>
-                <p className="text-sm text-white/80">{stat.label}</p>
+                <p className="text-sm text-white/80" style={getTextStyle(section.textStyles, 'statLabel', { color: 'rgba(255,255,255,0.8)' })}>{stat.label}</p>
               </div>
             ))}
           </div>
@@ -3166,8 +3048,8 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
       defaultPosition: defaultPositions.title,
       content: (
         <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
-          {section.title}
-        </h2>
+          <AnimatedText text={section.title} textStyles={section.textStyles?.title} />
+          </h2>
       ),
     });
 
@@ -3181,11 +3063,11 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{award.title}</h3>
-              <p style={{ color: '#333333' }}>{award.organization}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: '#1a1a1a' })}>{award.title}</h3>
+              <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: '#333333' })}>{award.organization}</p>
             </div>
-            <p className="text-sm mb-2" style={{ color: '#555555' }}>{award.year}</p>
-            {award.description && <p style={{ color: theme.colors.text }}>{award.description}</p>}
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: '#555555' })}>{award.year}</p>
+            {award.description && <p style={getTextStyle(section.textStyles, 'awardDescription', { color: theme.colors.text })}>{award.description}</p>}
           </div>
         ),
       });
@@ -3213,19 +3095,19 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <AnimatedStagger className="space-y-4">
             {section.awards.map((award) => (
               <AnimatedItem key={award.id}>
                 <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary }}>
                   <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
-                  <div className="mb-1">
-                    <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{award.title}</h3>
-                    <p style={{ color: '#333333' }}>{award.organization}</p>
+                <div className="mb-1">
+                    <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: '#1a1a1a' })}>{award.title}</h3>
+                    <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: '#333333' })}>{award.organization}</p>
                   </div>
-                  <p className="text-sm mb-2" style={{ color: '#555555' }}>{award.year}</p>
-                  {award.description && <p style={{ color: theme.colors.text }}>{award.description}</p>}
+                  <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: '#555555' })}>{award.year}</p>
+                  {award.description && <p style={getTextStyle(section.textStyles, 'awardDescription', { color: theme.colors.text })}>{award.description}</p>}
                 </div>
               </AnimatedItem>
             ))}
@@ -3243,18 +3125,18 @@ function PressPreview({ section, theme }: { section: PressSection; theme: any })
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-5xl mx-auto text-center">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="mb-10" style={{ color: theme.colors.textSecondary }}>{section.subtitle}</p>}
+          {section.showSubtitle !== false && section.subtitle && <p className="mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           <div className="flex flex-wrap items-center justify-center gap-8">
             {section.items.map((item) => (
               <div key={item.id}>
                 {item.link ? (
                   <a href={item.link} target="_blank" rel="noopener noreferrer" className="block opacity-60 hover:opacity-100 transition-opacity">
-                    {item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto" width={48} height={48} /> : <span className="text-xl font-bold" style={{ color: theme.colors.text }}>{item.name}</span>}
+                    {item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto" width={48} height={48} /> : <span className="text-xl font-bold" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>}
                   </a>
                 ) : (
-                  item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto opacity-60" width={48} height={48} /> : <span className="text-xl font-bold opacity-60" style={{ color: theme.colors.text }}>{item.name}</span>
+                  item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto opacity-60" width={48} height={48} /> : <span className="text-xl font-bold opacity-60" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>
                 )}
 
               </div>
@@ -3291,8 +3173,8 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
       defaultPosition: defaultPositions.title,
       content: (
         <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
-          {section.title}
-        </h2>
+          <AnimatedText text={section.title} textStyles={section.textStyles?.title} />
+          </h2>
       ),
     });
 
@@ -3306,11 +3188,11 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{cert.name}</h3>
-              <p style={{ color: '#333333' }}>{cert.issuer}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: '#1a1a1a' })}>{cert.name}</h3>
+              <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
             </div>
-            <p className="text-sm mb-2" style={{ color: '#555555' }}>{cert.date}</p>
-            {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
+            {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate Ã¢â€ â€™</a>}
           </div>
         ),
       });
@@ -3338,18 +3220,18 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-4xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           <div className="space-y-8">
             {section.certifications.map((cert) => (
               <div key={cert.id} className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary }}>
                 <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={{ color: '#1a1a1a' }}>{cert.name}</h3>
-                  <p style={{ color: '#333333' }}>{cert.issuer}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: '#1a1a1a' })}>{cert.name}</h3>
+                  <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
                 </div>
-                <p className="text-sm mb-2" style={{ color: '#555555' }}>{cert.date}</p>
-                {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
+                {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate Ã¢â€ â€™</a>}
               </div>
             ))}
           </div>
@@ -3367,9 +3249,9 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-6xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={{ color: theme.colors.textSecondary }}>{section.subtitle}</p>}
+          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           {section.posts.length === 0 ? (
             <div className="text-center py-12 text-gray-500"><p>No blog posts yet.</p></div>
           ) : layout === 'list' ? (
@@ -3380,12 +3262,12 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                     <OptimizedImage src={post.imageUrl} alt={post.title} className="w-full md:w-48 h-32 object-cover rounded-lg flex-shrink-0" width={192} height={128} />
                   )}
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1" style={{ color: theme.colors.text }}>{post.title}</h3>
+                    <h3 className="text-lg font-semibold mb-1" style={getTextStyle(section.textStyles, 'postTitle', { color: theme.colors.text })}>{post.title}</h3>
                     <div className="flex items-center gap-3 text-xs mb-2" style={{ color: theme.colors.textSecondary }}>
                       {post.date && <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
-                      {post.readTime && <span>• {post.readTime}</span>}
+                      {post.readTime && <span>Ã¢â‚¬Â¢ {post.readTime}</span>}
                     </div>
-                    <p className="text-sm" style={{ color: theme.colors.textSecondary }}>{post.excerpt}</p>
+                    <p className="text-sm" style={getTextStyle(section.textStyles, 'postExcerpt', { color: theme.colors.textSecondary })}>{post.excerpt}</p>
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {post.tags.map((tag, i) => (
@@ -3413,10 +3295,10 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                     <div className="p-5 flex-1 flex flex-col">
                       <div className="flex items-center gap-3 text-xs mb-2" style={{ color: theme.colors.textSecondary }}>
                         {post.date && <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
-                        {post.readTime && <span>• {post.readTime}</span>}
+                        {post.readTime && <span>Ã¢â‚¬Â¢ {post.readTime}</span>}
                       </div>
-                      <h3 className="text-lg font-semibold mb-2" style={{ color: theme.colors.text }}>{post.title}</h3>
-                      <p className="text-sm flex-1" style={{ color: theme.colors.textSecondary }}>{post.excerpt}</p>
+                      <h3 className="text-lg font-semibold mb-2" style={getTextStyle(section.textStyles, 'postTitle', { color: theme.colors.text })}>{post.title}</h3>
+                      <p className="text-sm flex-1" style={getTextStyle(section.textStyles, 'postExcerpt', { color: theme.colors.textSecondary })}>{post.excerpt}</p>
                       {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {post.tags.map((tag, i) => (
@@ -3450,9 +3332,9 @@ function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
         <div className="max-w-3xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={{ color: theme.colors.textSecondary }}>{section.subtitle}</p>}
+          {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           {section.items.length === 0 ? (
             <div className="text-center py-12 text-gray-500"><p>No FAQ items yet.</p></div>
           ) : layout === 'grid' ? (
@@ -3461,9 +3343,9 @@ function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
                 <div key={item.id} className="p-5 rounded-lg border" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
                   <div className="flex items-start gap-3 mb-2">
                     <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: theme.colors.primary }} />
-                    <h3 className="font-semibold" style={{ color: theme.colors.text }}>{item.question}</h3>
+                    <h3 className="font-semibold" style={getTextStyle(section.textStyles, 'question', { color: theme.colors.text })}>{item.question}</h3>
                   </div>
-                  <p className="text-sm pl-8" style={{ color: theme.colors.textSecondary }}>{item.answer}</p>
+                  <p className="text-sm pl-8" style={getTextStyle(section.textStyles, 'answer', { color: theme.colors.textSecondary })}>{item.answer}</p>
                 </div>
               ))}
             </div>
@@ -3475,11 +3357,11 @@ function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
                     onClick={() => setOpenIndex(openIndex === i ? null : i)}
                     className="w-full flex items-center justify-between p-4 text-left"
                   >
-                    <span className="font-medium" style={{ color: theme.colors.text }}>{item.question}</span>
+                    <span className="font-medium" style={getTextStyle(section.textStyles, 'question', { color: theme.colors.text })}>{item.question}</span>
                     {openIndex === i ? <Minus className="w-5 h-5 flex-shrink-0" style={{ color: theme.colors.primary }} /> : <Plus className="w-5 h-5 flex-shrink-0" style={{ color: theme.colors.primary }} />}
                   </button>
                   {openIndex === i && (
-                    <div className="px-4 pb-4 text-sm" style={{ color: theme.colors.textSecondary }}>
+                    <div className="px-4 pb-4 text-sm" style={getTextStyle(section.textStyles, 'answer', { color: theme.colors.textSecondary })}>
                       {item.answer}
                     </div>
                   )}
@@ -3518,9 +3400,9 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
       <section className="py-16 px-6 text-center" style={bgStyle}>
         <div className="max-w-xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-2" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}>{section.title}</h2>
+            <h2 className="text-3xl font-bold mb-2" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          {section.showSubtitle !== false && section.subtitle && <p className="mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}>{section.subtitle}</p>}
+          {section.showSubtitle !== false && section.subtitle && <p className="mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <input
               type="email"
@@ -3540,7 +3422,7 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
             </button>
           </form>
           {status === 'success' && (
-            <p className="mt-4 text-sm text-white/90">✓ Thanks for subscribing!</p>
+            <p className="mt-4 text-sm text-white/90">Ã¢Å“â€œ Thanks for subscribing!</p>
           )}
           {status === 'error' && (
             <p className="mt-4 text-sm text-red-300">Something went wrong. Please try again.</p>
@@ -3550,5 +3432,4 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
     </AnimatedSection>
   );
 }
-
 

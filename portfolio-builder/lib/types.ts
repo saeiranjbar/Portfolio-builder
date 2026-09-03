@@ -37,7 +37,14 @@ export interface TextStyleSettings {
   lineHeight?: string;
   letterSpacing?: string;
   maxWidth?: string;
+  // Text animation effects
+  animationType?: 'none' | 'wordColorReveal';
+  animationFromColor?: string;
+  animationToColor?: string;
+  animationDuration?: number; // seconds
+  animationStagger?: number; // seconds between each word
 }
+
 
 // Map of field key -> text style settings
 export type TextStyles = Record<string, TextStyleSettings>;
@@ -485,6 +492,8 @@ export interface ProjectCategory {
   imageUrl?: string;
 }
 
+
+
 export interface ProjectsSection {
   id: string;
   visible?: boolean;
@@ -705,6 +714,8 @@ export interface ProcessSection {
   subtitle?: string;
   steps: ProcessStep[];
   layout: 'horizontal' | 'vertical';
+  tileBackgroundColor?: string;
+  tileBorderColor?: string;
   textStyles?: TextStyles;
   sectionBackground?: SectionBackground;
   showTitle?: boolean;

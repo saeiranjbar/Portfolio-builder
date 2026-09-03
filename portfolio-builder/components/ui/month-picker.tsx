@@ -12,7 +12,9 @@ interface MonthPickerProps {
 export function MonthPicker({ value, onChange, placeholder = 'Select date' }: MonthPickerProps) {
   const [open, setOpen] = useState(false);
   const [dropLeft, setDropLeft] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
 
   // Parse current value
   const initialDate = value ? new Date(value + '-01') : new Date();
@@ -47,15 +49,20 @@ export function MonthPicker({ value, onChange, placeholder = 'Select date' }: Mo
   }, [value]);
 
   const handleOpen = () => {
-    // Check if we're in the right half of the viewport
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
       // If the right edge of this element is past 60% of viewport width, drop left
       setDropLeft(rect.right > viewportWidth * 0.6);
+      // Dropdown height is approx 260px (header + 4 rows of months + padding)
+      // If not enough space below, open upward
+      const spaceBelow = viewportHeight - rect.bottom;
+      setDropUp(spaceBelow < 280);
     }
     setOpen(!open);
   };
+
 
   const handleSelect = (month: number) => {
     const monthStr = String(month + 1).padStart(2, '0');
@@ -87,7 +94,8 @@ export function MonthPicker({ value, onChange, placeholder = 'Select date' }: Mo
 
       {open && (
         <div
-          className={`absolute z-50 mt-1 bg-white rounded-md border border-gray-200 shadow-lg p-3 min-w-[260px] ${dropLeft ? 'right-0' : 'left-0'}`}
+          className={`absolute z-50 ${dropUp ? 'bottom-full mb-1' : 'mt-1'} bg-white rounded-md border border-gray-200 shadow-lg p-3 min-w-[260px] ${dropLeft ? 'right-0' : 'left-0'}`}
+
         >
           {/* Header with year navigation */}
           <div className="flex items-center justify-between mb-3">

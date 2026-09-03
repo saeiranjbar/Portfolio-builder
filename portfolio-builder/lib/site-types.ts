@@ -525,6 +525,8 @@ export const ProcessSectionSchema = z.object({
   subtitle: z.string().optional(),
   steps: z.array(ProcessStepSchema).default([]),
   layout: z.enum(['horizontal', 'vertical']).default('horizontal'),
+  tileBackgroundColor: z.string().optional(),
+  tileBorderColor: z.string().optional(),
   showTitle: z.boolean().optional(),
   showSubtitle: z.boolean().optional(),
 });

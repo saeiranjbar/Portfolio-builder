@@ -536,7 +536,7 @@ function generateEducationSection(section: any, theme: any): string {
         ${section.educations.map((edu: any) => `
           <div style="position: relative; padding-left: 24px; margin-bottom: 32px; border-left: 2px solid ${theme.colors.primary};">
             <div style="position: absolute; left: -8px; top: 0; width: 14px; height: 14px; border-radius: 50%; background-color: ${theme.colors.primary};"></div>
-            <h3 style="font-size: 1.125rem; font-weight: 600; color: #1a1a1a;">${edu.degree} in ${edu.field}</h3>
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: #1a1a1a;">${edu.degree}${edu.field ? ` ${edu.field}` : ''}</h3>
             <p style="color: #333333; margin-bottom: 4px;">${edu.institution}</p>
             <p style="font-size: 0.875rem; color: #555555; margin-bottom: 8px;">${edu.startDate} - ${edu.endDate}</p>
             ${edu.description ? `<p>${edu.description}</p>` : ''}

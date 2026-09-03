@@ -40,7 +40,7 @@ export function TextStyleControls({
   const [isOpen, setIsOpen] = React.useState(false);
   const styles: TextStyleSettings = textStyles?.[fieldKey] || {};
 
-  const updateStyle = (key: keyof TextStyleSettings, value: string) => {
+  const updateStyle = (key: keyof TextStyleSettings, value: string | number) => {
     const currentStyles = textStyles || {};
     const fieldStyles = currentStyles[fieldKey] || {};
     const updated = {
@@ -49,6 +49,7 @@ export function TextStyleControls({
     };
     onUpdate(updated);
   };
+
 
   const resetStyles = () => {
     if (!textStyles) return;
@@ -340,8 +341,76 @@ export function TextStyleControls({
             </div>
           </div>
 
+          {/* Animation Effects */}
+          <div className="border-t border-gray-200 pt-3">
+            <Label className="text-xs text-gray-600 mb-1 block">Text Animation</Label>
+            <select
+              value={styles.animationType || 'none'}
+              onChange={(e) => updateStyle('animationType', e.target.value)}
+
+              className="flex h-8 w-full rounded-md border border-gray-300 bg-transparent px-2 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 mb-2"
+            >
+              <option value="none">No animation</option>
+              <option value="wordColorReveal">Word-by-word color reveal</option>
+            </select>
+
+            {styles.animationType === 'wordColorReveal' && (
+              <div className="space-y-2 p-2 bg-gray-50 rounded-md">
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-500 block">From color</Label>
+                    <Input
+                      type="color"
+                      value={styles.animationFromColor || '#808080'}
+                      onChange={(e) => updateStyle('animationFromColor', e.target.value)}
+
+                      className="w-full h-8 p-1 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-500 block">To color</Label>
+                    <Input
+                      type="color"
+                      value={styles.animationToColor || '#ffffff'}
+                      onChange={(e) => updateStyle('animationToColor', e.target.value)}
+
+                      className="w-full h-8 p-1 cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 block">Duration: {styles.animationDuration ?? 0.8}s</Label>
+                  <Input
+                    type="range"
+                    min="0.2"
+                    max="3"
+                    step="0.1"
+                    value={styles.animationDuration ?? 0.8}
+                    onChange={(e) => updateStyle('animationDuration', parseFloat(e.target.value))}
+
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 block">Stagger (delay between words): {styles.animationStagger ?? 0.15}s</Label>
+                  <Input
+                    type="range"
+                    min="0.05"
+                    max="1"
+                    step="0.05"
+                    value={styles.animationStagger ?? 0.15}
+                    onChange={(e) => updateStyle('animationStagger', parseFloat(e.target.value))}
+
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Reset */}
           {hasCustomStyles && (
+
             <Button
               type="button"
               variant="ghost"

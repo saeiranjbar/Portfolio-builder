@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -410,4 +411,24 @@ html.dark-scrollbar * {
   stroke-linejoin: round;
   animation: arrow-flow-long 4s linear infinite;
 }
+
+/* Word-by-word color reveal animation */
+@keyframes word-color-reveal {
+  from {
+    color: var(--word-from-color);
+  }
+  to {
+    color: var(--word-to-color);
+  }
+}
+
+.word-reveal-word {
+  display: inline-block;
+  animation: word-color-reveal var(--word-duration) ease forwards;
+  animation-delay: var(--word-delay);
+}
+
+
+
+
 

@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Type, FileText, ListOrdered } from 'lucide-react';
+import { Plus, Trash2, Type, FileText, ListOrdered, Palette } from 'lucide-react';
 import { generateId } from '@/lib/section-helpers';
 import { CollapsibleSection } from '../CollapsibleSection';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 
 interface ProcessEditorProps {
   section: ProcessSection;
@@ -59,6 +60,22 @@ export function ProcessEditor({ section, onUpdate }: ProcessEditorProps) {
         </div>
       </CollapsibleSection>
 
+      <CollapsibleSection title="Tile Styling" icon={Palette} description="Set colors for the process cards.">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {([
+            ['tileBackgroundColor', 'Background'],
+            ['tileBorderColor', 'Border'],
+          ] as const).map(([field, label]) => (
+            <div key={field} className="space-y-1.5">
+              <Label className="text-xs">{label}</Label>
+              <div className="flex items-center gap-2">
+                <Input type="color" className="h-9 w-11 p-1" value={section[field] || '#ffffff'} onChange={(e) => onUpdate({ [field]: e.target.value })} />
+                <Input value={section[field] || ''} onChange={(e) => onUpdate({ [field]: e.target.value })} placeholder="Theme default" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
       {/* Steps */}
       <CollapsibleSection title="Steps" icon={ListOrdered} defaultOpen>
         <div className="flex items-center justify-between">
@@ -81,8 +98,17 @@ export function ProcessEditor({ section, onUpdate }: ProcessEditorProps) {
             </div>
           </div>
         ))}
-        {section.steps.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No steps yet. Click "Add" to create one.</p>}
+        {section.steps.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No steps yet. Click &quot;Add&quot; to create one.</p>}
       </CollapsibleSection>
-    </div>
+
+      <SectionTextStyleEditor
+        textStyles={section.textStyles}
+        fields={[
+          { key: 'title', label: 'Section Title' },
+          { key: 'stepTitle', label: 'Tile Title' },
+          { key: 'stepDescription', label: 'Tile Description' },
+        ]}
+        onUpdate={(textStyles) => onUpdate({ textStyles })}
+      />    </div>
   );
 }

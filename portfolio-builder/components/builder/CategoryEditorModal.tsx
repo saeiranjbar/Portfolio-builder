@@ -27,6 +27,8 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
   const [categoryName, setCategoryName] = React.useState('');
   const [categoryDescription, setCategoryDescription] = React.useState('');
   const [categoryImageUrl, setCategoryImageUrl] = React.useState('');
+
+
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [expandedProject, setExpandedProject] = React.useState<string | null>(null);
   const [error, setError] = React.useState('');
@@ -54,6 +56,7 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
         setCategoryImageUrl('');
         setProjects([]);
       }
+
       setExpandedProject(null);
       setError('');
     }
@@ -152,6 +155,8 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
       imageUrl: categoryImageUrl || undefined,
     };
 
+
+
     // Update all projects with the category name (use ref for latest state)
     const updatedProjects = projectsRef.current.map(p => ({
       ...p,
@@ -221,6 +226,8 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
               onChange={(url: string) => setCategoryImageUrl(url)}
             />
           </div>
+
+
 
           {/* Projects Section */}
           <div className="space-y-4">
