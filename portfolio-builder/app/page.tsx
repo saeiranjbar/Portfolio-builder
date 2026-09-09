@@ -640,7 +640,7 @@ export default function BuilderPage() {
 
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {!previewMode && portfolio.layoutMode === 'simple' ? (
           /* Simple mode - full width preview with inline editing */
           <div className="flex-1 bg-gray-200 overflow-auto flex flex-col">
@@ -666,7 +666,7 @@ export default function BuilderPage() {
               initial={{ x: -360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="w-[320px] bg-white/80 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-hidden"
+              className="w-full h-[46%] flex-none bg-white/80 backdrop-blur-md border-b border-gray-200 flex flex-col overflow-hidden md:h-auto md:w-[320px] md:border-b-0 md:border-r"
             >
 
               {/* Scrollable Content */}
@@ -751,9 +751,9 @@ export default function BuilderPage() {
               initial={{ x: 360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
-              className="flex-1 bg-gray-200 overflow-hidden flex flex-col"
+              className="flex-1 min-h-0 bg-gray-200 overflow-hidden flex flex-col"
             >
-              <div className="flex-1 overflow-hidden p-4">
+              <div className="flex-1 overflow-hidden p-2 sm:p-4">
                 {isLoading ? (
                   <div className="h-full overflow-y-auto bg-white rounded-2xl">
                     <PortfolioSkeleton />
