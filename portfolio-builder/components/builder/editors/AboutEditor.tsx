@@ -70,13 +70,6 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
 
    
 
-      {/* Background Shapes (free-form only) */}
-      {!isSimpleMode && (
-        <BackgroundShapesEditor
-          shapes={section.backgroundShapes}
-          onChange={(shapes) => onUpdate({ backgroundShapes: shapes })}
-        />
-      )}
 
       {/* Section Title */}
       <CollapsibleSection title="Section Title" icon={Type} defaultOpen
