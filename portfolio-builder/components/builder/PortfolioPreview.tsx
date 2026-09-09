@@ -1710,7 +1710,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.quote,
         defaultPosition: defaultPositions.quote,
 
-        content: <blockquote className="px-6 py-4 border-l-4 italic text-xl max-w-md" style={getTextStyle(section.textStyles, 'personalQuote', { borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` })}>"<AnimatedText text={section.personalQuote} textStyles={section.textStyles?.personalQuote} /></blockquote>,
+        content: <blockquote className="px-6 py-4 border-l-4 italic text-xl max-w-md" style={getTextStyle(section.textStyles, 'personalQuote', { borderColor: theme.colors.primary, color: theme.colors.text, backgroundColor: `${theme.colors.primary}10` })}>"<AnimatedText text={section.personalQuote ?? ""} textStyles={section.textStyles?.personalQuote} /></blockquote>,
       },
       {
         key: 'quickFacts',
