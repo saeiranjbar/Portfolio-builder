@@ -1670,7 +1670,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.tagline,
 
         defaultPosition: defaultPositions.tagline,
-        content: <p className="text-lg italic text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}><AnimatedText text={section.tagline} textStyles={section.textStyles?.tagline} /></p>,
+        content: <p className="text-lg italic text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}><AnimatedText text={section.tagline ?? ""} textStyles={section.textStyles?.tagline} /></p>,
 
       },
       {
