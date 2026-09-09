@@ -68,15 +68,7 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
   return (
     <div className="space-y-4">
 
-      {/* Free-Form Layout Controls - Only show in website mode */}
-      {!isSimpleMode && (
-        <FreeFormControls
-          freeFormEnabled={section.freeFormEnabled || false}
-          snapEnabled={section.snapEnabled !== false}
-          onUpdate={(updates) => onUpdate(updates)}
-        />
-      )}
-
+   
 
       {/* Background Shapes (free-form only) */}
       {!isSimpleMode && (
