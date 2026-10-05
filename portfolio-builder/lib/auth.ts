@@ -15,33 +15,46 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // In production, use bcrypt to compare hashed passwords
-        // For now, we do a simple lookup
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user) {
-          // Auto-create user on first login (demo mode)
-          // In production, use proper registration flow
-          const newUser = await prisma.user.create({
-            data: {
-              email: credentials.email,
-              name: credentials.email.split('@')[0],
-            },
+        try {
+          // In production, use bcrypt to compare hashed passwords.
+          // This provider still uses the existing demo account lookup.
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
           });
-          return {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-          };
-        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
+          if (!user) {
+            // Auto-create user on first login (demo mode).
+            const newUser = await prisma.user.create({
+              data: {
+                email: credentials.email,
+                name: credentials.email.split('@')[0],
+              },
+            });
+            return {
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.name,
+            };
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          const code = typeof error === 'object' && error !== null
+            ? ('code' in error ? error.code : 'errorCode' in error ? error.errorCode : undefined)
+            : undefined;
+          // Keep database details and connection strings out of the login response.
+          console.error('[auth] Account database sign-in failed', {
+            code,
+            name: error instanceof Error ? error.name : 'UnknownError',
+          });
+          throw new Error(code === 'P2021' || code === 'P2022'
+            ? 'DatabaseNotReady'
+            : 'DatabaseSignInFailed');
+        }
       },
     }),
   ],

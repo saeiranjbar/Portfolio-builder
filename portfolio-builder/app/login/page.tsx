@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { loginErrorMessage } from '@/lib/login-errors';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,18 +20,24 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError('Invalid credentials');
-      setLoading(false);
-    } else {
+      if (!result?.ok || result.error) {
+        setError(loginErrorMessage(result?.error));
+        return;
+      }
+
       router.push('/');
       router.refresh();
+    } catch {
+      setError('Unable to reach the sign-in service. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
