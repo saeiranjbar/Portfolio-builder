@@ -17,6 +17,7 @@ import { PortfolioSkeleton } from '@/components/builder/Skeleton';
 import { Button } from '@/components/ui/button';
 import { useSession, signIn } from "next-auth/react";
 import { CloudSaveError, savePortfolioToCloud } from '@/lib/cloud-save';
+import { AccountControls } from '@/components/AccountControls';
 import {
   Monitor,
   Tablet,
@@ -409,10 +410,10 @@ export default function BuilderPage() {
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex items-center justify-between flex-shrink-0"
+        className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 flex-shrink-0"
       >
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <h1 className="text-xl font-bold text-gray-900">Portfolio Builder</h1>
           <button
             onClick={() => setShowAIChat(true)}
@@ -485,7 +486,8 @@ export default function BuilderPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <AccountControls />
           {/* Undo/Redo */}
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
             <button

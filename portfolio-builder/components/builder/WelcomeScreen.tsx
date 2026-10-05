@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Wand2, LayoutGrid, Sparkles, LayoutTemplate } from 'lucide-react';
 import { MagneticButton } from './effects/MagneticButton';
+import { AccountControls } from '@/components/AccountControls';
 
 interface WelcomeScreenProps {
   onChooseAI: () => void;
@@ -13,7 +14,10 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onChooseAI, onChooseManual, onChooseTemplate }: WelcomeScreenProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 overflow-hidden relative bg-slate-950">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-8 overflow-hidden relative bg-slate-950">
+      <nav aria-label="Account" className="absolute right-4 top-4 z-20">
+        <AccountControls dark />
+      </nav>
       {/* Animated gradient background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950" />
