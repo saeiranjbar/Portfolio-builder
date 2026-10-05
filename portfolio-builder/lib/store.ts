@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig, PortfolioEffects } from './types';
 import { defaultTheme } from './templates';
+import type { CloudPortfolioReference, PortfolioSaveSnapshot } from './cloud-save';
 import { PageSeo, SiteData, SiteDataSchema } from './site-types';
 import {
   portfolioToSiteData,
@@ -112,6 +113,9 @@ const createIndexedDBStorage = () => {
 
 interface PortfolioState {
   portfolio: PortfolioData;
+  cloudPortfolio: CloudPortfolioReference | null;
+  // Distinguishes replacement drafts, including imports with the same portfolio ID.
+  draftVersion: number;
   selectedSectionId: string | null;
   previewMode: boolean;
   viewMode: 'desktop' | 'tablet' | 'mobile';
@@ -148,6 +152,7 @@ interface PortfolioState {
   resetPortfolio: () => void;
   createBlankFlexibleSite: () => void;
   markClean: () => void;
+  completeCloudSave: (snapshot: PortfolioSaveSnapshot, reference: CloudPortfolioReference) => void;
   // Layout mode actions
   setLayoutMode: (mode: LayoutMode) => void;
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
@@ -517,6 +522,8 @@ export const usePortfolioStore = create<PortfolioState>()(
   persist(
     (set, get) => ({
       portfolio: defaultPortfolio,
+      cloudPortfolio: null,
+      draftVersion: 0,
       selectedSectionId: null,
       previewMode: false,
       viewMode: 'desktop',
@@ -530,8 +537,10 @@ export const usePortfolioStore = create<PortfolioState>()(
         set((state) => ({
           past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
           portfolio,
+          cloudPortfolio: null,
+          draftVersion: state.draftVersion + 1,
           future: [],
-          isDirty: false,
+          isDirty: true,
         })),
 
       updateSection: (sectionId, updates) =>
@@ -808,6 +817,8 @@ export const usePortfolioStore = create<PortfolioState>()(
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             portfolio: fresh,
+            cloudPortfolio: null,
+            draftVersion: state.draftVersion + 1,
             pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: fresh.sections }],
             currentPageId: 'home',
             selectedSectionId: null,
@@ -830,6 +841,8 @@ export const usePortfolioStore = create<PortfolioState>()(
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             portfolio: fresh,
+            cloudPortfolio: null,
+            draftVersion: state.draftVersion + 1,
             pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections }],
             currentPageId: 'home',
             selectedSectionId: sections[0].id,
@@ -839,6 +852,17 @@ export const usePortfolioStore = create<PortfolioState>()(
         }),
 
       markClean: () => set({ isDirty: false }),
+
+      completeCloudSave: (snapshot, reference) =>
+        set((state) => {
+          if (state.draftVersion !== snapshot.draftVersion) return state;
+          return {
+            cloudPortfolio: reference,
+            isDirty: state.portfolio === snapshot.portfolio && state.pages === snapshot.pages
+              ? false
+              : state.isDirty,
+          };
+        }),
 
       // Layout mode actions
       setLayoutMode: (mode: LayoutMode) =>
@@ -1002,6 +1026,8 @@ export const usePortfolioStore = create<PortfolioState>()(
           const first = pages[0];
           return {
             pages,
+            cloudPortfolio: null,
+            draftVersion: state.draftVersion + 1,
             currentPageId: first.id,
             portfolio: {
               ...state.portfolio,
@@ -1054,6 +1080,8 @@ export const usePortfolioStore = create<PortfolioState>()(
       // (past/future arrays contain up to 50 full deep clones and would overflow localStorage)
       partialize: (state) => ({
         portfolio: state.portfolio,
+        cloudPortfolio: state.cloudPortfolio,
+        isDirty: state.isDirty,
         pages: state.pages,
         currentPageId: state.currentPageId,
       }),

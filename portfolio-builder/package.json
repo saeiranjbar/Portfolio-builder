@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "echo \"No tests yet\"",
+    "test": "node --test scripts/portfolio-api.test.mjs scripts/cloud-save.test.mjs",
     "prepare": "husky install"
   },
   "dependencies": {

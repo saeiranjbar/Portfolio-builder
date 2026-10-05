@@ -15,6 +15,8 @@ import { Project } from '@/lib/types';
 import { ProjectEditorModal } from '@/components/builder/ProjectEditorModal';
 import { PortfolioSkeleton } from '@/components/builder/Skeleton';
 import { Button } from '@/components/ui/button';
+import { useSession, signIn } from "next-auth/react";
+import { CloudSaveError, savePortfolioToCloud } from '@/lib/cloud-save';
 import {
   Monitor,
   Tablet,
@@ -29,6 +31,7 @@ import {
   Command,
   Settings,
   Save,
+  Loader2,
   LayoutGrid,
   Columns,
   Plus,
@@ -59,16 +62,17 @@ export default function BuilderPage() {
     removeSection,
     updateSection,
     isDirty,
+    cloudPortfolio,
     undo,
     redo,
     canUndo,
     canRedo,
     duplicateSection,
     selectedSectionId,
-    markClean,
     setLayoutMode,
     createBlankFlexibleSite,
   } = usePortfolioStore();
+  const { data: session, status } = useSession();
 
 
   // Get the default section ID (hero or first section)
@@ -92,6 +96,8 @@ export default function BuilderPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveInFlightRef = React.useRef(false);
   const lastSyncedCategoryIdRef = React.useRef<string>('');
   const wasPreviewModeRef = React.useRef(previewMode);
 
@@ -138,11 +144,55 @@ export default function BuilderPage() {
     }
   }, [previewMode, activeSectionId, portfolio.sections, selectSection]);
 
+  const handleSave = useCallback(async () => {
+    if (saveInFlightRef.current) return;
+
+    if (status === 'loading') {
+      toast.error('Please wait while we check your login.');
+      return;
+    }
+
+    const ownerEmail = session?.user?.email;
+    if (status !== 'authenticated' || !ownerEmail) {
+      await signIn().catch(() => toast.error('Unable to open sign-in. Please try again.'));
+      return;
+    }
+
+    const snapshot = usePortfolioStore.getState();
+    saveInFlightRef.current = true;
+    setIsSaving(true);
+
+    try {
+      const reference = await savePortfolioToCloud(snapshot, snapshot.cloudPortfolio, ownerEmail);
+      if (usePortfolioStore.getState().draftVersion !== snapshot.draftVersion) return;
+      usePortfolioStore.getState().completeCloudSave(snapshot, reference);
+      toast.success(usePortfolioStore.getState().isDirty
+        ? 'Saved online. Your newer edits still need saving.'
+        : 'Portfolio saved online');
+    } catch (error) {
+      toast.error(error instanceof CloudSaveError
+        ? error.message
+        : 'Unable to save portfolio. Please try again.');
+      if (error instanceof CloudSaveError && error.status === 401) {
+        await signIn().catch(() => toast.error('Unable to open sign-in. Please try again.'));
+      }
+    } finally {
+      saveInFlightRef.current = false;
+      setIsSaving(false);
+    }
+  }, [session?.user?.email, status]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const ctrlKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        void handleSave();
+        return;
+      }
 
       // Don't trigger shortcuts when typing in inputs
       const target = e.target as HTMLElement;
@@ -200,7 +250,7 @@ export default function BuilderPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, undo, redo, togglePreviewMode, duplicateSection, selectedSectionId, isCommandPaletteOpen, showExportMenu, showAddSection]);
+  }, [canUndo, canRedo, undo, redo, togglePreviewMode, duplicateSection, selectedSectionId, isCommandPaletteOpen, showExportMenu, showAddSection, handleSave]);
 
   const handleSelectSection = useCallback((sectionId: string) => {
     setActiveSectionId(sectionId);
@@ -295,12 +345,9 @@ export default function BuilderPage() {
     }
   };
 
-  const handleSave = () => {
-    markClean();
-    toast.success('Portfolio saved', { icon: '💾' });
-  };
-
   const activeSection = portfolio.sections.find(s => s.id === activeSectionId);
+  const savedToCurrentAccount = Boolean(session?.user?.email
+    && cloudPortfolio?.ownerEmail === session.user.email);
 
   // Show welcome screen first
   if (showWelcome) {
@@ -537,14 +584,14 @@ export default function BuilderPage() {
 
           {/* Save Button */}
           <Button
-            variant={isDirty ? 'default' : 'outline'}
+            variant={isDirty || !savedToCurrentAccount ? 'default' : 'outline'}
             onClick={handleSave}
-            disabled={!isDirty}
+            disabled={isSaving || status === 'loading' || (!isDirty && savedToCurrentAccount)}
             className="flex items-center gap-2"
             title="Save (Ctrl+S)"
           >
-            <Save className="w-4 h-4" />
-            Save
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? 'Saving…' : 'Save'}
           </Button>
 
           {/* Preview Toggle */}
