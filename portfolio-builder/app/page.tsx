@@ -19,6 +19,8 @@ import { useSession, signIn } from "next-auth/react";
 import { CloudSaveError, savePortfolioToCloud } from '@/lib/cloud-save';
 import { AccountControls } from '@/components/AccountControls';
 import { SavedWebsites } from '@/components/builder/SavedWebsites';
+import { PublishWebsite } from '@/components/builder/PublishWebsite';
+import { requestPublication } from '@/lib/cloud-publish';
 import {
   Monitor,
   Tablet,
@@ -146,7 +148,7 @@ export default function BuilderPage() {
     }
   }, [previewMode, activeSectionId, portfolio.sections, selectSection]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (publish = false) => {
     if (saveInFlightRef.current) return;
 
     if (status === 'loading') {
@@ -168,13 +170,20 @@ export default function BuilderPage() {
       const reference = await savePortfolioToCloud(snapshot, snapshot.cloudPortfolio, ownerEmail);
       if (usePortfolioStore.getState().draftVersion !== snapshot.draftVersion) return;
       usePortfolioStore.getState().completeCloudSave(snapshot, reference);
+      if (publish) {
+        const publication = await requestPublication(reference.id, 'publish');
+        toast.success(usePortfolioStore.getState().isDirty
+          ? 'Saved version published. Your newer edits still need publishing.'
+          : 'Website published. Your public link is ready.');
+        return publication;
+      }
       toast.success(usePortfolioStore.getState().isDirty
         ? 'Saved online. Your newer edits still need saving.'
         : 'Portfolio saved online');
     } catch (error) {
       toast.error(error instanceof CloudSaveError
         ? error.message
-        : 'Unable to save portfolio. Please try again.');
+        : publish ? 'Unable to publish website. Please try again.' : 'Unable to save portfolio. Please try again.');
       if (error instanceof CloudSaveError && error.status === 401) {
         await signIn().catch(() => toast.error('Unable to open sign-in. Please try again.'));
       }
@@ -597,7 +606,7 @@ export default function BuilderPage() {
           {/* Save Button */}
           <Button
             variant={isDirty || !savedToCurrentAccount ? 'default' : 'outline'}
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             disabled={isSaving || status === 'loading' || (!isDirty && savedToCurrentAccount)}
             className="flex items-center gap-2"
             title="Save (Ctrl+S)"
@@ -607,6 +616,8 @@ export default function BuilderPage() {
           </Button>
 
           {/* Preview Toggle */}
+          <PublishWebsite reference={cloudPortfolio} ownerEmail={session?.user?.email}
+            busy={isSaving || status === 'loading'} onPublish={() => handleSave(true)} />
           <Button
             variant={previewMode ? 'default' : 'outline'}
             onClick={togglePreviewMode}

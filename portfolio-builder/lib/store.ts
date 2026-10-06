@@ -1,4 +1,6 @@
-import { create } from 'zustand';
+import { create, useStore } from 'zustand';
+import { createStore, type StoreApi } from 'zustand/vanilla';
+import { createContext, createElement, useContext, type ReactNode } from 'react';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig, PortfolioEffects } from './types';
 import { defaultTheme } from './templates';
@@ -520,7 +522,7 @@ const clonePortfolio = (portfolio: PortfolioData): PortfolioData => {
   return JSON.parse(JSON.stringify(portfolio));
 };
 
-export const usePortfolioStore = create<PortfolioState>()(
+const editorPortfolioStore = create<PortfolioState>()(
   persist(
     (set, get) => ({
       portfolio: defaultPortfolio,
@@ -1116,6 +1118,41 @@ export const usePortfolioStore = create<PortfolioState>()(
 
   )
 );
+
+const PortfolioStoreContext = createContext<StoreApi<PortfolioState> | null>(null);
+
+function useScopedPortfolioStore<T = PortfolioState>(selector?: (state: PortfolioState) => T): T {
+  const scoped = useContext(PortfolioStoreContext);
+  return useStore(scoped ?? editorPortfolioStore, selector ?? ((state) => state as unknown as T));
+}
+
+// Preserve the editor's imperative API while allowing public previews their own
+// non-persisted store. Visiting a published website never replaces a local draft.
+export const usePortfolioStore = Object.assign(useScopedPortfolioStore, editorPortfolioStore);
+
+export function PortfolioStoreProvider({ store, children }: { store: StoreApi<PortfolioState>; children: ReactNode }) {
+  return createElement(PortfolioStoreContext.Provider, { value: store }, children);
+}
+
+export function createPublishedPortfolioStore(portfolio: PortfolioData, pages: EditorPage[], currentPageId: string) {
+  const initial = editorPortfolioStore.getInitialState();
+  const actions = Object.fromEntries(Object.entries(initial)
+    .filter(([, value]) => typeof value === 'function')
+    .map(([key]) => [key, () => undefined]));
+  return createStore<PortfolioState>((set, get) => ({
+    ...initial, ...actions, portfolio, pages, currentPageId,
+    cloudPortfolio: null, previewMode: true, selectedSectionId: null,
+    past: [], future: [], isDirty: false,
+    canUndo: () => false, canRedo: () => false,
+    // Visitors may toggle appearance without changing the saved website.
+    toggleDarkMode: () => {
+      const current = get().portfolio;
+      set({ portfolio: { ...current, darkMode: {
+        ...current.darkMode, active: !current.darkMode.active,
+      } } });
+    },
+  }));
+}
 
 // Expose store on window for debugging / test scripts (dev only)
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {

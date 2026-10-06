@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { useRouter } from 'next/navigation';
 import { usePortfolioStore } from '@/lib/store';
 import { SimpleLayoutConfig, SocialLink, Experience, Project, HeroSection, AboutSection, ContactSection, ProjectsSection } from '@/lib/types';
 
@@ -17,6 +16,7 @@ import { OptimizedImage } from './OptimizedImage';
 import { ProjectEditor } from './ProjectEditor';
 import { SectionRenderer } from './PortfolioPreview';
 import { SectionEditor } from './SectionEditor';
+import { ProjectDetailModal } from './ProjectDetailModal';
 
 // Custom SVG icons for Behance and Pinterest (not available in lucide-react)
 const BehanceIcon = ({ className }: { className?: string }) => (
@@ -43,11 +43,11 @@ interface BehanceLayoutProps {
 }
 
 export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }: BehanceLayoutProps) {
-  const router = useRouter();
   const { portfolio, updateSection, updateSimpleLayout, selectSection, selectedSectionId } = usePortfolioStore();
   const { theme, sections, simpleLayout } = portfolio;
   const [isEditing, setIsEditing] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
+  const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const [inlineEditingSectionId, setInlineEditingSectionId] = useState<string | null>(null);
   const [sidebarEditingSection, setSidebarEditingSection] = useState<string | null>(null);
 
@@ -145,8 +145,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
       setIsEditing(true);
     } else {
       // In preview mode, navigate to project detail page
-      const projectSlug = project.title.toLowerCase().replace(/\s+/g, '-');
-      router.push(`/project/${projectSlug}`);
+      setViewingProject(project);
     }
   };
 
@@ -894,6 +893,8 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
 
       {/* Right Sidebar (if position is right) */}
       {config.showSidebar && config.sidebarPosition === 'right' && sidebarContent}
+      <ProjectDetailModal project={viewingProject} isOpen={!!viewingProject}
+        onClose={() => setViewingProject(null)} theme={theme} projects={projects} onNavigate={setViewingProject} />
     </div>
   );
 }
