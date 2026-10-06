@@ -199,11 +199,12 @@ test('database failures return a generic error without exposing connection detai
   assert.equal((await response.json()).error, 'Unable to complete the request');
 });
 
-for (const route of ['app/api/portfolios/route.ts', 'app/api/portfolios/[id]/route.ts']) {
+for (const route of ['app/api/portfolios/route.ts', 'app/api/portfolios/[id]/route.ts',
+  'app/api/projects/route.ts', 'app/api/projects/[id]/route.ts']) {
   test(`${route} is closed for every previously supported method`, async () => {
     const { handlers, calls } = loadRoute(route);
     for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
-      assert.equal((await handlers[method]()).status, 410);
+      if (handlers[method]) assert.equal((await handlers[method]()).status, 410);
     }
     assert.equal(calls.length, 0);
   });

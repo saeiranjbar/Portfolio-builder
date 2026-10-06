@@ -17,7 +17,7 @@ export function AccountControls({ dark = false }: { dark?: boolean }) {
       : 'border-gray-200 bg-white text-gray-900 hover:bg-gray-50',
   );
 
-  if (status !== 'authenticated') {
+  if (status !== 'authenticated' || !session?.user?.email) {
     return (
       <Link href="/login" className={buttonClass}>
         <LogIn className="h-4 w-4" aria-hidden="true" />

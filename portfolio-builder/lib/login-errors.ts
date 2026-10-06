@@ -2,6 +2,8 @@ export function loginErrorMessage(error: string | null | undefined): string {
   switch (error) {
     case 'CredentialsSignin':
       return 'Sign-in was rejected. Check your email and password.';
+    case 'TooManyAttempts':
+      return 'Too many sign-in attempts. Please try again in 15 minutes.';
     case 'Configuration':
       return 'Sign-in is not configured correctly. Check the server authentication settings.';
     case 'DatabaseNotReady':
