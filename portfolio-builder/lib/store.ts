@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig, PortfolioEffects } from './types';
 import { defaultTheme } from './templates';
 import type { CloudPortfolioReference, PortfolioSaveSnapshot } from './cloud-save';
+import type { LoadedWebsite } from './cloud-load';
 import { PageSeo, SiteData, SiteDataSchema } from './site-types';
 import {
   portfolioToSiteData,
@@ -153,6 +154,7 @@ interface PortfolioState {
   createBlankFlexibleSite: () => void;
   markClean: () => void;
   completeCloudSave: (snapshot: PortfolioSaveSnapshot, reference: CloudPortfolioReference) => void;
+  loadCloudPortfolio: (website: LoadedWebsite) => void;
   // Layout mode actions
   setLayoutMode: (mode: LayoutMode) => void;
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
@@ -852,6 +854,17 @@ export const usePortfolioStore = create<PortfolioState>()(
         }),
 
       markClean: () => set({ isDirty: false }),
+
+      loadCloudPortfolio: (website) => set((state) => ({
+        portfolio: website.portfolio,
+        pages: website.pages,
+        currentPageId: website.currentPageId,
+        cloudPortfolio: website.reference,
+        draftVersion: state.draftVersion + 1,
+        selectedSectionId: null,
+        previewMode: false,
+        past: [], future: [], isDirty: false,
+      })),
 
       completeCloudSave: (snapshot, reference) =>
         set((state) => {

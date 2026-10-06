@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { useSession, signIn } from "next-auth/react";
 import { CloudSaveError, savePortfolioToCloud } from '@/lib/cloud-save';
 import { AccountControls } from '@/components/AccountControls';
+import { SavedWebsites } from '@/components/builder/SavedWebsites';
 import {
   Monitor,
   Tablet,
@@ -354,6 +355,11 @@ export default function BuilderPage() {
   if (showWelcome) {
     return (
       <WelcomeScreen
+        onOpenSaved={() => {
+          setActiveSectionId('');
+          lastSyncedCategoryIdRef.current = '';
+          setShowWelcome(false);
+        }}
         onChooseAI={() => {
           setShowWelcome(false);
           setShowAIChat(true);
@@ -488,6 +494,10 @@ export default function BuilderPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <AccountControls />
+          <SavedWebsites disabled={isSaving} onOpened={() => {
+            setActiveSectionId('');
+            lastSyncedCategoryIdRef.current = '';
+          }} />
           {/* Undo/Redo */}
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
             <button

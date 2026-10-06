@@ -36,10 +36,95 @@ function setup() {
   }
   const { usePortfolioStore: store } = loadFile(path.join(projectRoot, 'lib/store.ts'));
   const { savePortfolioToCloud, CloudSaveError } = loadFile(path.join(projectRoot, 'lib/cloud-save.ts'));
-  return { store, savePortfolioToCloud, CloudSaveError };
+  const { listSavedWebsites, parseSavedWebsite } = loadFile(path.join(projectRoot, 'lib/cloud-load.ts'));
+  return { store, savePortfolioToCloud, CloudSaveError, listSavedWebsites, parseSavedWebsite };
 }
 
 const confirmed = () => Response.json({ portfolio: { id: savedId } }, { status: 201 });
+
+function savedRecord(snapshot) {
+  return {
+    id: savedId, title: 'Saved website', updatedAt: '2026-10-05T22:00:00.000Z',
+    data: JSON.stringify({ ...snapshot.portfolio, pages: snapshot.pages, currentPageId: snapshot.currentPageId }),
+  };
+}
+
+test('saved website list is fetched with session cookies and no cache', async () => {
+  const { store, listSavedWebsites } = setup();
+  const record = savedRecord(store.getState());
+  const controller = new AbortController();
+  const records = await listSavedWebsites(controller.signal, async (url, options) => {
+    assert.equal(url, '/api/portfolio');
+    assert.equal(options.credentials, 'same-origin');
+    assert.equal(options.cache, 'no-store');
+    assert.equal(options.signal, controller.signal);
+    return Response.json({ portfolios: [record] });
+  });
+  assert.equal(records[0].id, savedId);
+});
+
+test('list failures and malformed records are rejected without changing the draft', async () => {
+  const { store, listSavedWebsites } = setup();
+  const original = store.getState().portfolio;
+  for (const response of [new Response('', { status: 401 }), new Response('', { status: 500 }),
+    Response.json({ portfolios: [{ id: 'invalid' }] }), new Response('not JSON')]) {
+    await assert.rejects(listSavedWebsites(undefined, async () => response));
+    assert.equal(store.getState().portfolio, original);
+  }
+});
+
+test('opening a multi-page website restores content and updates the existing database row on its next save', async () => {
+  const { store, parseSavedWebsite, savePortfolioToCloud } = setup();
+  store.getState().updateSection(store.getState().portfolio.sections[0].id, { name: 'Saved name' });
+  store.getState().addPage('About');
+  const activeId = store.getState().portfolio.sections[0].id;
+  store.getState().updateSection(activeId, { title: 'Latest page edits', textStyles: { title: { animationType: 'wordColorReveal' } } });
+  const original = store.getState();
+  const record = savedRecord(original);
+  store.getState().createBlankFlexibleSite();
+  const oldVersion = store.getState().draftVersion;
+  store.getState().loadCloudPortfolio(parseSavedWebsite(record, ownerEmail));
+  const loaded = store.getState();
+  assert.equal(loaded.pages.length, 2);
+  assert.equal(loaded.currentPageId, original.currentPageId);
+  assert.equal(loaded.portfolio.sections[0].title, 'Latest page edits');
+  assert.equal(loaded.portfolio.sections[0].textStyles.title.animationType, 'wordColorReveal');
+  assert.equal(loaded.pages.find(page => page.id === loaded.currentPageId).sections[0].title, 'Latest page edits');
+  assert.equal(loaded.cloudPortfolio.id, savedId);
+  assert.equal(loaded.isDirty, false);
+  assert.equal(loaded.past.length, 0);
+  assert.equal(loaded.future.length, 0);
+  assert.equal(loaded.draftVersion, oldVersion + 1);
+  store.getState().updateSection(activeId, { title: 'Edit after opening' });
+  await savePortfolioToCloud(store.getState(), store.getState().cloudPortfolio, ownerEmail, async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.id, savedId);
+    assert.equal(body.data.sections[0].title, 'Edit after opening');
+    return confirmed();
+  });
+});
+
+test('legacy single-page saved data loads with a home page', () => {
+  const { store, parseSavedWebsite } = setup();
+  const record = savedRecord(store.getState());
+  record.data = JSON.stringify(store.getState().portfolio);
+  const loaded = parseSavedWebsite(record, ownerEmail);
+  assert.equal(loaded.currentPageId, 'home');
+  assert.equal(loaded.pages.length, 1);
+});
+
+test('invalid saved content is rejected before replacing the current draft', () => {
+  const { store, parseSavedWebsite } = setup();
+  const original = store.getState().portfolio;
+  const record = savedRecord(store.getState());
+  const data = JSON.parse(record.data);
+  for (const invalid of ['not JSON', '{}', JSON.stringify({ ...data, currentPageId: 'missing' }),
+    JSON.stringify({ ...data, pages: [...data.pages, data.pages[0]] }),
+    JSON.stringify({ ...data, theme: {} })]) {
+    assert.throws(() => parseSavedWebsite({ ...record, data: invalid }, ownerEmail));
+    assert.equal(store.getState().portfolio, original);
+  }
+});
 
 test('first save posts the current draft and all pages without using the local ID as a database ID', async () => {
   const { store, savePortfolioToCloud } = setup();

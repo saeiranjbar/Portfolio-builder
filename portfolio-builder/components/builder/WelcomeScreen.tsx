@@ -5,14 +5,16 @@ import { motion } from 'framer-motion';
 import { Wand2, LayoutGrid, Sparkles, LayoutTemplate } from 'lucide-react';
 import { MagneticButton } from './effects/MagneticButton';
 import { AccountControls } from '@/components/AccountControls';
+import { SavedWebsites } from './SavedWebsites';
 
 interface WelcomeScreenProps {
   onChooseAI: () => void;
   onChooseManual: () => void;
   onChooseTemplate: () => void;
+  onOpenSaved: () => void;
 }
 
-export function WelcomeScreen({ onChooseAI, onChooseManual, onChooseTemplate }: WelcomeScreenProps) {
+export function WelcomeScreen({ onChooseAI, onChooseManual, onChooseTemplate, onOpenSaved }: WelcomeScreenProps) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-8 overflow-hidden relative bg-slate-950">
       <nav aria-label="Account" className="absolute right-4 top-4 z-20">
@@ -139,6 +141,10 @@ export function WelcomeScreen({ onChooseAI, onChooseManual, onChooseTemplate }: 
             Create a stunning website in minutes. Choose how you'd like to get started.
           </motion.p>
         </motion.div>
+
+        <div className="mb-6 flex justify-center">
+          <SavedWebsites dark onOpened={onOpenSaved} />
+        </div>
 
         {/* Three options */}
         <div className="grid md:grid-cols-3 gap-6 items-stretch">
