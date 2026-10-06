@@ -9,6 +9,8 @@
 
 Ordinary **Save** updates the private draft only. Renaming or republishing a website keeps its existing public path. Each website must have one Home page with an empty path; other pages need unique paths such as `about` or `services/web-design`.
 
+In production, shared links use Vercel's `VERCEL_PROJECT_PRODUCTION_URL` so that opening the editor through a protected deployment URL does not produce a protected share link. Vercel system environment variables must be enabled. Preview and local deployments keep their own URL because their data may differ from production. For public visitor access, the production domain must be publicly accessible under **Settings → Deployment Protection** (Standard Protection keeps generated deployment URLs protected while leaving production domains public).
+
 ## Implementation
 
 The existing `Site` and `SiteRevision` tables are used; no new environment variables or schema changes are required. A site's ID matches its saved `Portfolio` ID. Publishing creates a revision and atomically points `Site.publishedAt` to it. Public requests read only this chosen revision when the site is published, without using the owner's session or returning account data.

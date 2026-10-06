@@ -51,7 +51,7 @@ export function PublishWebsite({ reference, ownerEmail, busy, onPublish }: {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to unpublish.'); }
     finally { setWorking(false); }
   }
-  const url = publication?.path ? `${origin}${publication.path}` : '';
+  const url = publication?.url ?? (publication?.path ? `${origin}${publication.path}` : '');
   return <>
     <Button variant="outline" disabled={busy || working} onClick={() => setOpen(true)} className="flex items-center gap-2">
       <Globe className="w-4 h-4" />Publish

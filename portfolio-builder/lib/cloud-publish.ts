@@ -3,7 +3,15 @@ import { CloudSaveError } from './cloud-save';
 
 const resultSchema = z.object({
   published: z.boolean(), path: z.string().regex(/^\/sites\/[a-z0-9-]+$/).nullable(),
-}).refine(result => !result.published || result.path !== null);
+  url: z.string().url().nullable().optional(),
+}).refine(result => !result.published || result.path !== null).refine(result => {
+  if (!result.url) return true;
+  try {
+    const url = new URL(result.url);
+    return (url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))) &&
+      !url.username && !url.password && !url.search && !url.hash && url.pathname === result.path;
+  } catch { return false; }
+});
 export type Publication = z.infer<typeof resultSchema>;
 
 export async function requestPublication(id: string, action: 'status' | 'publish' | 'unpublish', signal?: AbortSignal, fetcher: typeof fetch = fetch): Promise<Publication> {

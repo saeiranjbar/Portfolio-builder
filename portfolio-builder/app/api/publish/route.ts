@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { PublishError, publicationId, publicationStatus, publishWebsite, unpublishWebsite } from '@/lib/publishing';
+import { publicationUrl } from '@/lib/publication-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,8 @@ async function handle(req: NextRequest, action: 'status' | 'publish' | 'unpublis
     const result = action === 'status' ? await publicationStatus(prisma, id.data, owner)
       : action === 'publish' ? await publishWebsite(prisma, id.data, owner)
         : await unpublishWebsite(prisma, id.data, owner);
-    return NextResponse.json(result, { headers: { 'Cache-Control': 'private, no-store' } });
+    return NextResponse.json({ ...result, url: result.published ? publicationUrl(result.path, req.nextUrl.origin) : null },
+      { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof PublishError ? error.message : 'Unable to publish. Please try again.' },
       { status: error instanceof PublishError ? error.status : 500 });

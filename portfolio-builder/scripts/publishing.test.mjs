@@ -14,7 +14,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const id = '33333333-3333-4333-8333-333333333333';
 const foreign = '44444444-4444-4444-8444-444444444444';
 
-function setup(session = { user: { email: 'owner@example.com' } }) {
+function setup(session = { user: { email: 'owner@example.com' } }, environment = {}) {
   let record;
   let site = null;
   const revisions = [];
@@ -45,7 +45,7 @@ function setup(session = { user: { email: 'owner@example.com' } }) {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
     }).outputText;
     vm.runInNewContext(compiled, {
-      module, exports: module.exports, Response, fetch, console, process,
+      module, exports: module.exports, Response, fetch, console, URL, process: { env: environment },
       require(name) {
         if (name === '@/lib/prisma') return { prisma: db };
         if (name === '@/lib/auth') return { authOptions: {} };
@@ -68,6 +68,7 @@ function setup(session = { user: { email: 'owner@example.com' } }) {
     publishing: load(path.join(root, 'lib/publishing.ts')),
     sanitizer: load(path.join(root, 'lib/public-content.ts')),
     cloud: load(path.join(root, 'lib/cloud-publish.ts')),
+    urls: load(path.join(root, 'lib/publication-url.ts')),
   };
 }
 
@@ -171,4 +172,35 @@ test('cloud publication validates the server URL and includes session cookies', 
   });
   assert.equal(result.published, true);
   await assert.rejects(cloud.requestPublication(id, 'status', undefined, async () => Response.json({ published: true, path: 'https://other.example' })));
+});
+
+test('production API shares the stable public domain even from a protected deployment URL', async () => {
+  const { api, cloud } = setup(undefined, { VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'creativeportfolio.net' });
+  const response = await api.POST(request('POST'));
+  const publication = await response.json();
+  assert.equal(publication.url, `https://creativeportfolio.net${publication.path}`);
+  const status = await (await api.GET(request('GET'))).json();
+  assert.equal(status.url, publication.url);
+  const decoded = await cloud.requestPublication(id, 'status', undefined, async () => Response.json(status));
+  assert.equal(decoded.url, publication.url);
+  const offline = await (await api.DELETE(request('DELETE'))).json();
+  assert.equal(offline.url, null);
+});
+
+test('preview and local URLs stay on their own environment', () => {
+  const { urls } = setup();
+  const path = `/sites/website-${id}`;
+  assert.equal(urls.publicationUrl(path, 'https://preview.vercel.app', {
+    VERCEL_ENV: 'preview', VERCEL_PROJECT_PRODUCTION_URL: 'creativeportfolio.net',
+  }), `https://preview.vercel.app${path}`);
+  assert.equal(urls.publicationUrl(path, 'http://localhost:3000', {}), `http://localhost:3000${path}`);
+  assert.equal(urls.publicationUrl(null, 'http://localhost:3000', {}), null);
+});
+
+test('cloud publication rejects unsafe absolute links and links to a different website', async () => {
+  const { cloud } = setup();
+  const path = `/sites/website-${id}`;
+  for (const url of [`http://public.example${path}`, `https://user:password@public.example${path}`, 'https://public.example/sites/other', `https://public.example${path}?token=secret`]) {
+    await assert.rejects(cloud.requestPublication(id, 'status', undefined, async () => Response.json({ published: true, path, url })));
+  }
 });
