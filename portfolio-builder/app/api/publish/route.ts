@@ -27,7 +27,7 @@ async function handle(req: NextRequest, action: 'status' | 'publish' | 'unpublis
     const result = action === 'status' ? await publicationStatus(prisma, id.data, owner)
       : action === 'publish' ? await publishWebsite(prisma, id.data, owner)
         : await unpublishWebsite(prisma, id.data, owner);
-    return NextResponse.json({ ...result, url: result.published ? publicationUrl(result.path, req.nextUrl.origin) : null },
+    return NextResponse.json({ ...result, url: result.published ? publicationUrl(result.path, req.nextUrl.origin, undefined, result.domain) : null },
       { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof PublishError ? error.message : 'Unable to publish. Please try again.' },

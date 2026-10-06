@@ -23,7 +23,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     portfolio: { findFirst: async ({ where }) => where.id === id && where.userId === 'owner' ? record : null },
     site: {
       findFirst: async ({ where }) => site && site.id === where.id && site.userId === where.userId ? site : null,
-      findUnique: async ({ where }) => site?.slug === where.slug ? site : null,
+      findUnique: async ({ where }) => site && (where.slug ? site.slug === where.slug : site.customDomain === where.customDomain) ? site : null,
       upsert: async ({ create, update }) => site = site ? { ...site, ...update } : { ...create, status: 'draft', publishedAt: null },
       update: async ({ data }) => site = { ...site, ...data },
       updateMany: async ({ where, data }) => {
@@ -50,7 +50,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
         if (name === '@/lib/prisma') return { prisma: db };
         if (name === '@/lib/auth') return { authOptions: {} };
         if (name === 'next-auth') return { getServerSession: async () => session };
-        if (name === 'next/server') return { NextResponse: { json: Response.json } };
+        if (name === 'next/server') return require(name);
         if (name.startsWith('@/')) return load(path.join(root, `${name.slice(2)}.ts`));
         if (name.startsWith('.')) return load(path.resolve(path.dirname(filename), `${name}.ts`));
         return require(name);
@@ -69,6 +69,8 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     sanitizer: load(path.join(root, 'lib/public-content.ts')),
     cloud: load(path.join(root, 'lib/cloud-publish.ts')),
     urls: load(path.join(root, 'lib/publication-url.ts')),
+    domains: load(path.join(root, 'lib/tenant-domains.ts')),
+    routing: load(path.join(root, 'proxy.ts')),
   };
 }
 
@@ -202,5 +204,91 @@ test('cloud publication rejects unsafe absolute links and links to a different w
   const path = `/sites/website-${id}`;
   for (const url of [`http://public.example${path}`, `https://user:password@public.example${path}`, 'https://public.example/sites/other', `https://public.example${path}?token=secret`]) {
     await assert.rejects(cloud.requestPublication(id, 'status', undefined, async () => Response.json({ published: true, path, url })));
+  }
+});
+
+const tenantEnvironment = { VERCEL_ENV: 'production', PUBLISHED_SITE_DOMAIN: 'creativeportfolio.net', VERCEL_PROJECT_PRODUCTION_URL: 'www.creativeportfolio.net' };
+
+test('publishing automatically allocates a valid unique subdomain and preserves old public paths', async () => {
+  const { api, cloud, db, record, publishing } = setup(undefined, tenantEnvironment);
+  const first = await (await api.POST(request('POST'))).json();
+  assert.equal(first.url, `https://my-website-${id.replaceAll('-', '')}.creativeportfolio.net/`);
+  assert.equal(first.domain.split('.')[0].length <= 63, true);
+  const decoded = await cloud.requestPublication(id, 'status', undefined, async () => Response.json(first));
+  assert.equal(decoded.url, first.url);
+  const publicSite = await publishing.readPublishedWebsiteByDomain(db, first.domain);
+  assert.ok(publicSite);
+  assert.ok(await publishing.readPublishedWebsite(db, first.path.split('/').at(-1)));
+  assert.equal(await publishing.readPublishedWebsiteByDomain(db, 'other.creativeportfolio.net'), null);
+  record.title = 'A renamed site';
+  const second = await (await api.POST(request('POST'))).json();
+  assert.equal(second.domain, first.domain);
+  assert.equal(second.path, first.path);
+  await api.DELETE(request('DELETE'));
+  assert.equal(await publishing.readPublishedWebsiteByDomain(db, first.domain), null);
+});
+
+test('preview publication never allocates production subdomains', async () => {
+  const { api } = setup(undefined, { ...tenantEnvironment, VERCEL_ENV: 'preview' });
+  const result = await (await api.POST(request('POST'))).json();
+  assert.equal(result.domain, null);
+  assert.equal(result.url, `https://builder.example${result.path}`);
+});
+
+test('domain names stay within DNS limits, normalize safely, and reject reserved or nested hosts', () => {
+  const { domains } = setup();
+  const domain = domains.automaticSiteDomain('a'.repeat(200), id, 'creativeportfolio.net');
+  assert.equal(domain.split('.')[0].length, 63);
+  assert.notEqual(domain, domains.automaticSiteDomain('a'.repeat(200), foreign, 'creativeportfolio.net'));
+  assert.equal(domains.configuredSiteDomain(' CREATIVEPORTFOLIO.NET. '), 'creativeportfolio.net');
+  assert.equal(domains.configuredSiteDomain('https://creativeportfolio.net'), null);
+  assert.equal(domains.configuredSiteDomain('creativeportfolio.net:3000'), null);
+  for (const host of ['www.creativeportfolio.net', 'send.creativeportfolio.net', 'api.creativeportfolio.net', 'nested.alice.creativeportfolio.net', 'alice.creativeportfolio.net.evil.example']) {
+    assert.equal(domains.tenantLabel(host, 'creativeportfolio.net'), null);
+  }
+  assert.equal(domains.tenantLabel('Alice.CreativePortfolio.Net:3000', 'creativeportfolio.net'), 'alice');
+});
+
+function hostRequest(host, pathname = '/') {
+  const nextUrl = new URL(`https://${host}${pathname}`);
+  nextUrl.clone = () => new URL(nextUrl);
+  return { nextUrl, headers: new Headers({ host, 'x-forwarded-host': 'attacker.creativeportfolio.net' }) };
+}
+
+test('proxy keeps the builder and static assets intact and rewrites tenant home and nested pages', () => {
+  const { routing } = setup(undefined, tenantEnvironment);
+  for (const host of ['creativeportfolio.net', 'www.creativeportfolio.net', 'preview.vercel.app']) {
+    assert.equal(routing.proxy(hostRequest(host)).headers.get('x-middleware-next'), '1');
+  }
+  const homepage = routing.proxy(hostRequest('alice.creativeportfolio.net'));
+  assert.equal(new URL(homepage.headers.get('x-middleware-rewrite')).pathname, '/published-domain/alice.creativeportfolio.net');
+  const nested = routing.proxy(hostRequest('bob.creativeportfolio.net', '/services/web-design?ref=test'));
+  const destination = new URL(nested.headers.get('x-middleware-rewrite'));
+  assert.equal(destination.pathname, '/published-domain/bob.creativeportfolio.net/services/web-design');
+  assert.equal(destination.search, '?ref=test');
+  for (const pathname of ['/.well-known/acme-challenge/token', '/_next/static/chunk.js', '/_next/image?url=example', '/uploads/photo.png', '/favicon.ico']) {
+    assert.equal(routing.proxy(hostRequest('alice.creativeportfolio.net', pathname)).headers.get('x-middleware-next'), '1');
+  }
+});
+
+test('tenant routing cannot expose editor APIs, internal routes, or authentication sessions', async () => {
+  const { routing } = setup(undefined, tenantEnvironment);
+  for (const pathname of ['/api/portfolio', '/api/publish', '/api/account', '/api/auth/callback/credentials', '/published-domain/other.creativeportfolio.net']) {
+    assert.equal(routing.proxy(hostRequest('alice.creativeportfolio.net', pathname)).status, 404);
+  }
+  assert.equal(routing.proxy(hostRequest('www.creativeportfolio.net', '/published-domain/alice.creativeportfolio.net')).status, 404);
+  assert.equal(routing.proxy(hostRequest('api.creativeportfolio.net')).status, 404);
+  const session = routing.proxy(hostRequest('alice.creativeportfolio.net', '/api/auth/session'));
+  assert.equal(await session.text(), '{}');
+  assert.equal(session.headers.get('cache-control'), 'no-store');
+  assert.equal(routing.proxy(hostRequest('alice.creativeportfolio.net', '/api/contact')).headers.get('x-middleware-next'), '1');
+});
+
+test('subdomain links require a matching domain and cannot point to a different site', async () => {
+  const { cloud } = setup();
+  const path = `/sites/website-${id}`;
+  const domain = 'alice.creativeportfolio.net';
+  for (const url of ['https://bob.creativeportfolio.net/', 'https://alice.creativeportfolio.net/login', 'https://alice.creativeportfolio.net/?token=secret']) {
+    await assert.rejects(cloud.requestPublication(id, 'status', undefined, async () => Response.json({ published: true, path, domain, url })));
   }
 });

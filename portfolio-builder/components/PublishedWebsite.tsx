@@ -16,7 +16,7 @@ export function PublishedWebsite({ portfolio, pages, page, basePath }: {
   return <PortfolioStoreProvider store={store}>
     {pages.length > 1 && <nav aria-label="Website pages" className="flex flex-wrap justify-center gap-6 px-4 py-3"
       style={{ backgroundColor: portfolio.theme.colors.background, color: portfolio.theme.colors.text }}>
-      {pages.map(item => <Link key={item.id} href={`${basePath}${item.slug ? `/${item.slug}` : ''}`}
+      {pages.map(item => <Link key={item.id} href={item.slug ? `${basePath === '/' ? '' : basePath}/${item.slug}` : basePath}
         aria-current={item.id === page.id ? 'page' : undefined}
         className={item.id === page.id ? 'font-semibold underline underline-offset-4' : 'hover:underline'}>{item.title}</Link>)}
     </nav>}
