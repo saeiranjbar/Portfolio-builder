@@ -5,7 +5,7 @@ Existing demo accounts have no password hash. They cannot sign in after this upd
 ## Existing Neon database
 
 1. Open `prisma/neon-auth-upgrade.sql` and copy the entire file.
-2. In Neon SQL Editor, select the branch/database used by Vercel and run it once. It adds two User columns and two authentication tables; existing websites are preserved.
+2. In Neon SQL Editor, select the branch/database used by Vercel and run it. It adds two User columns and two authentication tables; existing websites are preserved. Existing upgrade objects are skipped, so the file can be rerun after a completed or partial setup. If the editor reports an aborted transaction, run `ROLLBACK;` alone first and inspect the original error.
 3. In Vercel Production environment variables, configure `NEXTAUTH_SECRET`, `RESEND_API_KEY`, and `AUTH_FROM_EMAIL`. The sender must be verified in Resend. An existing `CONTACT_FROM_EMAIL` is also accepted as the sender if `AUTH_FROM_EMAIL` is absent. Never use a `NEXT_PUBLIC_` prefix for these values.
 4. Redeploy the latest commit so environment changes take effect.
 5. On the app's login page choose **Set or reset password**, enter the email used for your saved websites, then enter the emailed code and a new password of 12–128 characters.
