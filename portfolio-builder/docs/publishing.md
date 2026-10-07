@@ -19,14 +19,20 @@ The public route is `/sites/[slug]/[[...path]]`. It renders the same design comp
 
 Validation: `npm test`, TypeScript checking, and a production Next.js build. Live publication still needs checking after Vercel deploys: publish a website, open its public link in a private window, save a draft change, verify the public version stays unchanged, then republish and verify it updates.
 
-## Automatic subdomains
+## Website subdomains
 
 1. Add `*.creativeportfolio.net` to the production project's Vercel Domains settings. The domain must belong to the same Vercel team as the project. Use the team's Domains page to move it, or Connect External and verify ownership if necessary. This is a Vercel ownership change, not a registrar transfer.
 2. Keep the existing Northwest nameservers and website/email records. Enable Vercel DNS on the domain's team-level settings, then use Vercel's external-DNS wildcard instructions: add two NS records named `_acme-challenge`, pointing to `ns1.vercel-dns.com.` and `ns2.vercel-dns.com.`, and a CNAME named `*` pointing to `cname.vercel-dns-0.com.`. Follow the current values shown by Vercel if they differ. Keep the challenge delegation for certificate renewals.
 3. Wait until Vercel validates the wildcard and provisions its certificate. Only then add `PUBLISHED_SITE_DOMAIN=creativeportfolio.net` to the Production environment and redeploy. Keep `NEXTAUTH_URL=https://www.creativeportfolio.net` and the verified email sender unchanged.
-4. Open a saved website on `www.creativeportfolio.net` and publish it again. Its public link will use a unique subdomain, with the website name followed by its ID. Existing published websites receive their subdomain when republished; their old `/sites/...` links continue to work.
-5. Test the copied link in a private browser, including additional pages. Renaming and republishing retain the address. Unpublishing makes it return 404.
+4. Open a saved website on `www.creativeportfolio.net`, click Publish, and enter a name such as `saeid`. The dialog checks availability and publishes to `saeid.creativeportfolio.net`. Names may use 1–63 ASCII letters, numbers and internal hyphens; system and email names are reserved. Existing automatic names can be replaced here.
+5. Test the copied link in a private browser, including additional pages. Changing the chosen address preserves all previous links. Unpublishing makes the current and previous addresses return 404.
 
 Subdomains use the existing unique `Site.customDomain` field. Allocation occurs only in Production with the environment variable enabled. Host routing serves the chosen published revision and blocks editor/account APIs on tenant hosts. Unknown and unpublished sites return 404. The apex domain and `www` continue to serve the builder. Preview deployments do not allocate production subdomains.
+
+The server rechecks availability when publishing; the unique database constraint rejects concurrent claims. Previous domains are retained as `SiteRevision` entries with source `domain-alias:<hostname>` and empty data, reserving them for the same site. Public reads follow these entries to the site's chosen published snapshot; alias entries are never rendered as snapshots. This uses the existing schema without requiring a Neon migration. Legacy clients that omit a chosen name retain the automatic naming behavior.
+
+## Sign-in before building
+
+The builder mounts only after the session is authenticated. Signed-out visitors see a required sign-in/create-account dialog; loading sessions show a waiting state. The dialog cannot be dismissed to access AI, manual or template creation. Sign-out removes the editor from the page, and AI generation also requires a server-validated session. Published visitor routes remain public. The homepage dialog and `/login` reuse the same email verification and password reset form.
 
 References: [Vercel external DNS wildcard configuration](https://vercel.com/docs/domains/working-with-domains/add-a-domain), [domain ownership troubleshooting](https://vercel.com/docs/domains/troubleshooting).

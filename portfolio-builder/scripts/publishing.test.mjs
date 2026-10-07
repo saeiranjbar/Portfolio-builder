@@ -23,7 +23,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     portfolio: { findFirst: async ({ where }) => where.id === id && where.userId === 'owner' ? record : null },
     site: {
       findFirst: async ({ where }) => site && site.id === where.id && site.userId === where.userId ? site : null,
-      findUnique: async ({ where }) => site && (where.slug ? site.slug === where.slug : site.customDomain === where.customDomain) ? site : null,
+      findUnique: async ({ where }) => site && (where.id ? site.id === where.id : where.slug ? site.slug === where.slug : site.customDomain === where.customDomain) ? site : null,
       upsert: async ({ create, update }) => site = site ? { ...site, ...update } : { ...create, status: 'draft', publishedAt: null },
       update: async ({ data }) => site = { ...site, ...data },
       updateMany: async ({ where, data }) => {
@@ -32,7 +32,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     },
     siteRevision: {
       create: async ({ data }) => { revisions.push({ ...data }); return data; },
-      findFirst: async ({ where }) => revisions.find(item => item.siteId === where.siteId && item.source === where.source && +item.createdAt === +where.createdAt) ?? null,
+      findFirst: async ({ where }) => revisions.find(item => (!where.siteId || item.siteId === where.siteId) && item.source === where.source && (!where.createdAt || +item.createdAt === +where.createdAt)) ?? null,
     },
   };
   db.$transaction = async fn => fn(db);
@@ -71,6 +71,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     urls: load(path.join(root, 'lib/publication-url.ts')),
     domains: load(path.join(root, 'lib/tenant-domains.ts')),
     routing: load(path.join(root, 'proxy.ts')),
+    generation: load(path.join(root, 'app/api/generate-website/route.ts')),
   };
 }
 
@@ -291,4 +292,75 @@ test('subdomain links require a matching domain and cannot point to a different 
   for (const url of ['https://bob.creativeportfolio.net/', 'https://alice.creativeportfolio.net/login', 'https://alice.creativeportfolio.net/?token=secret']) {
     await assert.rejects(cloud.requestPublication(id, 'status', undefined, async () => Response.json({ published: true, path, domain, url })));
   }
+});
+
+test('chosen names are normalized and invalid or reserved names cannot publish', async () => {
+  const { publishing, db, domains, revisions } = setup(undefined, tenantEnvironment);
+  for (const value of ['www', 'mail', 'api', '-alice', 'alice-', 'two.names', 'https://alice', 'a'.repeat(64), '', 123]) {
+    assert.equal(domains.chosenSubdomain(value), null);
+    await assert.rejects(publishing.publishWebsite(db, id, 'owner', value), /Use 1/);
+  }
+  assert.equal(revisions.length, 0);
+  const result = await publishing.publishWebsite(db, id, 'owner', ' Alice-Design ');
+  assert.equal(result.domain, 'alice-design.creativeportfolio.net');
+});
+
+test('changing a chosen name preserves old links and reserves every previous address', async () => {
+  const { publishing, db } = setup(undefined, tenantEnvironment);
+  const first = await publishing.publishWebsite(db, id, 'owner');
+  const second = await publishing.publishWebsite(db, id, 'owner', 'alice');
+  const third = await publishing.publishWebsite(db, id, 'owner', 'alice-design');
+  for (const domain of [first.domain, second.domain, third.domain]) {
+    assert.ok(await publishing.readPublishedWebsiteByDomain(db, domain));
+    const label = domain.split('.')[0];
+    assert.equal((await publishing.subdomainAvailability(db, label, foreign)).available, false);
+    assert.equal((await publishing.subdomainAvailability(db, label, id)).available, true);
+  }
+  await publishing.unpublishWebsite(db, id, 'owner');
+  for (const domain of [first.domain, second.domain, third.domain]) {
+    assert.equal(await publishing.readPublishedWebsiteByDomain(db, domain), null);
+  }
+});
+
+test('taken addresses are rejected before publishing and database races return a conflict', async () => {
+  const { publishing, db, api, revisions } = setup(undefined, tenantEnvironment);
+  db.site.findUnique = async () => ({ id: foreign });
+  await assert.rejects(publishing.publishWebsite(db, id, 'owner', 'taken'), failure => failure.status === 409);
+  assert.equal(revisions.length, 0);
+  db.site.findUnique = async () => null;
+  db.site.update = async () => { throw { code: 'P2002' }; };
+  const req = request('POST'); req.json = async () => ({ id, subdomain: 'alice' });
+  const result = await api.POST(req);
+  assert.equal(result.status, 409);
+  assert.match((await result.json()).error, /already taken/);
+});
+
+test('availability requires authentication and validates website ownership', async () => {
+  const req = request('GET'); req.nextUrl.searchParams.set('subdomain', 'alice');
+  assert.equal((await setup(null, tenantEnvironment).api.GET(req)).status, 401);
+  const { api } = setup(undefined, tenantEnvironment);
+  assert.equal((await api.GET(req)).status, 200);
+  req.nextUrl.searchParams.set('id', foreign);
+  assert.equal((await api.GET(req)).status, 404);
+  req.nextUrl.searchParams.delete('id');
+  assert.equal((await api.GET(req)).status, 200);
+});
+
+test('first publication discovers production domain and sends the chosen name', async () => {
+  const { api, cloud } = setup(undefined, tenantEnvironment);
+  const req = request('GET'); req.nextUrl.searchParams.delete('id');
+  assert.equal((await (await api.GET(req)).json()).baseDomain, 'creativeportfolio.net');
+  let sent;
+  await cloud.requestPublication(id, 'publish', undefined, async (_url, options) => {
+    sent = JSON.parse(options.body);
+    return Response.json({ published: true, path: `/sites/website-${id}`, domain: 'alice.creativeportfolio.net', url: 'https://alice.creativeportfolio.net/' });
+  }, 'alice');
+  assert.equal(sent.subdomain, 'alice');
+});
+
+test('anonymous requests cannot generate websites even outside the browser', async () => {
+  const denied = await setup(null).generation.POST({ json: async () => { throw new Error('Should not parse anonymous content'); } });
+  assert.equal(denied.status, 401);
+  const allowed = await setup().generation.POST({ json: async () => ({ message: 'hello' }) });
+  assert.equal(allowed.status, 200);
 });

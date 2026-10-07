@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 interface GenerateRequest {
   message: string;
@@ -426,6 +428,8 @@ What kind of website would you like to create?`;
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return NextResponse.json({ error: 'Please sign in first.' }, { status: 401 });
     const body: GenerateRequest = await request.json();
     const { message, history } = body;
 

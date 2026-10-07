@@ -21,6 +21,8 @@ import { AccountControls } from '@/components/AccountControls';
 import { SavedWebsites } from '@/components/builder/SavedWebsites';
 import { PublishWebsite } from '@/components/builder/PublishWebsite';
 import { requestPublication } from '@/lib/cloud-publish';
+import { LoginForm } from '@/components/LoginForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   Monitor,
   Tablet,
@@ -55,6 +57,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 
 export default function BuilderPage() {
+  const { status } = useSession();
+  if (status === 'authenticated') return <AuthenticatedBuilder />;
+  return <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
+    {status === 'loading' ? <p role="status" className="p-8 text-center text-white">Checking sign-in…</p>
+      : <Dialog open onOpenChange={() => undefined}>
+        <DialogContent showClose={false} aria-label="Sign in or create an account"
+          className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-3xl p-8">
+          <LoginForm embedded />
+        </DialogContent>
+      </Dialog>}
+  </div>;
+}
+
+function AuthenticatedBuilder() {
   const {
     portfolio,
     previewMode,
@@ -148,7 +164,7 @@ export default function BuilderPage() {
     }
   }, [previewMode, activeSectionId, portfolio.sections, selectSection]);
 
-  const handleSave = useCallback(async (publish = false) => {
+  const handleSave = useCallback(async (publish = false, subdomain?: string) => {
     if (saveInFlightRef.current) return;
 
     if (status === 'loading') {
@@ -171,7 +187,7 @@ export default function BuilderPage() {
       if (usePortfolioStore.getState().draftVersion !== snapshot.draftVersion) return;
       usePortfolioStore.getState().completeCloudSave(snapshot, reference);
       if (publish) {
-        const publication = await requestPublication(reference.id, 'publish');
+        const publication = await requestPublication(reference.id, 'publish', undefined, fetch, subdomain);
         toast.success(usePortfolioStore.getState().isDirty
           ? 'Saved version published. Your newer edits still need publishing.'
           : 'Website published. Your public link is ready.');
@@ -187,6 +203,7 @@ export default function BuilderPage() {
       if (error instanceof CloudSaveError && error.status === 401) {
         await signIn().catch(() => toast.error('Unable to open sign-in. Please try again.'));
       }
+      if (publish) throw error;
     } finally {
       saveInFlightRef.current = false;
       setIsSaving(false);
@@ -617,7 +634,7 @@ export default function BuilderPage() {
 
           {/* Preview Toggle */}
           <PublishWebsite reference={cloudPortfolio} ownerEmail={session?.user?.email}
-            busy={isSaving || status === 'loading'} onPublish={() => handleSave(true)} />
+            busy={isSaving || status === 'loading'} onPublish={subdomain => handleSave(true, subdomain)} />
           <Button
             variant={previewMode ? 'default' : 'outline'}
             onClick={togglePreviewMode}

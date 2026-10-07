@@ -5,6 +5,7 @@ const resultSchema = z.object({
   published: z.boolean(), path: z.string().regex(/^\/sites\/[a-z0-9-]+$/).nullable(),
   url: z.string().url().nullable().optional(),
   domain: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(?:[a-z0-9-]+\.)+[a-z0-9-]+$/).nullable().optional(),
+  baseDomain: z.string().nullable().optional(),
 }).refine(result => !result.published || result.path !== null).refine(result => {
   if (!result.url) return true;
   try {
@@ -16,11 +17,19 @@ const resultSchema = z.object({
 });
 export type Publication = z.infer<typeof resultSchema>;
 
-export async function requestPublication(id: string, action: 'status' | 'publish' | 'unpublish', signal?: AbortSignal, fetcher: typeof fetch = fetch): Promise<Publication> {
+export async function checkSubdomain(subdomain: string, id?: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ subdomain, ...(id ? { id } : {}) });
+  const response = await fetch(`/api/publish?${params}`, { credentials: 'same-origin', cache: 'no-store', signal });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new CloudSaveError(body?.error || 'Unable to check this address.', response.status);
+  return z.object({ domain: z.string(), available: z.boolean() }).parse(body);
+}
+
+export async function requestPublication(id: string, action: 'status' | 'publish' | 'unpublish', signal?: AbortSignal, fetcher: typeof fetch = fetch, subdomain?: string): Promise<Publication> {
   const response = await fetcher(action === 'publish' ? '/api/publish' : `/api/publish?id=${encodeURIComponent(id)}`, {
     method: action === 'status' ? 'GET' : action === 'publish' ? 'POST' : 'DELETE',
     credentials: 'same-origin', cache: 'no-store', signal,
-    ...(action === 'publish' ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) } : {}),
+    ...(action === 'publish' ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...(subdomain !== undefined ? { subdomain } : {}) }) } : {}),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new CloudSaveError(typeof body?.error === 'string' ? body.error : 'Unable to publish. Please try again.', response.status);

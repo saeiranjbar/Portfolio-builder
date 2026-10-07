@@ -1,9 +1,15 @@
 const labelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const reserved = new Set(['www', 'api', 'admin', 'auth', 'login', 'mail', 'smtp', 'send', 'rsend', 'resend', 'ftp', 'ns1', 'ns2']);
+const reserved = new Set(['www', 'api', 'admin', 'auth', 'login', 'mail', 'smtp', 'send', 'rsend', 'resend', 'psrp', 'noreply', 'autodiscover', 'autoconfig', 'webmail', 'pop', 'imap', 'mx', 'ftp', 'ns1', 'ns2', 'support', 'help', 'billing', 'account', 'accounts', 'dashboard', 'status', 'assets', 'cdn']);
+
+export function chosenSubdomain(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const label = value.trim().toLowerCase();
+  return labelPattern.test(label) && !reserved.has(label) ? label : null;
+}
 
 export function configuredSiteDomain(value = process.env.PUBLISHED_SITE_DOMAIN): string | null {
   const domain = value?.trim().toLowerCase().replace(/\.$/, '');
-  if (!domain || domain.length > 190 || !domain.includes('.') || /^[\d.]+$/.test(domain) ||
+  if (!domain || domain.length > 189 || !domain.includes('.') || /^[\d.]+$/.test(domain) ||
     !domain.split('.').every(label => labelPattern.test(label))) return null;
   return domain;
 }

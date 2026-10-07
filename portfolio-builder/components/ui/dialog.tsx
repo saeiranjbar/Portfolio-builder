@@ -81,8 +81,8 @@ const DialogOverlay = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
 );
 DialogOverlay.displayName = 'DialogOverlay';
 
-const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, children, ...props }, ref) => {
+const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { showClose?: boolean }>(
+  ({ className, children, showClose = true, ...props }, ref) => {
     const { setOpen } = useDialog();
     return (
       <DialogPortal>
@@ -98,13 +98,13 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
           {...props}
         >
           {children}
-          <button
+          {showClose && <button
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none"
             onClick={() => setOpen(false)}
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
-          </button>
+          </button>}
         </div>
       </DialogPortal>
     );

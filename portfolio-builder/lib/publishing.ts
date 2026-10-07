@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { parseSavedWebsite, type SavedWebsite } from './cloud-load';
 import { portfolioToSiteData } from './migrate-portfolio';
 import type { PrismaClient } from '@prisma/client';
-import { automaticSiteDomain, configuredSiteDomain, tenantLabel } from './tenant-domains';
+import { automaticSiteDomain, chosenSubdomain, configuredSiteDomain, tenantLabel } from './tenant-domains';
 
 export class PublishError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -18,10 +18,25 @@ export async function publicationStatus(db: PrismaClient, id: string, userId: st
   return { published: site?.status === 'published', path: site ? pathFor(site.slug) : null, domain: site?.customDomain ?? null };
 }
 
-export async function publishWebsite(db: PrismaClient, id: string, userId: string) {
+const aliasSource = (domain: string) => `domain-alias:${domain}`;
+
+export async function subdomainAvailability(db: Pick<PrismaClient, 'site' | 'siteRevision'>, value: unknown, id?: string) {
+  const baseDomain = process.env.VERCEL_ENV === 'production' ? configuredSiteDomain() : null;
+  if (!baseDomain) throw new PublishError('Custom website addresses are available on the production website.');
+  const label = chosenSubdomain(value);
+  if (!label) throw new PublishError('Use 1–63 letters, numbers or hyphens. Start and end with a letter or number, and choose a name that is not reserved.');
+  const domain = `${label}.${baseDomain}`;
+  const current = await db.site.findUnique({ where: { customDomain: domain }, select: { id: true } });
+  const alias = await db.siteRevision.findFirst({ where: { source: aliasSource(domain) }, select: { siteId: true } });
+  return { domain, available: (!current || current.id === id) && (!alias || alias.siteId === id) };
+}
+
+export async function publishWebsite(db: PrismaClient, id: string, userId: string, subdomain?: unknown) {
   return db.$transaction(async tx => {
     const record = await tx.portfolio.findFirst({ where: { id, userId } });
     if (!record) throw new PublishError('Saved website not found.', 404);
+    const choice = subdomain === undefined ? null : await subdomainAvailability(tx, subdomain, id);
+    if (choice && !choice.available) throw new PublishError('That website address is already taken. Choose another name.', 409);
     let loaded;
     try {
       loaded = parseSavedWebsite({ ...record, updatedAt: record.updatedAt.toISOString() }, '');
@@ -41,7 +56,11 @@ export async function publishWebsite(db: PrismaClient, id: string, userId: strin
       update: { name: record.title, settings: JSON.stringify(converted.settings), seo: JSON.stringify(converted.seo) },
     });
     const baseDomain = process.env.VERCEL_ENV === 'production' ? configuredSiteDomain() : null;
-    const domain = site.customDomain ?? (baseDomain ? automaticSiteDomain(record.title, id, baseDomain) : null);
+    const domain = choice?.domain ?? site.customDomain ?? (baseDomain ? automaticSiteDomain(record.title, id, baseDomain) : null);
+    if (site.customDomain && site.customDomain !== domain) {
+      // Keep old addresses reserved and working without a database migration.
+      await tx.siteRevision.create({ data: { siteId: id, source: aliasSource(site.customDomain), data: '{}' } });
+    }
     const publishedAt = new Date(Math.max(Date.now(), (site.publishedAt?.getTime() ?? 0) + 1));
     await tx.siteRevision.create({ data: { siteId: id, source: 'publish', data: record.data, createdAt: publishedAt } });
     await tx.site.update({ where: { id, userId }, data: { status: 'published', publishedAt, customDomain: domain } });
@@ -63,7 +82,11 @@ export async function readPublishedWebsite(db: PrismaClient, slug: string) {
 
 export async function readPublishedWebsiteByDomain(db: PrismaClient, domain: string) {
   if (!tenantLabel(domain, configuredSiteDomain())) return null;
-  const site = await db.site.findUnique({ where: { customDomain: domain }, select: { id: true, status: true, publishedAt: true, name: true } });
+  let site = await db.site.findUnique({ where: { customDomain: domain }, select: { id: true, status: true, publishedAt: true, name: true } });
+  if (!site) {
+    const alias = await db.siteRevision.findFirst({ where: { source: aliasSource(domain) }, select: { siteId: true } });
+    if (alias) site = await db.site.findUnique({ where: { id: alias.siteId }, select: { id: true, status: true, publishedAt: true, name: true } });
+  }
   return readSnapshot(db, site);
 }
 
