@@ -15,6 +15,7 @@ import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images,
 
 import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { cn } from '@/lib/utils';
+import { HeroPdfEditor } from './HeroPdfEditor';
 
 
 
@@ -134,6 +135,11 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         {section.showBio && !isSimpleMode && (
           <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
         )}
+      </CollapsibleSection>
+
+      <CollapsibleSection title="PDF Reader" icon={FileText} showToggle
+        toggleChecked={section.showPdf === true} onToggleChange={checked => onUpdate({ showPdf: checked })}>
+        <HeroPdfEditor section={section} onUpdate={onUpdate} />
       </CollapsibleSection>
 
       {/* CTA Buttons */}

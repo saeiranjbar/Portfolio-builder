@@ -42,7 +42,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     const module = { exports: {} };
     cache.set(filename, module);
     const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     }).outputText;
     vm.runInNewContext(compiled, {
       module, exports: module.exports, Response, fetch, console, URL, process: { env: environment },
@@ -72,6 +72,8 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     domains: load(path.join(root, 'lib/tenant-domains.ts')),
     routing: load(path.join(root, 'proxy.ts')),
     generation: load(path.join(root, 'app/api/generate-website/route.ts')),
+    pdf: load(path.join(root, 'lib/hero-pdf.ts')),
+    PdfReader: load(path.join(root, 'components/builder/HeroPdfReader.tsx')).HeroPdfReader,
   };
 }
 
@@ -363,4 +365,48 @@ test('anonymous requests cannot generate websites even outside the browser', asy
   assert.equal(denied.status, 401);
   const allowed = await setup().generation.POST({ json: async () => ({ message: 'hello' }) });
   assert.equal(allowed.status, 200);
+});
+
+test('Hero PDF sources accept PDF uploads and HTTPS files while rejecting active content', () => {
+  const { pdf, sanitizer } = setup();
+  const source = `data:application/pdf;base64,${Buffer.from('%PDF-1.7\nSample').toString('base64')}`;
+  assert.equal(pdf.pdfSource(source), source);
+  assert.equal(pdf.pdfSource('https://example.com/resume.pdf?token=abc#page=2'), 'https://example.com/resume.pdf?token=abc#page=2');
+  for (const unsafe of ['javascript:alert(1)', 'data:text/html;base64,PHNjcmlwdD4=', 'data:application/pdf;base64,PHNjcmlwdD4=',
+    'http://example.com/resume.pdf', 'https://user:pass@example.com/resume.pdf', 'https://example.com/index.html', 'blob:arbitrary']) {
+    assert.equal(pdf.pdfSource(unsafe), null);
+    assert.equal(sanitizer.sanitizePublishedContent({ pdf: { url: unsafe } }).pdf.url, '');
+  }
+  assert.equal(sanitizer.sanitizePublishedContent({ pdf: { url: source } }).pdf.url, source);
+  assert.equal(sanitizer.sanitizePublishedContent({ imageUrl: source }).imageUrl, '');
+  assert.equal(pdf.pdfHeight(-10), 240);
+  assert.equal(pdf.pdfHeight(99999), 1600);
+  assert.equal(pdf.pdfHeight(NaN), 600);
+});
+
+test('Hero PDF settings survive publication and sanitize without losing the uploaded document', async () => {
+  const { record, publishing, db, sanitizer } = setup();
+  const draft = JSON.parse(record.data);
+  const hero = draft.sections.find(section => section.type === 'hero');
+  hero.showPdf = true;
+  hero.pdf = { url: `data:application/pdf;base64,${Buffer.from('%PDF-1.7\nSample').toString('base64')}`, title: 'My portfolio', height: 720 };
+  record.data = JSON.stringify(draft);
+  const published = await publishing.publishWebsite(db, id, 'owner');
+  const live = await publishing.readPublishedWebsite(db, published.path.split('/').at(-1));
+  const safe = sanitizer.sanitizePublishedContent(live);
+  const restored = safe.portfolio.sections.find(section => section.type === 'hero');
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.pdf)), hero.pdf);
+  assert.equal(restored.showPdf, true);
+});
+
+test('Hero PDF reader renders a titled, bounded iframe and honors visibility', () => {
+  const { PdfReader } = setup();
+  const section = { showPdf: true, pdf: { url: 'https://example.com/portfolio.pdf', title: '<script>title</script>', height: 9000 } };
+  const html = renderToString(React.createElement(PdfReader, { section }));
+  assert.match(html, /<iframe/);
+  assert.match(html, /height:1600px/);
+  assert.match(html, /Open PDF/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, showPdf: false } })), '');
+  assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { url: 'javascript:alert(1)' } } })), '');
 });

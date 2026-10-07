@@ -15,6 +15,7 @@ import {
 import { OptimizedImage } from './OptimizedImage';
 import { ProjectEditor } from './ProjectEditor';
 import { SectionRenderer } from './PortfolioPreview';
+import { HeroPdfReader } from './HeroPdfReader';
 import { SectionEditor } from './SectionEditor';
 import { ProjectDetailModal } from './ProjectDetailModal';
 
@@ -727,6 +728,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
 
       {/* Main Content - Project Grid */}
       <div className="flex-1 overflow-y-auto h-screen">
+        {heroSection && heroSection.visible !== false && <HeroPdfReader section={heroSection} />}
         {/* Project Grid */}
         <div className="p-6">
 

@@ -37,6 +37,7 @@ import { BehanceLayout } from './BehanceLayout';
 import { MouseColorShift } from './effects/MouseColorShift';
 import { SplashButton } from './effects/SplashButton';
 import { AnimatedText } from './AnimatedText';
+import { HeroPdfReader } from './HeroPdfReader';
 import { ColorRibbon } from './effects/ColorRibbon';
 
 
@@ -1032,6 +1033,8 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           )}
         </div>
 
+        <HeroPdfReader section={section} />
+
         {section.showScrollIndicator && (
 
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce cursor-pointer" onClick={scrollToNext}>
@@ -1516,6 +1519,8 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
       )}
 
       </div>{/* End of gallery/videos flow container */}
+
+      <HeroPdfReader section={section} />
 
       {fullscreenImage && (
         <div

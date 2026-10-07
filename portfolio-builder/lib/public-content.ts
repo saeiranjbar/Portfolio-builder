@@ -1,13 +1,15 @@
 import sanitizeHtml from 'sanitize-html';
+import { pdfSource } from './hero-pdf';
 
 // Published HTML cannot run scripts on the builder's origin. HTTPS embeds keep
 // working, with an opaque sandbox origin and no access to the parent document.
 export function sanitizePublishedContent<T>(value: T): T {
-  function clean(input: unknown, key = ''): unknown {
+  function clean(input: unknown, key = '', parentKey = ''): unknown {
     if (Array.isArray(input)) return input.map(item => clean(item));
     if (input && typeof input === 'object') return Object.fromEntries(
-      Object.entries(input).map(([name, item]) => [name, clean(item, name)]));
+      Object.entries(input).map(([name, item]) => [name, clean(item, name, key)]));
     if (typeof input !== 'string') return input;
+    if (key === 'url' && parentKey === 'pdf') return pdfSource(input) ?? '';
     if (key === 'text' || key === 'embedCode') return sanitizeHtml(input, {
       allowedTags: [...sanitizeHtml.defaults.allowedTags, 'img', 'iframe'],
       allowedAttributes: {

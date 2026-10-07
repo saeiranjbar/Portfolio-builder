@@ -397,6 +397,8 @@ export interface HeroSection {
   parallaxEnabled?: boolean;
   // Background shapes (free-form decorative shapes behind text)
   backgroundShapes?: BackgroundShape[];
+  showPdf?: boolean;
+  pdf?: { url: string; title?: string; height?: number };
 }
 
 

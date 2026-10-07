@@ -334,6 +334,8 @@ export const FAQItemSchema = z.object({
 export const HeroSectionSchema = z.object({
   ...baseSectionFields,
   type: z.literal('hero'),
+  showPdf: z.boolean().optional(),
+  pdf: z.object({ url: z.string(), title: z.string().optional(), height: z.number().min(240).max(1600).optional() }).optional(),
   name: z.string(),
   title: z.string(),
   subtitle: z.string().default(''),

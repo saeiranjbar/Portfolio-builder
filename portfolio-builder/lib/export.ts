@@ -1,5 +1,6 @@
 import { PortfolioData } from './types';
 import { availableFonts } from './templates';
+import { pdfHeight, pdfSource } from './hero-pdf';
 
 // Build a Google Fonts URL that loads all available fonts
 function buildGoogleFontsUrl(): string {
@@ -259,6 +260,13 @@ function generateEffects(portfolio: PortfolioData): string {
 }
 
 function generateHeroSection(section: any, theme: any): string {
+  const source = section.showPdf ? pdfSource(section.pdf?.url) : null;
+  const escape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+  const title = escape(section.pdf?.title?.trim() || 'PDF document');
+  const pdfHtml = source ? `<div style="width:100%;margin-top:24px;text-align:left;background:white;color:#111827;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+    <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
+    <iframe src="${escape(source)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe>
+  </div>` : '';
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? `background: ${section.backgroundValue};`
     : section.backgroundType === 'image'
@@ -285,6 +293,7 @@ function generateHeroSection(section: any, theme: any): string {
       <h2 style="font-size: 1.5rem; font-weight: 500; margin-bottom: 16px; color: ${theme.colors.primary};">${section.title}</h2>
       <p style="font-size: 1.25rem; margin-bottom: 16px; color: ${theme.colors.textSecondary};">${section.subtitle}</p>
       <p style="max-width: 600px; margin: 0 auto;">${section.bio}</p>
+      ${pdfHtml}
     </div>
   </section>`;
 }
