@@ -19,6 +19,10 @@ export function pdfHeight(value?: number): number {
   return Number.isFinite(value) ? Math.min(1600, Math.max(240, value!)) : 600;
 }
 
+export function pdfWidth(value?: number): number {
+  return Number.isFinite(value) ? Math.min(100, Math.max(30, value!)) : 100;
+}
+
 export async function uploadPdfFile(file: File): Promise<string> {
   const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
   if (String.fromCharCode(...header) !== '%PDF-') throw new Error('Please choose a valid PDF file.');

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { HeroSection } from '@/lib/types';
-import { pdfHeight, pdfSource } from '@/lib/hero-pdf';
+import { pdfHeight, pdfWidth, pdfSource } from '@/lib/hero-pdf';
 
 export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMove?: (offset: { x: number; y: number }) => void }) {
   const card = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
   const offset = section.pdf?.offset ?? { x: 0, y: 0 };
   const embeddedUrl = viewerUrl ? `${viewerUrl.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
   return <div data-hero-pdf className="relative mx-auto my-4 w-full text-left" style={{ pointerEvents: 'auto' }}>
-    <div ref={card} className="relative w-full" style={{ transform: `translate(${offset.x}%, ${offset.y}%)` }}>
+    <div ref={card} className="relative mx-auto" style={{ transform: `translate(${offset.x}%, ${offset.y}%)`, width: `${pdfWidth(section.pdf?.width)}%` }}>
       <div className="flex flex-wrap items-center justify-between gap-3 py-2">
         {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move PDF reader" className="touch-none cursor-move rounded border px-2 py-1 text-sm"
           onPointerDown={event => {

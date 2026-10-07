@@ -1,6 +1,6 @@
 import { PortfolioData } from './types';
 import { availableFonts } from './templates';
-import { pdfHeight, pdfSource } from './hero-pdf';
+import { pdfHeight, pdfSource, pdfWidth } from './hero-pdf';
 
 // Build a Google Fonts URL that loads all available fonts
 function buildGoogleFontsUrl(): string {
@@ -267,8 +267,8 @@ function generateHeroSection(section: any, theme: any): string {
   const offsetY = Number.isFinite(section.pdf?.offset?.y) ? section.pdf.offset.y : 0;
   const embeddedSource = source ? `${source.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
   const pdfHtml = source ? `<div style="width:100%;margin-top:16px;transform:translate(${offsetX}%, ${offsetY}%);text-align:left;">
-    <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
-    <iframe src="${escape(embeddedSource)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe>
+    <div style="max-width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
+    <div style="max-width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;"><iframe src="${escape(embeddedSource)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>
   </div>` : '';
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? `background: ${section.backgroundValue};`

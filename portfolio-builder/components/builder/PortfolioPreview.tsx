@@ -1374,10 +1374,10 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
           {!previewMode && (
             <div
-              className="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 cursor-move text-white/70 hover:text-white transition-colors select-none"
+              className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 px-4 cursor-move text-white bg-blue-600 hover:bg-blue-700 rounded-t-lg shadow-lg transition-colors select-none"
               onMouseDown={(e) => handleMouseDown(e, 'galleryImages')}
               onTouchStart={(e) => handleTouchStart(e, 'galleryImages')}
-              style={{ touchAction: 'none' }}
+              style={{ touchAction: 'none', pointerEvents: 'auto' }}
             >
               <GripVertical className="w-5 h-5" />
               <span className="text-xs font-medium">Drag to move gallery</span>
@@ -1484,10 +1484,10 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
           {!previewMode && (
             <div
-              className="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 cursor-move text-white/70 hover:text-white transition-colors select-none"
+              className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 px-4 cursor-move text-white bg-blue-600 hover:bg-blue-700 rounded-t-lg shadow-lg transition-colors select-none"
               onMouseDown={(e) => handleMouseDown(e, 'galleryVideos')}
               onTouchStart={(e) => handleTouchStart(e, 'galleryVideos')}
-              style={{ touchAction: 'none' }}
+              style={{ touchAction: 'none', pointerEvents: 'auto' }}
             >
               <GripVertical className="w-5 h-5" />
               <span className="text-xs font-medium">Drag to move videos</span>

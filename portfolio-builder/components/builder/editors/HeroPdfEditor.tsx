@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { HeroSection } from '@/lib/types';
-import { pdfHeight, pdfSource, uploadPdfFile } from '@/lib/hero-pdf';
+import { pdfHeight, pdfWidth, pdfSource, uploadPdfFile } from '@/lib/hero-pdf';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -44,5 +44,8 @@ export function HeroPdfEditor({ section, onUpdate }: { section: HeroSection; onU
     <div className="space-y-1"><Label htmlFor={`hero-pdf-height-${section.id}`}>Reader height (px)</Label>
       <Input id={`hero-pdf-height-${section.id}`} type="number" min={240} max={1600} step={20} value={pdf.height ?? 600}
         onChange={event => onUpdate({ pdf: { ...pdf, height: pdfHeight(Number(event.target.value)) } })} /></div>
+    <div className="space-y-1"><Label htmlFor={`hero-pdf-width-${section.id}`}>Reader width ({pdfWidth(pdf.width)}%)</Label>
+      <Input id={`hero-pdf-width-${section.id}`} type="range" min={30} max={100} step={5} value={pdfWidth(pdf.width)}
+        onChange={event => onUpdate({ pdf: { ...pdf, width: pdfWidth(Number(event.target.value)) } })} className="w-full cursor-pointer" /></div>
   </div>;
 }
