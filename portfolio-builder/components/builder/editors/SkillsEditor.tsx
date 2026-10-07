@@ -62,14 +62,6 @@ commonToolIcons.forEach(tool => {
   iconComponentMap[tool.id] = tool.icon;
 });
 
-// Helper to get icon component
-function getIconComponent(iconId: string | undefined): React.ComponentType<{ className?: string }> {
-  if (!iconId || !iconComponentMap[iconId]) {
-    return Star;
-  }
-  return iconComponentMap[iconId];
-}
-
 interface SkillCardProps {
   skill: Skill;
   onUpdate: (id: string, updates: Partial<Skill>) => void;
@@ -79,14 +71,14 @@ interface SkillCardProps {
 
 function SkillCard({ skill, onUpdate, onRemove, categories }: SkillCardProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const IconComponent = getIconComponent(skill.icon);
+  const IconComponent = iconComponentMap[skill.icon ?? ''] ?? Star;
 
   return (
-    <Card key={skill.id}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
+    <Card key={skill.id} className="min-w-0">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-3">
           {/* Icon picker button */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -146,19 +138,32 @@ function SkillCard({ skill, onUpdate, onRemove, categories }: SkillCardProps) {
               </>
             )}
           </div>
-          
-          <div className="flex-1 grid grid-cols-3 gap-4">
-            <div>
-              <Label className="text-xs">Name</Label>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            aria-label={`Remove ${skill.name || 'skill'}`}
+            onClick={() => onRemove(skill.id)}
+          >
+            <Trash2 className="w-4 h-4 text-red-500" />
+          </Button>
+        </div>
+          <div className="grid min-w-0 grid-cols-1 gap-3">
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor={`skill-name-${skill.id}`} className="text-xs">Name</Label>
               <Input
+                id={`skill-name-${skill.id}`}
+                className="min-w-0"
                 value={skill.name}
                 onChange={(e) => onUpdate(skill.id, { name: e.target.value })}
                 placeholder="Skill name"
               />
             </div>
-            <div>
-              <Label className="text-xs">Category</Label>
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor={`skill-category-${skill.id}`} className="text-xs">Category</Label>
               <Input
+                id={`skill-category-${skill.id}`}
+                className="min-w-0"
                 value={skill.category}
                 onChange={(e) => onUpdate(skill.id, { category: e.target.value })}
                 placeholder="Category"
@@ -170,26 +175,19 @@ function SkillCard({ skill, onUpdate, onRemove, categories }: SkillCardProps) {
                 ))}
               </datalist>
             </div>
-            <div>
-              <Label className="text-xs">Level: {skill.level}%</Label>
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor={`skill-level-${skill.id}`} className="text-xs">Level: {skill.level}%</Label>
               <Input
+                id={`skill-level-${skill.id}`}
                 type="range"
                 min="0"
                 max="100"
                 value={skill.level}
                 onChange={(e) => onUpdate(skill.id, { level: parseInt(e.target.value) })}
-                className="w-full"
+                className="w-full border-0 px-0 shadow-none accent-blue-600"
               />
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onRemove(skill.id)}
-          >
-            <Trash2 className="w-4 h-4 text-red-500" />
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
@@ -253,7 +251,7 @@ export function SkillsEditor({ section, onUpdate }: SkillsEditorProps) {
 
         {section.skills.length === 0 ? (
           <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
-            <p>No skills yet. Click "Add Skill" to get started.</p>
+            <p>No skills yet. Click &quot;Add Skill&quot; to get started.</p>
           </div>
         ) : (
           <div className="space-y-3">
