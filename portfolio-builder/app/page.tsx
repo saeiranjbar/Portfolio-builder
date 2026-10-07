@@ -43,6 +43,8 @@ import {
   Plus,
   Wand2,
   Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 
@@ -123,6 +125,7 @@ function AuthenticatedBuilder() {
 
   // Resizable editor panel
   const [editorWidth, setEditorWidth] = useState(320);
+  const [editorCollapsed, setEditorCollapsed] = useState(false);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const editorResizeStart = React.useRef({ x: 0, width: 320 });
   const startEditorResize = useCallback((e: React.PointerEvent) => {
@@ -135,7 +138,15 @@ function AuthenticatedBuilder() {
   const doEditorResize = useCallback((e: React.PointerEvent) => {
     if (!isResizingEditor) return;
     const delta = e.clientX - editorResizeStart.current.x;
-    setEditorWidth(Math.min(640, Math.max(260, editorResizeStart.current.width + delta)));
+    const newWidth = editorResizeStart.current.width + delta;
+    // Collapse when dragged below threshold, expand from collapsed
+    if (newWidth < 120) {
+      setEditorCollapsed(true);
+      setEditorWidth(320);
+    } else {
+      setEditorCollapsed(false);
+      setEditorWidth(Math.min(640, Math.max(260, newWidth)));
+    }
   }, [isResizingEditor]);
   const endEditorResize = useCallback((e: React.PointerEvent) => {
     if (!isResizingEditor) return;
@@ -770,7 +781,8 @@ function AuthenticatedBuilder() {
 
         ) : !previewMode ? (
           <>
-            {/* Center Panel - Editor */}
+            {/* Center Panel - Editor (hidden when collapsed) */}
+            {!editorCollapsed && (
             <motion.div
               initial={{ x: -360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -855,19 +867,41 @@ function AuthenticatedBuilder() {
                 <SectionEditor />
               </div>
             </motion.div>
+            )}
 
-            {/* Resize Handle between Editor and Preview */}
-            <div
-              onPointerDown={startEditorResize}
-              onPointerMove={doEditorResize}
-              onPointerUp={endEditorResize}
-              onPointerCancel={endEditorResize}
-              className={`hidden md:flex flex-shrink-0 w-1.5 cursor-col-resize bg-gray-300 hover:bg-blue-500 transition-colors items-center justify-center group ${isResizingEditor ? 'bg-blue-500' : ''}`}
-              style={{ touchAction: 'none' }}
-              title="Drag to resize editor panel"
-            >
-              <div className={`w-1 h-8 rounded-full transition-colors ${isResizingEditor ? 'bg-white' : 'bg-gray-400 group-hover:bg-white'}`} />
-            </div>
+            {/* Resize Handle / Collapse Button / Expand Tab */}
+            {editorCollapsed ? (
+              /* Expand tab when collapsed */
+              <button
+                onClick={() => setEditorCollapsed(false)}
+                className="hidden md:flex flex-shrink-0 w-8 cursor-pointer bg-white/80 backdrop-blur-md border-r border-gray-200 flex-col items-center justify-center gap-2 hover:bg-blue-50 transition-colors group"
+                title="Expand editor panel"
+              >
+                <PanelLeftOpen className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                <span className="text-[10px] text-gray-400 group-hover:text-blue-600 transition-colors" style={{ writingMode: 'vertical-rl' }}>EDITOR</span>
+              </button>
+            ) : (
+              /* Resize handle with collapse button when expanded */
+              <div
+                onPointerDown={startEditorResize}
+                onPointerMove={doEditorResize}
+                onPointerUp={endEditorResize}
+                onPointerCancel={endEditorResize}
+                className={`hidden md:flex flex-shrink-0 w-1.5 cursor-col-resize bg-gray-300 hover:bg-blue-500 transition-colors items-center justify-center group relative ${isResizingEditor ? 'bg-blue-500' : ''}`}
+                style={{ touchAction: 'none' }}
+                title="Drag to resize"
+              >
+                <div className={`w-1 h-8 rounded-full transition-colors ${isResizingEditor ? 'bg-white' : 'bg-gray-400 group-hover:bg-white'}`} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditorCollapsed(true); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="absolute top-3 -right-3 w-6 h-6 flex items-center justify-center bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-100 transition-colors"
+                  title="Collapse editor panel"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5 text-gray-500" />
+                </button>
+              </div>
+            )}
 
             {/* Right Panel - Preview */}
             <motion.div
