@@ -45,7 +45,7 @@ export function HeroPdfEditor({ section, onUpdate }: { section: HeroSection; onU
       <Input id={`hero-pdf-height-${section.id}`} type="number" min={240} max={1600} step={20} value={pdf.height ?? 600}
         onChange={event => onUpdate({ pdf: { ...pdf, height: pdfHeight(Number(event.target.value)) } })} /></div>
     <div className="space-y-1"><Label htmlFor={`hero-pdf-width-${section.id}`}>Reader width ({pdfWidth(pdf.width)}%)</Label>
-      <input id={`hero-pdf-width-${section.id}`} type="range" min={30} max={100} step={5} value={pdfWidth(pdf.width)}
+      <input id={`hero-pdf-width-${section.id}`} type="range" min={20} max={100} step={5} value={pdfWidth(pdf.width)}
         onChange={event => onUpdate({ pdf: { ...pdf, width: pdfWidth(Number(event.target.value)) } })} className="w-full cursor-pointer accent-blue-600" /></div>
   </div>;
 }

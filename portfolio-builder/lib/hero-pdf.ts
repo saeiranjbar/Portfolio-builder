@@ -20,7 +20,7 @@ export function pdfHeight(value?: number): number {
 }
 
 export function pdfWidth(value?: number): number {
-  return Number.isFinite(value) ? Math.min(100, Math.max(30, value!)) : 100;
+  return Number.isFinite(value) ? Math.min(100, Math.max(20, value!)) : 60;
 }
 
 export async function uploadPdfFile(file: File): Promise<string> {
