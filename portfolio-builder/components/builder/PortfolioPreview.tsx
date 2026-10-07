@@ -1327,6 +1327,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           </div>
         )}
 
+        <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
       </div>{/* End of fixed-height free-form canvas */}
 
       {/* Gallery and Videos flow below the canvas in normal document flow */}
@@ -1519,8 +1520,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
       )}
 
       </div>{/* End of gallery/videos flow container */}
-
-      <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
 
       {fullscreenImage && (
         <div

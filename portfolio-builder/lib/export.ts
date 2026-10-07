@@ -265,9 +265,10 @@ function generateHeroSection(section: any, theme: any): string {
   const title = escape(section.pdf?.title?.trim() || 'PDF document');
   const offsetX = Number.isFinite(section.pdf?.offset?.x) ? section.pdf.offset.x : 0;
   const offsetY = Number.isFinite(section.pdf?.offset?.y) ? section.pdf.offset.y : 0;
-  const pdfHtml = source ? `<div style="width:100%;margin-top:24px;transform:translate(${offsetX}%, ${offsetY}%);text-align:left;background:white;color:#111827;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+  const embeddedSource = source ? `${source.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
+  const pdfHtml = source ? `<div style="width:100%;margin-top:16px;transform:translate(${offsetX}%, ${offsetY}%);text-align:left;">
     <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
-    <iframe src="${escape(source)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe>
+    <iframe src="${escape(embeddedSource)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe>
   </div>` : '';
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? `background: ${section.backgroundValue};`

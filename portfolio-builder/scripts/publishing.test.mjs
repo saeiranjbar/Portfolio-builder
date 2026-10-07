@@ -406,6 +406,8 @@ test('Hero PDF reader renders a titled, bounded iframe and honors visibility', (
   assert.match(html, /<iframe/);
   assert.match(html, /height:1600px/);
   assert.match(html, /Open PDF/);
+  assert.match(html, /#toolbar=0&amp;navpanes=0&amp;view=FitH/);
+  assert.doesNotMatch(html, /bg-white|shadow-sm|rounded-xl/);
   assert.doesNotMatch(html, /<script>/);
   assert.doesNotMatch(html, /Move PDF reader/);
   const movable = renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { ...section.pdf, offset: { x: -12, y: 35 } } }, onMove: () => {} }));

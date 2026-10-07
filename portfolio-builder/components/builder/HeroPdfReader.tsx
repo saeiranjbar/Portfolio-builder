@@ -28,9 +28,10 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
   const viewerUrl = source.startsWith('data:') ? (localPdf?.source === source ? localPdf.url : '') : source;
   const title = section.pdf?.title?.trim() || 'PDF document';
   const offset = section.pdf?.offset ?? { x: 0, y: 0 };
-  return <div data-hero-pdf className="relative z-10 mx-auto my-6 w-full max-w-4xl px-4 text-left">
-    <div ref={card} className="relative overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm" style={{ transform: `translate(${offset.x}%, ${offset.y}%)` }}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+  const embeddedUrl = viewerUrl ? `${viewerUrl.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
+  return <div data-hero-pdf className="relative mx-auto my-4 w-full text-left" style={{ pointerEvents: 'auto' }}>
+    <div ref={card} className="relative w-full" style={{ transform: `translate(${offset.x}%, ${offset.y}%)` }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-2">
         {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move PDF reader" className="touch-none cursor-move rounded border px-2 py-1 text-sm"
           onPointerDown={event => {
             if (event.button !== 0 || !card.current) return;
@@ -51,9 +52,8 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
         <h3 className="min-w-0 break-words font-medium">{title}</h3>
         {viewerUrl && <a href={viewerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-blue-700 hover:underline">Open PDF</a>}
       </div>
-      {viewerUrl ? <iframe src={viewerUrl} title={title} className="block w-full border-0" style={{ height: pdfHeight(section.pdf?.height), pointerEvents: moving ? 'none' : undefined }} />
+      {embeddedUrl ? <iframe src={embeddedUrl} title={title} className="block w-full border-0" style={{ height: pdfHeight(section.pdf?.height), pointerEvents: moving ? 'none' : undefined }} />
         : <p role="status" className="p-4 text-sm">Loading PDF…</p>}
-      <p className="px-4 py-2 text-xs text-gray-500">If the reader is unavailable in your browser, choose Open PDF.</p>
     </div>
   </div>;
 }

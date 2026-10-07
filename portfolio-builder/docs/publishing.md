@@ -37,6 +37,8 @@ Open Hero > PDF Reader to upload a PDF up to 1 MB or paste a direct public HTTPS
 
 Drag the reader's Move handle to position it in the canvas, using a mouse or touch. Reset PDF position restores its original location. Placement is stored as relative offsets and preserved on save, publication, and HTML export. Movement controls appear only in the editor; visitors can use the PDF reader normally.
 
+The reader sits in the Hero body alongside text and galleries with a transparent wrapper. It does not use a popup or floating card. The embedded URL requests a fitted document view with the PDF toolbar and navigation panes hidden; support for these parameters depends on the browser's PDF viewer.
+
 ## Sign-in before building
 
 The builder mounts only after the session is authenticated. Signed-out visitors see a required sign-in/create-account dialog; loading sessions show a waiting state. The dialog cannot be dismissed to access AI, manual or template creation. Sign-out removes the editor from the page, and AI generation also requires a server-validated session. Published visitor routes remain public. The homepage dialog and `/login` reuse the same email verification and password reset form.
