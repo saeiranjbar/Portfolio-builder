@@ -372,16 +372,25 @@ test('Hero PDF sources accept PDF uploads and HTTPS files while rejecting active
   const source = `data:application/pdf;base64,${Buffer.from('%PDF-1.7\nSample').toString('base64')}`;
   assert.equal(pdf.pdfSource(source), source);
   assert.equal(pdf.pdfSource('https://example.com/resume.pdf?token=abc#page=2'), 'https://example.com/resume.pdf?token=abc#page=2');
+  assert.equal(pdf.pdfSource('/uploads/1700000000-abc123def.pdf'), '/uploads/1700000000-abc123def.pdf');
   for (const unsafe of ['javascript:alert(1)', 'data:text/html;base64,PHNjcmlwdD4=', 'data:application/pdf;base64,PHNjcmlwdD4=',
-    'http://example.com/resume.pdf', 'https://user:pass@example.com/resume.pdf', 'https://example.com/index.html', 'blob:arbitrary']) {
+    'http://example.com/resume.pdf', 'https://user:pass@example.com/resume.pdf', 'https://example.com/index.html', 'blob:arbitrary',
+    '/uploads/../secret.pdf', '/uploads/file.html', '/uploads/../../etc/passwd.pdf']) {
     assert.equal(pdf.pdfSource(unsafe), null);
     assert.equal(sanitizer.sanitizePublishedContent({ pdf: { url: unsafe } }).pdf.url, '');
   }
   assert.equal(sanitizer.sanitizePublishedContent({ pdf: { url: source } }).pdf.url, source);
+  assert.equal(sanitizer.sanitizePublishedContent({ pdf: { url: '/uploads/1700000000-abc123def.pdf' } }).pdf.url, '/uploads/1700000000-abc123def.pdf');
   assert.equal(sanitizer.sanitizePublishedContent({ imageUrl: source }).imageUrl, '');
   assert.equal(pdf.pdfHeight(-10), 240);
   assert.equal(pdf.pdfHeight(99999), 1600);
   assert.equal(pdf.pdfHeight(NaN), 600);
+});
+
+test('Hero PDF upload validates the PDF header before posting to the upload endpoint', async () => {
+  const { pdf } = setup();
+  const textFile = { size: 100, slice: () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('Hello').buffer) }) };
+  await assert.rejects(pdf.uploadPdfFile(textFile), /valid PDF file/);
 });
 
 test('Hero PDF settings survive publication and sanitize without losing the uploaded document', async () => {
