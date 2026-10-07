@@ -1033,7 +1033,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           )}
         </div>
 
-        <HeroPdfReader section={section} />
+        <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
 
         {section.showScrollIndicator && (
 
@@ -1520,7 +1520,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
       </div>{/* End of gallery/videos flow container */}
 
-      <HeroPdfReader section={section} />
+      <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
 
       {fullscreenImage && (
         <div

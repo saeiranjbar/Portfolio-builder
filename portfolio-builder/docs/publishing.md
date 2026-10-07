@@ -35,6 +35,8 @@ The server rechecks availability when publishing; the unique database constraint
 
 Open Hero > PDF Reader to upload a PDF up to 1 MB or paste a direct public HTTPS PDF link. Set the document title and reader height, then save and publish to update the public website. Larger documents should use a public link ending in `.pdf`. Uploaded documents are stored with the website content; no database migration or environment variable is required. The reader includes an Open PDF link for browsers that cannot display the embedded document. Linked files must permit embedding.
 
+Drag the reader's Move handle to position it in the canvas, using a mouse or touch. Reset PDF position restores its original location. Placement is stored as relative offsets and preserved on save, publication, and HTML export. Movement controls appear only in the editor; visitors can use the PDF reader normally.
+
 ## Sign-in before building
 
 The builder mounts only after the session is authenticated. Signed-out visitors see a required sign-in/create-account dialog; loading sessions show a waiting state. The dialog cannot be dismissed to access AI, manual or template creation. Sign-out removes the editor from the page, and AI generation also requires a server-validated session. Published visitor routes remain public. The homepage dialog and `/login` reuse the same email verification and password reset form.

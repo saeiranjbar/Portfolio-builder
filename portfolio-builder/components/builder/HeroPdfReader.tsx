@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HeroSection } from '@/lib/types';
 import { pdfHeight, pdfSource } from '@/lib/hero-pdf';
 
-export function HeroPdfReader({ section }: { section: HeroSection }) {
+export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMove?: (offset: { x: number; y: number }) => void }) {
+  const card = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ pointer: number; x: number; y: number; width: number; height: number; offset: { x: number; y: number } } | null>(null);
+  const [moving, setMoving] = useState(false);
   const source = pdfSource(section.pdf?.url);
   const [localPdf, setLocalPdf] = useState<{ source: string; url: string } | null>(null);
   useEffect(() => {
@@ -24,13 +27,31 @@ export function HeroPdfReader({ section }: { section: HeroSection }) {
   if (!section.showPdf || !source) return null;
   const viewerUrl = source.startsWith('data:') ? (localPdf?.source === source ? localPdf.url : '') : source;
   const title = section.pdf?.title?.trim() || 'PDF document';
+  const offset = section.pdf?.offset ?? { x: 0, y: 0 };
   return <div data-hero-pdf className="relative z-10 mx-auto my-6 w-full max-w-4xl px-4 text-left">
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm">
+    <div ref={card} className="relative overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm" style={{ transform: `translate(${offset.x}%, ${offset.y}%)` }}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move PDF reader" className="touch-none cursor-move rounded border px-2 py-1 text-sm"
+          onPointerDown={event => {
+            if (event.button !== 0 || !card.current) return;
+            event.preventDefault(); event.stopPropagation();
+            const rect = card.current.getBoundingClientRect();
+            drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, width: rect.width, height: rect.height, offset };
+            event.currentTarget.setPointerCapture(event.pointerId); setMoving(true);
+          }}
+          onPointerMove={event => {
+            const start = drag.current;
+            if (!start || start.pointer !== event.pointerId) return;
+            onMove({ x: start.offset.x + (event.clientX - start.x) / start.width * 100, y: start.offset.y + (event.clientY - start.y) / start.height * 100 });
+          }}
+          onPointerUp={event => { if (drag.current?.pointer === event.pointerId) { drag.current = null; setMoving(false); event.currentTarget.releasePointerCapture(event.pointerId); } }}
+          onPointerCancel={() => { drag.current = null; setMoving(false); }}
+          onLostPointerCapture={() => { drag.current = null; setMoving(false); }}
+        >↔ Move</button>}
         <h3 className="min-w-0 break-words font-medium">{title}</h3>
         {viewerUrl && <a href={viewerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-blue-700 hover:underline">Open PDF</a>}
       </div>
-      {viewerUrl ? <iframe src={viewerUrl} title={title} className="block w-full border-0" style={{ height: pdfHeight(section.pdf?.height) }} />
+      {viewerUrl ? <iframe src={viewerUrl} title={title} className="block w-full border-0" style={{ height: pdfHeight(section.pdf?.height), pointerEvents: moving ? 'none' : undefined }} />
         : <p role="status" className="p-4 text-sm">Loading PDF…</p>}
       <p className="px-4 py-2 text-xs text-gray-500">If the reader is unavailable in your browser, choose Open PDF.</p>
     </div>

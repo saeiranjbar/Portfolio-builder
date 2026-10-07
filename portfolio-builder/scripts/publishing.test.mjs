@@ -389,7 +389,7 @@ test('Hero PDF settings survive publication and sanitize without losing the uplo
   const draft = JSON.parse(record.data);
   const hero = draft.sections.find(section => section.type === 'hero');
   hero.showPdf = true;
-  hero.pdf = { url: `data:application/pdf;base64,${Buffer.from('%PDF-1.7\nSample').toString('base64')}`, title: 'My portfolio', height: 720 };
+  hero.pdf = { url: `data:application/pdf;base64,${Buffer.from('%PDF-1.7\nSample').toString('base64')}`, title: 'My portfolio', height: 720, offset: { x: -12, y: 35 } };
   record.data = JSON.stringify(draft);
   const published = await publishing.publishWebsite(db, id, 'owner');
   const live = await publishing.readPublishedWebsite(db, published.path.split('/').at(-1));
@@ -407,6 +407,10 @@ test('Hero PDF reader renders a titled, bounded iframe and honors visibility', (
   assert.match(html, /height:1600px/);
   assert.match(html, /Open PDF/);
   assert.doesNotMatch(html, /<script>/);
+  assert.doesNotMatch(html, /Move PDF reader/);
+  const movable = renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { ...section.pdf, offset: { x: -12, y: 35 } } }, onMove: () => {} }));
+  assert.match(movable, /aria-label="Move PDF reader"/);
+  assert.match(movable, /translate\(-12%, 35%\)/);
   assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, showPdf: false } })), '');
   assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { url: 'javascript:alert(1)' } } })), '');
 });

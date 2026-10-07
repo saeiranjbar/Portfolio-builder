@@ -728,7 +728,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
 
       {/* Main Content - Project Grid */}
       <div className="flex-1 overflow-y-auto h-screen">
-        {heroSection && heroSection.visible !== false && <HeroPdfReader section={heroSection} />}
+        {heroSection && heroSection.visible !== false && <HeroPdfReader section={heroSection} onMove={previewMode ? undefined : offset => updateSection(heroSection.id, { pdf: { ...heroSection.pdf!, offset } })} />}
         {/* Project Grid */}
         <div className="p-6">
 

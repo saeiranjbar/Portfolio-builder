@@ -35,6 +35,8 @@ export function HeroPdfEditor({ section, onUpdate }: { section: HeroSection; onU
         }} />
     </div>
     <p className="text-xs text-gray-500">Uploads: PDF files up to 1 MB. Uploaded documents are included when you save and publish.</p>
+    <p className="text-xs text-gray-500">Drag the Move handle above the reader in the canvas to position it.</p>
+    {pdf.offset && <Button size="sm" variant="outline" onClick={() => onUpdate({ pdf: { ...pdf, offset: { x: 0, y: 0 } } })}>Reset PDF position</Button>}
     {uploaded && <p className="text-xs text-green-700">PDF uploaded: {pdf.title || 'Document'}</p>}
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
     <div className="space-y-1"><Label htmlFor={`hero-pdf-title-${section.id}`}>Document title</Label>
