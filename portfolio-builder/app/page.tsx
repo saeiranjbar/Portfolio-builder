@@ -121,6 +121,28 @@ function AuthenticatedBuilder() {
   const lastSyncedCategoryIdRef = React.useRef<string>('');
   const wasPreviewModeRef = React.useRef(previewMode);
 
+  // Resizable editor panel
+  const [editorWidth, setEditorWidth] = useState(320);
+  const [isResizingEditor, setIsResizingEditor] = useState(false);
+  const editorResizeStart = React.useRef({ x: 0, width: 320 });
+  const startEditorResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizingEditor(true);
+    editorResizeStart.current = { x: e.clientX, width: editorWidth };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [editorWidth]);
+  const doEditorResize = useCallback((e: React.PointerEvent) => {
+    if (!isResizingEditor) return;
+    const delta = e.clientX - editorResizeStart.current.x;
+    setEditorWidth(Math.min(640, Math.max(260, editorResizeStart.current.width + delta)));
+  }, [isResizingEditor]);
+  const endEditorResize = useCallback((e: React.PointerEvent) => {
+    if (!isResizingEditor) return;
+    setIsResizingEditor(false);
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  }, [isResizingEditor]);
+
   // Development-only entry point used by the local browser regression test.
   // It is disabled in production and leaves the normal welcome flow unchanged.
   useEffect(() => {
@@ -753,7 +775,8 @@ function AuthenticatedBuilder() {
               initial={{ x: -360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="w-full h-[46%] flex-none bg-white/80 backdrop-blur-md border-b border-gray-200 flex flex-col overflow-hidden md:h-auto md:w-[320px] md:border-b-0 md:border-r"
+              className="w-full h-[46%] flex-none bg-white/80 backdrop-blur-md border-b border-gray-200 flex flex-col overflow-hidden md:h-auto md:border-b-0 md:border-r"
+              style={{ width: typeof window !== 'undefined' && window.innerWidth >= 768 ? editorWidth : undefined }}
             >
 
               {/* Scrollable Content */}
@@ -832,6 +855,19 @@ function AuthenticatedBuilder() {
                 <SectionEditor />
               </div>
             </motion.div>
+
+            {/* Resize Handle between Editor and Preview */}
+            <div
+              onPointerDown={startEditorResize}
+              onPointerMove={doEditorResize}
+              onPointerUp={endEditorResize}
+              onPointerCancel={endEditorResize}
+              className={`hidden md:flex flex-shrink-0 w-1.5 cursor-col-resize bg-gray-300 hover:bg-blue-500 transition-colors items-center justify-center group ${isResizingEditor ? 'bg-blue-500' : ''}`}
+              style={{ touchAction: 'none' }}
+              title="Drag to resize editor panel"
+            >
+              <div className={`w-1 h-8 rounded-full transition-colors ${isResizingEditor ? 'bg-white' : 'bg-gray-400 group-hover:bg-white'}`} />
+            </div>
 
             {/* Right Panel - Preview */}
             <motion.div
