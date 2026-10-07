@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { usePortfolioStore } from '@/lib/store';
 import { SimpleLayoutConfig, SocialLink, Experience, Project, HeroSection, AboutSection, ContactSection, ProjectsSection } from '@/lib/types';
@@ -51,6 +51,11 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
   const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const [inlineEditingSectionId, setInlineEditingSectionId] = useState<string | null>(null);
   const [sidebarEditingSection, setSidebarEditingSection] = useState<string | null>(null);
+
+  // Resizable sidebar
+  const [sidebarWidth, setSidebarWidth] = useState(600);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStart = useRef({ x: 0, width: 600 });
 
 
   // Auto-open inline editor when a section is selected (e.g., after being added via "+" button)
@@ -110,6 +115,31 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
     sidebarExperiences: [],
     sidebarAbout: '',
   };
+
+  // Resizable sidebar handlers (must be after config)
+  const startResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    resizeStart.current = { x: e.clientX, width: sidebarWidth };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [sidebarWidth]);
+
+  const doResize = useCallback((e: React.PointerEvent) => {
+    if (!isResizing) return;
+    const delta = e.clientX - resizeStart.current.x;
+    const isLeft = config.sidebarPosition !== 'right';
+    const newWidth = isLeft
+      ? resizeStart.current.width + delta
+      : resizeStart.current.width - delta;
+    setSidebarWidth(Math.min(900, Math.max(320, newWidth)));
+  }, [isResizing, config.sidebarPosition]);
+
+  const endResize = useCallback((e: React.PointerEvent) => {
+    if (!isResizing) return;
+    setIsResizing(false);
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  }, [isResizing]);
 
   // Get Hero, About, and Contact sections for sidebar
   const heroSection = sections.find(s => s.type === 'hero') as HeroSection | undefined;
@@ -236,7 +266,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
 
   const sidebarContent = (
 
-    <div className="w-[600px] flex-shrink-0 h-screen sticky top-0 bg-white border-r overflow-y-auto" style={{ borderColor: '#e0e0e0' }}>
+    <div className="flex-shrink-0 h-screen sticky top-0 bg-white border-r overflow-y-auto" style={{ width: sidebarWidth, borderColor: '#e0e0e0' }}>
       <div className="space-y-5" style={{ paddingLeft: '100px', paddingRight: '100px', paddingTop: '24px', paddingBottom: '24px', fontFamily: 'Acumin Pro, sans-serif', fontSize: '15px' }}>
 
 
@@ -724,7 +754,19 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
   return (
     <div className="flex min-h-screen bg-white" style={{ fontFamily: theme.typography.bodyFont }}>
       {/* Left Sidebar */}
-      {config.showSidebar && config.sidebarPosition === 'left' && sidebarContent}
+      {config.showSidebar && config.sidebarPosition === 'left' && <>
+        {sidebarContent}
+        {/* Resize Handle */}
+        <div
+          onPointerDown={startResize}
+          onPointerMove={doResize}
+          onPointerUp={endResize}
+          onPointerCancel={endResize}
+          className={`flex-shrink-0 w-1.5 cursor-col-resize bg-gray-200 hover:bg-blue-400 transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+          style={{ touchAction: 'none' }}
+          title="Drag to resize sidebar"
+        />
+      </>}
 
       {/* Main Content - Project Grid */}
       <div className="flex-1 overflow-y-auto h-screen">
@@ -894,7 +936,19 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
       </div>
 
       {/* Right Sidebar (if position is right) */}
-      {config.showSidebar && config.sidebarPosition === 'right' && sidebarContent}
+      {config.showSidebar && config.sidebarPosition === 'right' && <>
+        {/* Resize Handle */}
+        <div
+          onPointerDown={startResize}
+          onPointerMove={doResize}
+          onPointerUp={endResize}
+          onPointerCancel={endResize}
+          className={`flex-shrink-0 w-1.5 cursor-col-resize bg-gray-200 hover:bg-blue-400 transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+          style={{ touchAction: 'none' }}
+          title="Drag to resize sidebar"
+        />
+        {sidebarContent}
+      </>}
       <ProjectDetailModal project={viewingProject} isOpen={!!viewingProject}
         onClose={() => setViewingProject(null)} theme={theme} projects={projects} onNavigate={setViewingProject} />
     </div>
