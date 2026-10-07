@@ -137,7 +137,7 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="PDF Reader" icon={FileText} showToggle
+      <CollapsibleSection title="PDF Reader" icon={FileText} showToggle defaultOpen={section.showPdf === true}
         toggleChecked={section.showPdf === true} onToggleChange={checked => onUpdate({ showPdf: checked })}>
         <HeroPdfEditor section={section} onUpdate={onUpdate} />
       </CollapsibleSection>

@@ -335,7 +335,7 @@ export const HeroSectionSchema = z.object({
   ...baseSectionFields,
   type: z.literal('hero'),
   showPdf: z.boolean().optional(),
-  pdf: z.object({ url: z.string(), title: z.string().optional(), height: z.number().min(240).max(1600).optional(), offset: z.object({ x: z.number().finite(), y: z.number().finite() }).optional() }).optional(),
+  pdf: z.object({ url: z.string(), title: z.string().optional(), height: z.number().min(240).max(1600).optional(), width: z.number().min(30).max(100).optional(), offset: z.object({ x: z.number().finite(), y: z.number().finite() }).optional() }).optional(),
   name: z.string(),
   title: z.string(),
   subtitle: z.string().default(''),

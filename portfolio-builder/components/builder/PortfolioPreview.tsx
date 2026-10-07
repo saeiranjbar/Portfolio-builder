@@ -1335,8 +1335,8 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         ref={flowContainerRef}
         className={cn(galleryIsDragged ? 'absolute left-0 right-0 top-0' : 'relative')}
         style={galleryIsDragged
-          ? { zIndex: 5, pointerEvents: 'none', height: galleryFlowHeight > 0 ? `${galleryFlowHeight}px` : 'max(60vh, 480px)' }
-          : { zIndex: 5, paddingBottom: '0.5rem', marginTop: `${galleryFlowMargin + galleryFlowOffset}px` }
+          ? { zIndex: 15, pointerEvents: 'none', height: galleryFlowHeight > 0 ? `${galleryFlowHeight}px` : 'max(60vh, 480px)' }
+          : { zIndex: 15, paddingBottom: '0.5rem', marginTop: `${galleryFlowMargin + galleryFlowOffset}px` }
 
         }
       >
