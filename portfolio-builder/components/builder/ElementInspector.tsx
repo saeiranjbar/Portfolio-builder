@@ -28,7 +28,7 @@ export function ElementInspector({ onClose }: ElementInspectorProps) {
       default: return <GenericElementInspector section={section} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
     }
   };
-  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{section.name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{selectedElementId}</span></div>{renderInspector()}</div>);
+  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{(section as any).name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{selectedElementId}</span></div>{renderInspector()}</div>);
 }
 
 interface HeroElementInspectorProps { section: HeroSection; onUpdate: (u: Partial<HeroSection>) => void; elementKey: string; }
