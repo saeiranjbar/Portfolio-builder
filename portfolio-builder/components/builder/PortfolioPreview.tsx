@@ -1383,20 +1383,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           }}
 
         >
-          {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
-          {!previewMode && (
-            <div
-              className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 px-4 cursor-move text-white bg-blue-600 hover:bg-blue-700 rounded-t-lg shadow-lg transition-colors select-none"
-              onMouseDown={(e) => handleMouseDown(e, 'galleryImages')}
-              onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'galleryImages'); } : undefined}
-              onTouchStart={(e) => handleTouchStart(e, 'galleryImages')}
-              style={{ touchAction: 'none', pointerEvents: 'auto' }}
-            >
-              <GripVertical className="w-5 h-5" />
-              <span className="text-xs font-medium">Drag to move gallery</span>
-              <GripVertical className="w-5 h-5" />
-            </div>
-          )}
           <div
             className="grid gap-6"
             style={{
@@ -1493,20 +1479,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
           onTouchStart={(e) => handleTouchStart(e, 'galleryVideos')}
         >
-
-          {/* Drag handle Ã¢â‚¬â€ only visible in edit mode */}
-          {!previewMode && (
-            <div
-              className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-full items-center justify-center gap-2 py-2 px-4 cursor-move text-white bg-blue-600 hover:bg-blue-700 rounded-t-lg shadow-lg transition-colors select-none"
-              onMouseDown={(e) => handleMouseDown(e, 'galleryVideos')}
-              onTouchStart={(e) => handleTouchStart(e, 'galleryVideos')}
-              style={{ touchAction: 'none', pointerEvents: 'auto' }}
-            >
-              <GripVertical className="w-5 h-5" />
-              <span className="text-xs font-medium">Drag to move videos</span>
-              <GripVertical className="w-5 h-5" />
-            </div>
-          )}
           <div className="grid gap-6" style={{ width: '100%', gridTemplateColumns: `repeat(${section.galleryVideoGridCols || 1}, minmax(0, 1fr))` }}>
             {section.galleryVideos.map((video) => (
               <div key={video.id} className="relative group rounded-lg overflow-hidden bg-gray-900 cursor-pointer" style={{ aspectRatio: '16 / 9', width: '100%', minHeight: '200px' }} onClick={(e) => { if (previewMode) { e.stopPropagation(); setFullscreenVideo(video); } }}>
