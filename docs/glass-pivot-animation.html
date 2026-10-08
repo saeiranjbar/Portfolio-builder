@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glass pivot animation</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #eef4f7; color: #183740; font: 16px system-ui, sans-serif; }
+    main { width: min(100%, 620px); text-align: center; }
+    h1 { font-size: 26px; margin: 0 0 8px; }
+    p { color: #55717b; margin: 0; }
+    svg { width: min(100%, 360px); height: auto; overflow: visible; display: block; margin: 12px auto; }
+    #glass, #lid { transform-box: view-box; }
+    #glass { transform-origin: 160px 350px; }
+    #lid { transform-origin: 160px 90px; }
+    .swing { animation: sway var(--duration, 1000ms) ease-in-out 1 both; }
+    @keyframes sway {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(calc(-1 * var(--angle, 10deg))); }
+      75% { transform: rotate(var(--angle, 10deg)); }
+    }
+    .paused .swing { animation-play-state: paused; }
+    .controls { background: #fff; border: 1px solid #dae6eb; border-radius: 18px; padding: 20px; display: grid; gap: 16px; text-align: left; }
+    label { display: grid; gap: 8px; font-size: 14px; }
+    select, button { font: inherit; border: 1px solid #c5d6dd; background: white; border-radius: 9px; padding: 10px 12px; color: inherit; }
+    input { width: 100%; accent-color: #168aa0; }
+    button { cursor: pointer; background: #183740; color: white; border: 0; }
+    .readout { display: flex; justify-content: space-between; }
+    @media (prefers-reduced-motion: reduce) { .swing { animation-play-state: paused; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Glass pivot</h1>
+    <p id="description">The bottom stays fixed. One swing left and right, then back upright.</p>
+    <svg viewBox="0 0 320 420" role="img" aria-label="A glass swinging around its fixed bottom">
+      <defs>
+        <linearGradient id="glass-fill" x1="0" x2="1">
+          <stop stop-color="#fff" stop-opacity=".85"/>
+          <stop offset=".25" stop-color="#c6eff4" stop-opacity=".3"/>
+          <stop offset=".7" stop-color="#fff" stop-opacity=".6"/>
+          <stop offset="1" stop-color="#a6d6df" stop-opacity=".55"/>
+        </linearGradient>
+        <linearGradient id="water" x2="0" y2="1">
+          <stop stop-color="#77d4df" stop-opacity=".6"/>
+          <stop offset="1" stop-color="#209cb1" stop-opacity=".8"/>
+        </linearGradient>
+        <linearGradient id="lid-fill" x2="0" y2="1">
+          <stop stop-color="#7798a4"/>
+          <stop offset="1" stop-color="#244a58"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="160" cy="362" rx="92" ry="13" fill="#254b5a" opacity=".09"/>
+      <path d="M42 365 H278" stroke="#adc7d1" stroke-width="2"/>
+      <g id="glass" class="swing">
+        <path d="M78 92 L98 329 Q101 350 121 350 H199 Q219 350 222 329 L242 92 Z" fill="url(#glass-fill)" stroke="#81b3c1" stroke-width="2"/>
+        <path d="M95 209 Q127 199 160 209 T225 209 L216 326 Q214 340 199 340 H121 Q107 340 105 326 Z" fill="url(#water)"/>
+        <ellipse cx="160" cy="209" rx="65" ry="8" fill="#a4e6ec" opacity=".8"/>
+        <path d="M93 112 L108 298" stroke="white" stroke-width="7" stroke-linecap="round" opacity=".65"/>
+        <path d="M228 115 L211 321" stroke="#f4ffff" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+        <path d="M115 344 H205" stroke="#70a4b4" stroke-width="5" stroke-linecap="round" opacity=".6"/>
+        <g id="lid">
+          <path d="M73 83 Q73 74 85 74 H235 Q247 74 247 83 V97 Q247 104 237 104 H83 Q73 104 73 97 Z" fill="url(#lid-fill)"/>
+          <ellipse cx="160" cy="77" rx="83" ry="10" fill="#94b2bc" stroke="#628998" stroke-width="2"/>
+          <ellipse cx="160" cy="77" rx="66" ry="5" fill="#779ba8"/>
+          <path d="M80 95 H240" stroke="#a9c3cc" stroke-width="2" opacity=".65"/>
+        </g>
+      </g>
+      <circle cx="160" cy="350" r="4" fill="#168aa0"/>
+      <text x="160" y="394" text-anchor="middle" fill="#55717b" font-size="13">Fixed bottom pivot</text>
+    </svg>
+    <div class="controls">
+      <label>Movement
+        <select id="mode"><option value="glass">Tilt glass around its bottom</option><option value="lid">Tilt only the lid</option></select>
+      </label>
+      <label><span class="readout"><span>Angle each side</span><output id="angle-value">10°</output></span><input id="angle" type="range" min="1" max="25" value="10"></label>
+      <label><span class="readout"><span>Time per side</span><output id="speed-value">0.5 seconds</output></span><input id="speed" type="range" min="100" max="2000" step="50" value="500"></label>
+      <button id="pause" type="button" aria-pressed="false">Pause animation</button>
+      <button id="replay" type="button">Replay swing</button>
+    </div>
+  </main>
+  <script>
+    const glass = document.getElementById('glass');
+    const lid = document.getElementById('lid');
+    const mode = document.getElementById('mode');
+    const angle = document.getElementById('angle');
+    const speed = document.getElementById('speed');
+    const pause = document.getElementById('pause');
+    function update() {
+      const onlyLid = mode.value === 'lid';
+      glass.classList.toggle('swing', !onlyLid);
+      lid.classList.toggle('swing', onlyLid);
+      document.documentElement.style.setProperty('--angle', angle.value + 'deg');
+      document.documentElement.style.setProperty('--duration', (Number(speed.value) * 2) + 'ms');
+      document.getElementById('angle-value').textContent = angle.value + '°';
+      document.getElementById('speed-value').textContent = (Number(speed.value) / 1000) + ' seconds';
+      document.getElementById('description').textContent = onlyLid ? 'The glass stays upright. The lid swings ' + angle.value + '° left and right once, then stops.' : 'The bottom stays fixed. One ' + angle.value + '° swing left and right, then back upright.';
+      document.querySelector('svg').setAttribute('aria-label', document.getElementById('description').textContent);
+    }
+    [mode, angle, speed].forEach(input => input.addEventListener('input', update));
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) document.body.classList.add('paused');
+    function labelPause() {
+      const paused = document.body.classList.contains('paused');
+      pause.textContent = paused ? 'Play animation' : 'Pause animation';
+      pause.setAttribute('aria-pressed', String(paused));
+    }
+    pause.addEventListener('click', () => {
+      document.body.classList.toggle('paused');
+      if (reducedMotion) document.querySelectorAll('.swing').forEach(element => element.style.animationPlayState = document.body.classList.contains('paused') ? 'paused' : 'running');
+      labelPause();
+    });
+    document.getElementById('replay').addEventListener('click', () => {
+      const element = mode.value === 'lid' ? lid : glass;
+      document.body.classList.remove('paused');
+      element.classList.remove('swing');
+      void element.getBoundingClientRect();
+      element.style.animationPlayState = 'running';
+      element.classList.add('swing');
+      labelPause();
+    });
+    labelPause();
+    update();
+  </script>
+</body>
+</html>

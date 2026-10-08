@@ -930,6 +930,8 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
               ))}
             </div>
           )}
+          {/* PDF Reader — after CTA, before gallery, clearly within the hero section */}
+          <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
           {section.galleryImages && section.galleryImages.length > 0 && (
             <div className="w-full mt-4 flex justify-center">
               <div
@@ -1032,8 +1034,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             </div>
           )}
         </div>
-
-        <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
 
         {section.showScrollIndicator && (
 
@@ -1326,9 +1326,10 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             <ChevronDown className="w-6 h-6" style={{ color: theme.colors.text }} />
           </div>
         )}
-
-        <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
       </div>{/* End of fixed-height free-form canvas */}
+
+      {/* PDF Reader — between canvas and gallery, clearly within the hero section */}
+      <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
 
       {/* Gallery and Videos flow below the canvas in normal document flow */}
       <div

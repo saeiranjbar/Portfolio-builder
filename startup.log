@@ -1,10 +1,15 @@
-npm error code ENOTFOUND
-npm error syscall getaddrinfo
-npm error errno ENOTFOUND
-npm error network request to https://artifactory.sec.samsung.net/artifactory/api/npm/npm-release/next failed, reason: getaddrinfo ENOTFOUND artifactory.sec.samsung.net
-npm error network This is a problem related to network connectivity.
-npm error network In most cases you are behind a proxy or have bad network settings.
-npm error network
-npm error network If you are behind a proxy, please make sure that the
-npm error network 'proxy' config is set properly.  See: 'npm help config'
-npm error A complete log of this run can be found in: C:\Users\s.ranjbar\AppData\Local\npm-cache\_logs\2026-08-11T18_59_16_359Z-debug-0.log
+
+> portfolio-builder@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://105.146.10.78:3000
+- Environments: .env.local, .env
+✓ Ready in 12.1s
+Creating turbopack project {
+  dir: 'C:\\Users\\s.ranjbar\\Documents\\Cline\\Portfolio Builder\\portfolio-builder',
+  testMode: true
+}
+
+○ Compiling / ...

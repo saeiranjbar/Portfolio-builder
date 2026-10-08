@@ -1,0 +1,21 @@
+▲ Next.js 16.2.2 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://105.146.10.78:3000
+- Environments: .env.local, .env
+✓ Ready in 4.6s
+
+○ Compiling /api/portfolio ...
+ GET /api/portfolio 401 in 10.1s (next.js: 9.7s, application-code: 376ms)
+ GET /api/portfolios 410 in 2.2s (next.js: 1998ms, application-code: 229ms)
+ GET /api/portfolios/example 410 in 4.4s (next.js: 4.3s, application-code: 38ms)
+○ Compiling / ...
+ GET / 200 in 32.0s (next.js: 31.2s, application-code: 727ms)
+○ Compiling / ...
+ GET / 200 in 5.9s (next.js: 4.3s, application-code: 1595ms)
+ GET /site.webmanifest 404 in 7.9s (next.js: 6.6s, application-code: 1360ms)
+ GET /site.webmanifest 404 in 262ms (next.js: 15ms, application-code: 247ms)
+ GET /site.webmanifest 404 in 101ms (next.js: 13ms, application-code: 87ms)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /api/auth/session 200 in 18.1s (next.js: 18.0s, application-code: 58ms)
+ GET / 200 in 6.6s (next.js: 6.5s, application-code: 75ms)
+ GET /site.webmanifest 404 in 1758ms (next.js: 1627ms, application-code: 131ms)

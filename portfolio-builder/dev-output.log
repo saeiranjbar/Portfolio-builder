@@ -1,0 +1,53 @@
+
+> portfolio-builder@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://105.146.10.78:3000
+- Environments: .env.local, .env
+✓ Ready in 3.8s
+Creating turbopack project {
+  dir: 'C:\\Users\\s.ranjbar\\Documents\\Cline\\Portfolio Builder\\portfolio-builder',
+  testMode: true
+}
+
+○ Compiling / ...
+✓ Finished writing to filesystem cache in 11.6s
+
+
+#
+# Fatal error in , line 0
+# Out of memory: HashMap::Initialize
+#
+#
+#
+#FailureMessage Object: 0000008AABFFA3F0
+----- Native stack trace -----
+
+ 1: 00007FF7860D0ECD 
+ 2: 00007FF787533C4F 
+ 3: 00007FF786DC42B6 
+ 4: 00007FF786DC39A2 
+ 5: 00007FF786DC37D0 
+ 6: 00007FF78684AA7F 
+ 7: 00007FF78688A277 
+ 8: 00007FF7868890A6 
+ 9: 00007FF786880696 
+10: 00007FF786881D9B 
+11: 00007FF786880F6E 
+12: 00007FF786892E42 
+13: 00007FF786872915 
+14: 00007FF78687B51B 
+15: 00007FF78687AA1A 
+16: 00007FF78686E117 
+17: 00007FF78686D2E4 
+18: 00007FF78686C5D2 
+19: 00007FF78686C27A 
+20: 00007FF7868678A9 
+21: 00007FF786D43C4F 
+22: 00007FF786D46A51 
+23: 00007FF786DCF6D3 
+24: 00007FF786199063 
+25: 00007FF78619780E 
+26: 00000221A7FCF64D 
