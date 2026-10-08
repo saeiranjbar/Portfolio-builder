@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ImageUploader } from '../ImageUploader';
-import { GalleryUploader } from '../GalleryUploader';
-import { VideoUploader } from '../VideoUploader';
-import { CollapsibleSection } from '../CollapsibleSection';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
+import { ImageUploader } from './ImageUploader';
+import { GalleryUploader } from './GalleryUploader';
+import { VideoUploader } from './VideoUploader';
+import { CollapsibleSection } from './CollapsibleSection';
+import { SectionTextStyleEditor } from './SectionTextStyleEditor';
 import { Type, Image as ImageIcon, Video, FileText, Briefcase, Trash2, Plus, X, Sparkles } from 'lucide-react';
 import { SECTION_TEXT_FIELDS } from '@/lib/text-style-fields';
 
