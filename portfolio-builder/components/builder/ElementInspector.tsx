@@ -1,0 +1,71 @@
+'use client';
+
+import React from 'react';
+import { usePortfolioStore } from '@/lib/store';
+import { HeroSection, AboutSection } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { ImageUploader } from '../ImageUploader';
+import { GalleryUploader } from '../GalleryUploader';
+import { VideoUploader } from '../VideoUploader';
+import { CollapsibleSection } from '../CollapsibleSection';
+import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
+import { Type, Image as ImageIcon, Video, FileText, Briefcase, Trash2, Plus, X, Sparkles } from 'lucide-react';
+import { SECTION_TEXT_FIELDS } from '@/lib/text-style-fields';
+
+interface ElementInspectorProps { onClose?: () => void; }
+
+export function ElementInspector({ onClose }: ElementInspectorProps) {
+  const { portfolio, updateSection, selectedElementId, selectedElementSectionId } = usePortfolioStore();
+  const section = portfolio.sections.find(s => s.id === selectedElementSectionId);
+  if (!section || !selectedElementId) return null;
+  const renderInspector = () => {
+    switch (section.type) {
+      case 'hero': return <HeroElementInspector section={section as HeroSection} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
+      case 'about': return <AboutElementInspector section={section as AboutSection} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
+      default: return <GenericElementInspector section={section} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
+    }
+  };
+  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{section.name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{selectedElementId}</span></div>{renderInspector()}</div>);
+}
+
+interface HeroElementInspectorProps { section: HeroSection; onUpdate: (u: Partial<HeroSection>) => void; elementKey: string; }
+function HeroElementInspector({ section, onUpdate, elementKey }: HeroElementInspectorProps) {
+  const tf = SECTION_TEXT_FIELDS.hero.find(f => f.key === elementKey);
+  if (elementKey === 'avatar') return (<div className="space-y-3"><CollapsibleSection title="Avatar Image" icon={ImageIcon}><ImageUploader value={section.avatar||''} onChange={u=>onUpdate({avatar:u})}/><div className="mt-3"><Label>Size</Label><select value={section.avatarSize||'medium'} onChange={e=>onUpdate({avatarSize:e.target.value as any})} className="w-full px-2 py-1 border rounded text-xs"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div></CollapsibleSection></div>);
+  if (elementKey === 'galleryImages') return (<div className="space-y-3"><CollapsibleSection title="Gallery Images" icon={ImageIcon}><GalleryUploader images={section.galleryImages||[]} onChange={u=>onUpdate({galleryImages:u})}/></CollapsibleSection></div>);
+  if (elementKey === 'galleryVideos') return (<div className="space-y-3"><CollapsibleSection title="Gallery Videos" icon={Video}><VideoUploader videos={section.galleryVideos||[]} onChange={u=>onUpdate({galleryVideos:u})}/></CollapsibleSection></div>);
+  if (elementKey === 'ctaButtons') return (<div className="space-y-3"><CollapsibleSection title="CTA Buttons" icon={Briefcase}>{(section.ctaButtons||[]).map((b,i)=><div key={b.id||i} className="p-2 border rounded space-y-1"><Input value={b.text} onChange={e=>{const n=[...(section.ctaButtons||[])];n[i]={...n[i],text:e.target.value};onUpdate({ctaButtons:n});}} placeholder="Text"/><Input value={b.link} onChange={e=>{const n=[...(section.ctaButtons||[])];n[i]={...n[i],link:e.target.value};onUpdate({ctaButtons:n});}} placeholder="Link"/><Button variant="outline" size="sm" onClick={()=>{const n=(section.ctaButtons||[]).filter((_,x)=>x!==i);onUpdate({ctaButtons:n});}}><Trash2 className="w-3 h-3"/> Remove</Button></div>)}<Button variant="outline" size="sm" onClick={()=>{const n=[...(section.ctaButtons||[]),{id:Math.random().toString(36).substr(2,9),text:'Button',link:'#'}];onUpdate({ctaButtons:n});}}><Plus className="w-3 h-3"/> Add</Button></CollapsibleSection></div>);
+  if (tf) return (<div className="space-y-3"><CollapsibleSection title={tf.label} icon={Type}>{elementKey==='name'&&<Input value={section.name} onChange={e=>onUpdate({name:e.target.value})} placeholder="Name"/>}{elementKey==='title'&&<Input value={section.title} onChange={e=>onUpdate({title:e.target.value})} placeholder="Title"/>}{elementKey==='subtitle'&&<Input value={section.subtitle} onChange={e=>onUpdate({subtitle:e.target.value})} placeholder="Subtitle"/>}{elementKey==='bio'&&<Textarea value={section.bio} onChange={e=>onUpdate({bio:e.target.value})} placeholder="Bio" rows={3}/>}</CollapsibleSection><SectionTextStyleEditor textStyles={section.textStyles} fields={[tf]} onUpdate={u=>onUpdate({textStyles:u})}/></div>);
+  return <div className="text-sm text-gray-500">No editor</div>;
+}
+
+interface AboutElementInspectorProps { section: AboutSection; onUpdate: (u: Partial<AboutSection>) => void; elementKey: string; }
+function AboutElementInspector({ section, onUpdate, elementKey }: AboutElementInspectorProps) {
+  const tf = SECTION_TEXT_FIELDS.about.find(f => f.key === elementKey);
+  if (elementKey === 'image') return (<div className="space-y-3"><CollapsibleSection title="Portrait Image" icon={ImageIcon}><ImageUploader value={section.imageUrl||''} onChange={u=>onUpdate({imageUrl:u})}/><div className="grid grid-cols-2 gap-2 mt-2"><div><Label className="text-xs">Width</Label><Input type="number" value={section.imageWidth||896} onChange={e=>onUpdate({imageWidth:parseInt(e.target.value)||896})}/></div><div><Label className="text-xs">Height</Label><Input type="number" value={section.imageHeight||300} onChange={e=>onUpdate({imageHeight:parseInt(e.target.value)||300})}/></div></div></CollapsibleSection></div>);
+  if (elementKey === 'secondImage') return (<div className="space-y-3"><CollapsibleSection title="Second Image" icon={ImageIcon}><ImageUploader value={section.secondImageUrl||''} onChange={u=>onUpdate({secondImageUrl:u})}/><div className="grid grid-cols-2 gap-2 mt-2"><div><Label className="text-xs">Width</Label><Input type="number" value={section.secondImageWidth||300} onChange={e=>onUpdate({secondImageWidth:parseInt(e.target.value)||300})}/></div><div><Label className="text-xs">Height</Label><Input type="number" value={section.secondImageHeight||200} onChange={e=>onUpdate({secondImageHeight:parseInt(e.target.value)||200})}/></div></div></CollapsibleSection></div>);
+  if (elementKey === 'quickFacts') return (<div className="space-y-3"><CollapsibleSection title="Quick Facts" icon={Sparkles}>{(section.quickFacts||[]).map((f,i)=><div key={f.id} className="p-2 border rounded space-y-1"><Input value={f.label} onChange={e=>{const n=[...(section.quickFacts||[])];n[i]={...n[i],label:e.target.value};onUpdate({quickFacts:n});}} placeholder="Label"/><Input value={f.value} onChange={e=>{const n=[...(section.quickFacts||[])];n[i]={...n[i],value:e.target.value};onUpdate({quickFacts:n});}} placeholder="Value"/><Button variant="outline" size="sm" onClick={()=>{const n=(section.quickFacts||[]).filter((_,x)=>x!==i);onUpdate({quickFacts:n});}}><Trash2 className="w-3 h-3"/> Remove</Button></div>)}<Button variant="outline" size="sm" onClick={()=>{const n=[...(section.quickFacts||[]),{id:Math.random().toString(36).substr(2,9),label:'Fact',value:'0+'}];onUpdate({quickFacts:n});}}><Plus className="w-3 h-3"/> Add</Button></CollapsibleSection></div>);
+  if (elementKey === 'video') return (<div className="space-y-3"><CollapsibleSection title="Video" icon={Video}><Input value={section.videoUrl||''} onChange={e=>onUpdate({videoUrl:e.target.value})} placeholder="YouTube/Vimeo URL"/></CollapsibleSection></div>);
+  if (elementKey === 'quote') return (<div className="space-y-3"><CollapsibleSection title="Personal Quote" icon={Sparkles}><Textarea value={section.personalQuote||''} onChange={e=>onUpdate({personalQuote:e.target.value})} placeholder="Personal quote" rows={3}/></CollapsibleSection><SectionTextStyleEditor textStyles={section.textStyles} fields={[{key:'personalQuote',label:'Personal Quote'}]} onUpdate={u=>onUpdate({textStyles:u})}/></div>);
+  if (elementKey === 'cta') return (<div className="space-y-3"><CollapsibleSection title="CTA Button" icon={Briefcase}><Input value={section.ctaButtonText||''} onChange={e=>onUpdate({ctaButtonText:e.target.value})} placeholder="Text"/><Input value={section.ctaButtonLink||''} onChange={e=>onUpdate({ctaButtonLink:e.target.value})} placeholder="Link"/></CollapsibleSection></div>);
+  if (elementKey === 'secondParagraph') return (<div className="space-y-3"><CollapsibleSection title="Second Paragraph" icon={FileText}><Textarea value={section.secondParagraph||''} onChange={e=>onUpdate({secondParagraph:e.target.value})} placeholder="Second paragraph" rows={4}/></CollapsibleSection><SectionTextStyleEditor textStyles={section.textStyles} fields={[{key:'secondParagraph',label:'Second Paragraph'}]} onUpdate={u=>onUpdate({textStyles:u})}/></div>);
+  if (elementKey === 'location') return (<div className="space-y-3"><CollapsibleSection title="Location" icon={FileText}><Input value={section.location||''} onChange={e=>onUpdate({location:e.target.value})} placeholder="Location"/></CollapsibleSection><SectionTextStyleEditor textStyles={section.textStyles} fields={[{key:'location',label:'Location'}]} onUpdate={u=>onUpdate({textStyles:u})}/></div>);
+  if (tf) return (<div className="space-y-3"><CollapsibleSection title={tf.label} icon={Type}>{elementKey==='title'&&<Input value={section.title} onChange={e=>onUpdate({title:e.target.value})} placeholder="Title"/>}{elementKey==='tagline'&&<Input value={section.tagline||''} onChange={e=>onUpdate({tagline:e.target.value})} placeholder="Tagline"/>}{elementKey==='content'&&<Textarea value={section.content} onChange={e=>onUpdate({content:e.target.value})} placeholder="Bio" rows={4}/>}</CollapsibleSection><SectionTextStyleEditor textStyles={section.textStyles} fields={[tf]} onUpdate={u=>onUpdate({textStyles:u})}/></div>);
+  return <div className="text-sm text-gray-500">No editor</div>;
+}
+
+interface GenericElementInspectorProps { section: any; onUpdate: (u: Partial<any>) => void; elementKey: string; }
+function GenericElementInspector({ section, onUpdate, elementKey }: GenericElementInspectorProps) {
+  if (elementKey.startsWith('exp-')||elementKey.startsWith('edu-')||elementKey.startsWith('award-')||elementKey.startsWith('cert-')) {
+    const parts = elementKey.split('-'), type = parts[0], idx = parseInt(parts[1]);
+    const arr = section[type==='exp'?'experiences':type==='edu'?'education':type==='award'?'awards':'certifications'];
+    if (!arr||!arr[idx]) return <div className="text-sm text-gray-500">Not found</div>;
+    const item = arr[idx];
+    return (<div className="space-y-3">{type==='exp'&&<><CollapsibleSection title="Position" icon={Briefcase}><Input value={item.position||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],position:e.target.value};onUpdate({experiences:n});}} placeholder="Position"/></CollapsibleSection><CollapsibleSection title="Company" icon={Briefcase}><Input value={item.company||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],company:e.target.value};onUpdate({experiences:n});}} placeholder="Company"/></CollapsibleSection></>}{type==='edu'&&<><CollapsibleSection title="Institution" icon={Briefcase}><Input value={item.institution||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],institution:e.target.value};onUpdate({education:n});}} placeholder="Institution"/></CollapsibleSection><CollapsibleSection title="Degree" icon={Briefcase}><Input value={item.degree||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],degree:e.target.value};onUpdate({education:n});}} placeholder="Degree"/></CollapsibleSection></>}{type==='award'&&<><CollapsibleSection title="Award" icon={Briefcase}><Input value={item.title||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],title:e.target.value};onUpdate({awards:n});}} placeholder="Title"/></CollapsibleSection><CollapsibleSection title="Org" icon={Briefcase}><Input value={item.organization||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],organization:e.target.value};onUpdate({awards:n});}} placeholder="Organization"/></CollapsibleSection></>}{type==='cert'&&<><CollapsibleSection title="Certification" icon={Briefcase}><Input value={item.name||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],name:e.target.value};onUpdate({certifications:n});}} placeholder="Name"/></CollapsibleSection><CollapsibleSection title="Issuer" icon={Briefcase}><Input value={item.issuer||''} onChange={e=>{const n=[...arr];n[idx]={...n[idx],issuer:e.target.value};onUpdate({certifications:n});}} placeholder="Issuer"/></CollapsibleSection></>}</div>);
+  }
+  if (elementKey.startsWith('cat-')) return <div className="text-sm text-gray-500">Edit in Skills panel</div>;
+  return <div className="text-sm text-gray-500">Edit in section panel</div>;
+}

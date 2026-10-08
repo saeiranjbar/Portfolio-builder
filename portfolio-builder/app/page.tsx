@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePortfolioStore } from '@/lib/store';
 import { SectionEditor } from '@/components/builder/SectionEditor';
+import { ElementInspector } from '@/components/builder/ElementInspector';
 import { SectionListPanel } from '@/components/builder/SectionListPanel';
 import { AddSectionDialog } from '@/components/builder/AddSectionDialog';
 import { PortfolioPreview } from '@/components/builder/PortfolioPreview';
@@ -81,6 +82,7 @@ function AuthenticatedBuilder() {
     setViewMode,
     setPortfolio,
     selectSection,
+    selectElement,
     removeSection,
     updateSection,
     isDirty,
@@ -91,6 +93,8 @@ function AuthenticatedBuilder() {
     canRedo,
     duplicateSection,
     selectedSectionId,
+    selectedElementId,
+    selectedElementSectionId,
     setLayoutMode,
     createBlankFlexibleSite,
   } = usePortfolioStore();
@@ -862,6 +866,9 @@ function AuthenticatedBuilder() {
 
                 {/* Divider */}
                 <div className="border-t" />
+
+                {/* Element Inspector — shows when an element is selected */}
+                {selectedElementId && <ElementInspector onClose={() => selectElement(null, null)} />}
 
                 {/* Section Editor — accordion style, all sections listed */}
                 <SectionEditor />

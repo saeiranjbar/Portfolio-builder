@@ -22,6 +22,7 @@ interface FreeFormSectionProps {
   elements: FreeFormElement[];
   onPositionChange: (key: string, position: ElementPosition) => void;
   onBatchPositionChange?: (updates: Record<string, ElementPosition>) => void;
+  onElementClick?: (key: string) => void;
   backgroundStyle?: React.CSSProperties;
   className?: string;
   minHeight?: string;
@@ -38,6 +39,7 @@ export function FreeFormSection({
   elements,
   onPositionChange,
   onBatchPositionChange,
+  onElementClick,
   backgroundStyle,
   className,
   minHeight = 'min-h-screen',
@@ -82,6 +84,7 @@ export function FreeFormSection({
     onPositionChange,
     getElementHeights,
     onBatchPositionChange,
+    onElementClick,
   });
 
   // Measure actual content height to ensure background extends to the bottom.

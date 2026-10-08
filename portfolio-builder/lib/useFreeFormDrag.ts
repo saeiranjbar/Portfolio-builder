@@ -12,6 +12,8 @@ interface FreeFormDragConfig {
   getElementHeights?: () => Record<string, number>;
   /** Batch position update for multiple elements at once (used by push/collision resolution). */
   onBatchPositionChange?: (updates: Record<string, ElementPosition>) => void;
+  /** Called when user clicks on an element (for selection). */
+  onElementClick?: (key: string) => void;
 }
 
 /** Minimum vertical gap between elements after push resolution (in % of section height). */
@@ -144,6 +146,10 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
     e.preventDefault();
     e.stopPropagation();
+    // Call onElementClick for selection before drag starts
+    if (configRef.current.onElementClick) {
+      configRef.current.onElementClick(element);
+    }
     if (!sectionRef.current) return;
     const rect = sectionRef.current.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * 100;

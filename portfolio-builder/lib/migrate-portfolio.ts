@@ -67,8 +67,13 @@ export function siteSettingsToPortfolioFields(
 
 // Sections cross the legacy/new type boundary structurally unchanged; the
 // two type systems describe the same JSON (site-types mirrors types.ts).
+// freeFormEnabled defaults to true so all sections are draggable in flexible mode.
 export function sectionsFromSiteData(sections: SiteData['pages'][number]['sections']): PortfolioSection[] {
-  return sections as unknown as PortfolioSection[];
+  return (sections as unknown as PortfolioSection[]).map((s) => ({
+    ...s,
+    freeFormEnabled: s.freeFormEnabled ?? true,
+    snapEnabled: s.snapEnabled ?? true,
+  }));
 }
 
 // URL-safe slug from a site or page name: "Bella Cucina!" -> "bella-cucina"

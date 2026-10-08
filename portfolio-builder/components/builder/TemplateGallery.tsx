@@ -73,7 +73,7 @@ export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
       name: template.name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      sections: template.defaultSections as any,
+      sections: (template.defaultSections as any).map((s: any) => ({ ...s, freeFormEnabled: true, snapEnabled: s.snapEnabled !== false })),
       theme: template.theme,
       metadata: {
         title: template.name,

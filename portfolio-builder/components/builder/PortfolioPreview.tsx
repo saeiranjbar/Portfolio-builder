@@ -290,13 +290,14 @@ export function SectionRenderer({ section, theme, onEditProject, useLandingBackg
 
 
 function GenericFreeFormCategory({ section, theme, onEditProject }: { section: PortfolioSection; theme: any; onEditProject?: (project: Project) => void }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
   const positions = (section as any).elementPositions || {};
 
   return (
     <FreeFormSection
       sectionId={section.id}
       snapEnabled={section.snapEnabled !== false}
+      onElementClick={(key: string) => selectElement(section.id, key)}
       elements={[{
         key: 'categoryContent',
         visible: true,
@@ -322,12 +323,13 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
       }}
       backgroundStyle={{ backgroundColor: 'transparent' }}
       minHeight="min-h-[115vh]"
+      onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
     />
   );
 }
 // ============ HERO ============
 function HeroPreview({ section, theme, useLandingBackground = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const sectionRef = React.useRef<HTMLElement>(null);
   const [dragging, setDragging] = React.useState<string | null>(null);
@@ -1569,7 +1571,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
 // ============ ABOUT ============
 function AboutPreview({ section, theme }: { section: AboutSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const imageShapeClass = section.imageShape === 'circle' ? 'rounded-full' : section.imageShape === 'square' ? 'rounded-none' : 'rounded-lg';
   const imageLayout = section.imageLayout || 'left';
@@ -1776,6 +1778,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-screen"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
       />
     );
   }
@@ -2310,7 +2313,7 @@ function getSkillIcon(iconId: string | undefined): React.ElementType {
 
 // ============ SKILLS ============
 function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
   const categories = [...new Set(section.skills.map((s) => s.category))];
   const displayStyle = section.displayStyle || 'bars';
 
@@ -2415,7 +2418,8 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
       <FreeFormSection sectionId={section.id} snapEnabled={snapEnabled} elements={elements}
         onPositionChange={handlePositionChange}
         onBatchPositionChange={handleBatchPositionChange} backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
-        minHeight="min-h-[200px]" />
+        minHeight="min-h-[200px]"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)} />
     );
   }
 
@@ -2504,7 +2508,7 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
 
 // ============ EXPERIENCE ============
 function ExperiencePreview({ section, theme }: { section: ExperienceSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
   const layout = section.layout || 'left';
 
   // Free-form mode: each element (title + each experience) is independently draggable
@@ -2585,6 +2589,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
         onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
       />
     );
   }
@@ -2629,7 +2634,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
 
 // ============ EDUCATION ============
 function EducationPreview({ section, theme }: { section: EducationSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
 
   // Free-form mode: each element (title + each education) is independently draggable
   if (section.freeFormEnabled) {
@@ -2697,6 +2702,7 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
         onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
       />
     );
   }
@@ -3148,7 +3154,7 @@ function StatsPreview({ section, theme }: { section: StatsSection; theme: any })
 
 // ============ AWARDS ============
 function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
 
   // Free-form mode: each element (title + each award) is independently draggable
   if (section.freeFormEnabled) {
@@ -3215,6 +3221,7 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
         onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
       />
     );
   }
@@ -3279,7 +3286,7 @@ function PressPreview({ section, theme }: { section: PressSection; theme: any })
 
 // ============ CERTIFICATIONS ============
 function CertificationsPreview({ section, theme }: { section: CertificationsSection; theme: any }) {
-  const { updateSection } = usePortfolioStore();
+  const { updateSection, selectElement } = usePortfolioStore();
 
   // Free-form mode: each element (title + each certification) is independently draggable
   if (section.freeFormEnabled) {
@@ -3346,6 +3353,7 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
         onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
+        onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
       />
     );
   }

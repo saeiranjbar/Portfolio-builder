@@ -121,6 +121,11 @@ interface PortfolioState {
   // Distinguishes replacement drafts, including imports with the same portfolio ID.
   draftVersion: number;
   selectedSectionId: string | null;
+  // Element-level selection for the focused inspector panel.
+  // When set, the left panel shows attributes for just this element
+  // instead of the full section editor.
+  selectedElementId: string | null;
+  selectedElementSectionId: string | null;
   previewMode: boolean;
   viewMode: 'desktop' | 'tablet' | 'mobile';
   isDirty: boolean;
@@ -145,6 +150,7 @@ interface PortfolioState {
   reorderFlowComponents: (ids: string[]) => void;
   moveSection: (sectionId: string, direction: 'up' | 'down') => void;
   selectSection: (sectionId: string | null) => void;
+  selectElement: (sectionId: string | null, elementKey: string | null) => void;
   setTheme: (theme: Theme) => void;
   updateMetadata: (updates: Partial<PortfolioData['metadata']>) => void;
   updateNavbar: (updates: Partial<NavbarConfig>) => void;
@@ -532,6 +538,8 @@ const editorPortfolioStore = create<PortfolioState>()(
       cloudPortfolio: null,
       draftVersion: 0,
       selectedSectionId: null,
+      selectedElementId: null,
+      selectedElementSectionId: null,
       previewMode: false,
       viewMode: 'desktop',
       isDirty: false,
@@ -599,6 +607,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             future: [],
             selectedSectionId:
               state.selectedSectionId === sectionId ? null : state.selectedSectionId,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             isDirty: true,
           };
         }),
@@ -701,6 +711,9 @@ const editorPortfolioStore = create<PortfolioState>()(
         }),
 
       selectSection: (sectionId) => set({ selectedSectionId: sectionId }),
+
+      selectElement: (sectionId, elementKey) =>
+        set({ selectedElementSectionId: sectionId, selectedElementId: elementKey }),
 
       setTheme: (theme) =>
         set((state) => {
@@ -837,6 +850,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: fresh.sections }],
             currentPageId: 'home',
             selectedSectionId: null,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             future: [],
             isDirty: false,
           };
@@ -861,6 +876,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections }],
             currentPageId: 'home',
             selectedSectionId: sections[0].id,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             future: [],
             isDirty: false,
           };
@@ -875,6 +892,8 @@ const editorPortfolioStore = create<PortfolioState>()(
         cloudPortfolio: website.reference,
         draftVersion: state.draftVersion + 1,
         selectedSectionId: null,
+        selectedElementId: null,
+        selectedElementSectionId: null,
         previewMode: false,
         past: [], future: [], isDirty: false,
       })),
@@ -970,6 +989,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             currentPageId: newPage.id,
             portfolio: { ...state.portfolio, updatedAt: new Date().toISOString(), sections: newPage.sections },
             selectedSectionId: null,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             // History is per-page; undoing across a page switch would restore
             // another page's sections into this one.
             past: [],
@@ -992,6 +1013,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             currentPageId: next.id,
             portfolio: { ...state.portfolio, updatedAt: new Date().toISOString(), sections: next.sections },
             selectedSectionId: null,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             past: [],
             future: [],
             isDirty: true,
@@ -1011,6 +1034,8 @@ const editorPortfolioStore = create<PortfolioState>()(
             currentPageId: pageId,
             portfolio: { ...state.portfolio, sections: target.sections },
             selectedSectionId: null,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             past: [],
             future: [],
           };
@@ -1062,6 +1087,8 @@ const editorPortfolioStore = create<PortfolioState>()(
               sections: first.sections,
             },
             selectedSectionId: null,
+            selectedElementId: null,
+            selectedElementSectionId: null,
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             future: [],
             isDirty: true,
@@ -1153,6 +1180,7 @@ export function createPublishedPortfolioStore(portfolio: PortfolioData, pages: E
   return createStore<PortfolioState>((set, get) => ({
     ...initial, ...actions, portfolio, pages, currentPageId,
     cloudPortfolio: null, previewMode: true, selectedSectionId: null,
+    selectedElementId: null, selectedElementSectionId: null,
     past: [], future: [], isDirty: false,
     canUndo: () => false, canRedo: () => false,
     // Visitors may toggle appearance without changing the saved website.
