@@ -35,7 +35,9 @@ The server rechecks availability when publishing; the unique database constraint
 
 Open Hero > PDF Reader to upload a PDF up to 10 MB or paste a direct public HTTPS PDF link. Set the document title and reader height, then save and publish to update the public website. Larger documents should use a public link ending in `.pdf`. Uploaded documents are stored on the server under `/uploads` and served as static files; only the URL is stored with the website content, keeping the saved document small. The reader includes an Open PDF link for browsers that cannot display the embedded document. Linked files must permit embedding.
 
-Drag the reader's Move handle to position it in the canvas, using a mouse or touch. Reset PDF position restores its original location. Placement is stored as relative offsets and preserved on save, publication, and HTML export. Movement controls appear only in the editor; visitors can use the PDF reader normally.
+Drag a component's handle to reorder it anywhere in the page body, including between categories. A photo grid can move above a title, or a Hero PDF below Projects. All body components use normal document flow, so neighboring content shifts and keeps its own space. Legacy free-position coordinates are ignored in the body layout. The profile sidebar in simple mode remains a separate sidebar.
+
+Component order is stored as `flowOrder` ranks on the source sections, preserving category ownership and all content. Ranks survive saving, multi-page switching, publication, and HTML export; no database migration is required. Dragging supports mouse and touch, scrolls near the edge of the preview, and records one undo step on release. Arrow up/down keys also reorder a focused handle. Visitors see the saved order without movement controls.
 
 The reader sits in the Hero body alongside text and galleries with a transparent wrapper. It does not use a popup or floating card. The embedded URL requests a fitted document view with the PDF toolbar and navigation panes hidden; support for these parameters depends on the browser's PDF viewer.
 

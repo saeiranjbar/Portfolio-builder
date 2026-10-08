@@ -38,6 +38,7 @@ import { MouseColorShift } from './effects/MouseColorShift';
 import { SplashButton } from './effects/SplashButton';
 import { AnimatedText } from './AnimatedText';
 import { HeroPdfReader } from './HeroPdfReader';
+import { FlowPortfolio } from './FlowPortfolio';
 import { ColorRibbon } from './effects/ColorRibbon';
 
 
@@ -243,23 +244,10 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
         />
       )}
 
+      {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" />}
+      {(heroSection?.backgroundType === 'video' || heroSection?.backgroundType === 'image') && !!heroSection.backgroundOverlayOpacity && <div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: heroSection.backgroundOverlayOpacity / 100 }} />}
       <div style={{ minHeight: '100vh' }}>
-        {sectionsToShow.map((section) => (
-          <div
-            key={section.id}
-            id={`section-${section.id}`}
-            data-section-type={section.type}
-            className="scroll-mt-0 transition-all duration-300"
-          >
-            <SectionRenderer
-              section={section}
-              theme={theme}
-              onEditProject={onEditProject}
-              useLandingBackground={section.id === heroSection?.id}
-              onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })}
-            />
-          </div>
-        ))}
+        <FlowPortfolio sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
       </div>
 
     </div>
@@ -267,9 +255,9 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
 }
 
 export function SectionRenderer({ section, theme, onEditProject, useLandingBackground = false, onSelectCategory }: any) {
-  // Hero, About, Experience, Education, Awards, and Certifications expose their individual fields in free-form mode.
+  // Hero, About, Experience, Education, Awards, Certifications, and Skills expose their individual fields in free-form mode.
   // Other categories use the same snap canvas for their complete category block.
-  if (section.freeFormEnabled && section.type !== 'hero' && section.type !== 'about' && section.type !== 'experience' && section.type !== 'education' && section.type !== 'awards' && section.type !== 'certifications') {
+  if (section.freeFormEnabled && section.type !== 'hero' && section.type !== 'about' && section.type !== 'experience' && section.type !== 'education' && section.type !== 'awards' && section.type !== 'certifications' && section.type !== 'skills') {
     return (
       <GenericFreeFormCategory section={section} theme={theme} onEditProject={onEditProject} />
     );
@@ -327,6 +315,11 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
       onPositionChange={(key, position) => updateSection(section.id, {
         elementPositions: { ...positions, [key]: position },
       } as Partial<PortfolioSection>)}
+      onBatchPositionChange={(updates) => {
+        const newPositions = { ...positions };
+        for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+        updateSection(section.id, { elementPositions: newPositions } as Partial<PortfolioSection>);
+      }}
       backgroundStyle={{ backgroundColor: 'transparent' }}
       minHeight="min-h-[115vh]"
     />
@@ -1768,6 +1761,11 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
       const newPositions = { ...positions, [key]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
 
     return (
       <FreeFormSection
@@ -1775,6 +1773,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         snapEnabled={snapEnabled}
         elements={elements}
         onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-screen"
       />
@@ -2311,9 +2310,116 @@ function getSkillIcon(iconId: string | undefined): React.ElementType {
 
 // ============ SKILLS ============
 function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any }) {
+  const { updateSection } = usePortfolioStore();
   const categories = [...new Set(section.skills.map((s) => s.category))];
   const displayStyle = section.displayStyle || 'bars';
 
+  // Render a single skill category group (header + skills in the chosen display style)
+  const renderCategoryContent = (category: string) => {
+    const categorySkills = section.skills.filter((s) => s.category === category);
+    return (
+      <div style={{ width: '600px' }}>
+        <h3 className="text-lg font-semibold mb-4" style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.primary })}>{category}</h3>
+        {displayStyle === 'bars' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {categorySkills.map((skill) => {
+              const Icon = getSkillIcon(skill.icon);
+              return (
+                <div key={skill.id} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${theme.colors.primary}15` }}>
+                    <Icon className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span><span style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.level}%</span></div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} /></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {displayStyle === 'circles' && (
+          <div className="flex flex-wrap gap-6">
+            {categorySkills.map((skill) => {
+              const Icon = getSkillIcon(skill.icon);
+              return (
+                <div key={skill.id} className="flex flex-col items-center">
+                  <div className="relative w-20 h-20">
+                    <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={theme.colors.primary} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
+                    <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
+                  </div>
+                  <span className="text-sm mt-2 text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {displayStyle === 'tags' && (
+          <div className="flex flex-wrap gap-2">
+            {categorySkills.map((skill) => {
+              const Icon = getSkillIcon(skill.icon);
+              return (
+                <span key={skill.id} className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5" style={{ backgroundColor: `${theme.colors.primary}15`, color: theme.colors.primary }}>
+                  <Icon className="w-3.5 h-3.5" />
+                  <span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.primary })}>{skill.name}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {displayStyle === 'icons' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categorySkills.map((skill) => {
+              const Icon = getSkillIcon(skill.icon);
+              return (
+                <div key={skill.id} className="flex flex-col items-center p-4 rounded-lg border" style={{ borderColor: `${theme.colors.primary}30` }}>
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${theme.colors.primary}15` }}>
+                    <Icon className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                  </div>
+                  <span className="text-sm font-medium text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
+                  {skill.yearsExperience && <span className="text-xs" style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.yearsExperience}+ years</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Free-form mode: title + each skill category is independently draggable
+  if (section.freeFormEnabled) {
+    const positions = (section as any).elementPositions || {};
+    const snapEnabled = section.snapEnabled !== false;
+    const defaultPositions: Record<string, ElementPosition> = { title: { x: 50, y: 5 } };
+    categories.forEach((_, i) => { defaultPositions[`cat-${i}`] = { x: 50, y: 10 + i * 15 }; });
+    const elements: FreeFormElement[] = [];
+    elements.push({
+      key: 'title', visible: section.showTitle !== false,
+      position: positions.title, defaultPosition: defaultPositions.title,
+      content: (<h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>),
+    });
+    categories.forEach((category, i) => {
+      elements.push({ key: `cat-${i}`, visible: true, position: positions[`cat-${i}`], defaultPosition: defaultPositions[`cat-${i}`], content: renderCategoryContent(category) });
+    });
+    const handlePositionChange = (key: string, pos: ElementPosition) => {
+      updateSection(section.id, { elementPositions: { ...positions, [key]: pos } } as any);
+    };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
+    return (
+      <FreeFormSection sectionId={section.id} snapEnabled={snapEnabled} elements={elements}
+        onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange} backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
+        minHeight="min-h-[200px]" />
+    );
+  }
+
+  // Normal layout mode
   return (
     <AnimatedSection>
       <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
@@ -2464,6 +2570,11 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
       const newPositions = { ...positions, [key]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
 
     return (
       <FreeFormSection
@@ -2471,6 +2582,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
         snapEnabled={snapEnabled}
         elements={elements}
         onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
       />
@@ -2570,6 +2682,11 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
       const newPositions = { ...positions, [key]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
 
     return (
       <FreeFormSection
@@ -2577,6 +2694,7 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
         snapEnabled={snapEnabled}
         elements={elements}
         onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
       />
@@ -3082,6 +3200,11 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
       const newPositions = { ...positions, [key]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
 
     return (
       <FreeFormSection
@@ -3089,6 +3212,7 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
         snapEnabled={snapEnabled}
         elements={elements}
         onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
       />
@@ -3207,6 +3331,11 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
       const newPositions = { ...positions, [key]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
+    const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
+      const newPositions = { ...positions };
+      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      updateSection(section.id, { elementPositions: newPositions } as any);
+    };
 
     return (
       <FreeFormSection
@@ -3214,6 +3343,7 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
         snapEnabled={snapEnabled}
         elements={elements}
         onPositionChange={handlePositionChange}
+        onBatchPositionChange={handleBatchPositionChange}
         backgroundStyle={getSectionBackgroundStyle(section.sectionBackground, theme)}
         minHeight="min-h-[200px]"
       />

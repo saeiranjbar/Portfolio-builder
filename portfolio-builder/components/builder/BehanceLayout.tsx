@@ -15,7 +15,7 @@ import {
 import { OptimizedImage } from './OptimizedImage';
 import { ProjectEditor } from './ProjectEditor';
 import { SectionRenderer } from './PortfolioPreview';
-import { HeroPdfReader } from './HeroPdfReader';
+import { FlowPortfolio } from './FlowPortfolio';
 import { SectionEditor } from './SectionEditor';
 import { ProjectDetailModal } from './ProjectDetailModal';
 
@@ -768,171 +768,11 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         />
       </>}
 
-      {/* Main Content - Project Grid */}
-      <div className="flex-1 overflow-y-auto h-screen">
-        {heroSection && heroSection.visible !== false && <HeroPdfReader section={heroSection} onMove={previewMode ? undefined : offset => updateSection(heroSection.id, { pdf: { ...heroSection.pdf!, offset } })} />}
-        {/* Project Grid */}
-        <div className="p-6">
-
-
-
-            <div className="max-w-[1440px] mx-auto">
-              {projects.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-lg font-medium mb-2" style={{ color: theme.colors.text }}>
-                    No projects yet
-                  </div>
-                  <p className="text-sm mb-4" style={{ color: theme.colors.textSecondary }}>
-                    Add your first project to showcase your work
-                  </p>
-                  <button
-                    onClick={handleAddProject}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-white transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: theme.colors.primary }}
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Your First Project
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  {/* Add Project Button (shown when projects exist) */}
-                  <div className="flex justify-end mb-4">
-                      <button
-                        onClick={handleAddProject}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white text-sm transition-opacity hover:opacity-90"
-                        style={{ backgroundColor: theme.colors.primary }}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Project
-                      </button>
-                    </div>
-                  <div className="grid grid-cols-3 gap-6">
-                    {projects.map((project) => (
-                      <div
-                        key={project.id}
-                        className="group cursor-pointer"
-                        onClick={() => handleProjectClick(project)}
-                      >
-                        {/* Project Image */}
-                        <div className="relative overflow-hidden rounded-sm mb-3" style={{ width: '100%', aspectRatio: '4/3', minHeight: '280px' }}>
-                          {project.imageUrl ? (
-                            <img
-                              src={project.imageUrl}
-                              alt={project.title}
-                              className="w-full h-full object-cover"
-                              style={{ display: 'block' }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                              <span className="text-gray-400 text-sm">No image</span>
-                            </div>
-                          )}
-
-                          {/* Delete Button (shown on hover in edit mode) */}
-                          {isEditMode && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm(`Delete project "${project.title}"?`)) {
-                                  handleDeleteProject(project.id);
-                                }
-                              }}
-                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                              title="Delete project"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {/* Hover Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                            <h3 className="font-semibold text-white text-sm mb-1">{project.title}</h3>
-                            {project.description && (
-                              <p className="text-xs text-gray-200 line-clamp-2">{project.description}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Project Info (visible without hover) */}
-                        <div className="text-center">
-                          <h3 className="font-bold truncate" style={{ fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#696969', textAlign: 'center' }}>
-
-                            {project.title}
-                          </h3>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-
-        {/* Other sections below projects - render actual section content with inline editing */}
-
-        <div>
-
-          {sections
-            .filter(s => s.type !== 'projects' && s.type !== 'hero' && s.type !== 'about' && s.type !== 'contact' && s.type !== 'skills' && s.visible !== false)
-            .map((section) => {
-
-              const isInlineEditing = inlineEditingSectionId === section.id;
-              return (
-                <div key={section.id} id={`section-${section.id}`} className="relative group/section">
-                  {/* Edit overlay button (shown on hover in edit mode) */}
-                  {isEditMode && !isInlineEditing && (
-                    <div className="absolute top-4 right-4 z-20 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => {
-                          selectSection(section.id);
-                          setInlineEditingSectionId(section.id);
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white text-sm shadow-lg"
-                        style={{ backgroundColor: theme.colors.primary }}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Edit Section
-                      </button>
-                    </div>
-                  )}
-
-                  {isInlineEditing ? (
-                    /* Inline editor mode */
-                    <div className="bg-gray-50">
-                      {/* Editor header bar */}
-                      <div className="sticky top-0 z-30 bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm">
-                        <h3 className="text-sm font-semibold text-gray-700">
-                          Editing: {section.type.charAt(0).toUpperCase() + section.type.slice(1)}
-                        </h3>
-                        <button
-                          onClick={() => {
-                            setInlineEditingSectionId(null);
-                            selectSection(null);
-                          }}
-                          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-medium text-white text-sm"
-                          style={{ backgroundColor: theme.colors.primary }}
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Done
-                        </button>
-                      </div>
-                      {/* The actual section editor */}
-                      <div className="max-w-4xl mx-auto">
-                        <SectionEditor />
-                      </div>
-                    </div>
-                  ) : (
-                    /* Normal rendered section */
-                    <SectionRenderer section={section} theme={theme} />
-                  )}
-                </div>
-              );
-            })}
-        </div>
-
-
+      {/* Body components share one ordered layout; profile stays in its sidebar. */}
+      <div className="min-w-0 flex-1 overflow-y-auto h-screen">
+        {!previewMode && <button type="button" onClick={handleAddProjectInternal} className="m-4 rounded-lg px-4 py-2 text-white" style={{ background: theme.colors.primary }}>Add project</button>}
+        <FlowPortfolio sections={sections.map(section => section.type === 'hero' ? { ...section, showAvatar: false, showName: false, showTitle: false, showSubtitle: false, showBio: false } : section)} theme={theme}
+          renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={previewMode ? undefined : handleProjectClick} />} />
       </div>
 
       {/* Right Sidebar (if position is right) */}

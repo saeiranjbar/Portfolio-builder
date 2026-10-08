@@ -4,6 +4,7 @@ import { createContext, createElement, useContext, type ReactNode } from 'react'
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PortfolioData, PortfolioSection, Theme, SectionType, NavbarConfig, AvailabilityConfig, DarkModeConfig, LayoutMode, SimpleLayoutConfig, PortfolioEffects } from './types';
 import { defaultTheme } from './templates';
+import { rankFlowBlocks } from './flow-layout';
 import type { CloudPortfolioReference, PortfolioSaveSnapshot } from './cloud-save';
 import type { LoadedWebsite } from './cloud-load';
 import { PageSeo, SiteData, SiteDataSchema } from './site-types';
@@ -141,6 +142,7 @@ interface PortfolioState {
   duplicateSection: (sectionId: string) => void;
   toggleSectionVisibility: (sectionId: string) => void;
   reorderSections: (fromIndex: number, toIndex: number) => void;
+  reorderFlowComponents: (ids: string[]) => void;
   moveSection: (sectionId: string, direction: 'up' | 'down') => void;
   selectSection: (sectionId: string | null) => void;
   setTheme: (theme: Theme) => void;
@@ -298,6 +300,7 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         title: 'Skills & Expertise',
         skills: [],
         displayStyle: 'bars',
+        freeFormEnabled: true,
       };
     case 'experience':
       return {
@@ -569,7 +572,7 @@ const editorPortfolioStore = create<PortfolioState>()(
       addSection: (type) =>
         set((state) => {
           // Categories share the landing page canvas; they do not receive a copied background.
-          const newSection = { ...createDefaultSection(type), freeFormEnabled: false, snapEnabled: true } as PortfolioSection;
+          const newSection = { ...createDefaultSection(type), freeFormEnabled: true, snapEnabled: true } as PortfolioSection;
           const newPortfolio: PortfolioData = {
             ...state.portfolio,
             updatedAt: new Date().toISOString(),
@@ -646,6 +649,14 @@ const editorPortfolioStore = create<PortfolioState>()(
             isDirty: true,
           };
         }),
+
+      reorderFlowComponents: (ids) =>
+        set((state) => ({
+          past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+          portfolio: { ...state.portfolio, updatedAt: new Date().toISOString(), sections: rankFlowBlocks(state.portfolio.sections, ids) },
+          future: [],
+          isDirty: true,
+        })),
 
       reorderSections: (fromIndex, toIndex) =>
         set((state) => {

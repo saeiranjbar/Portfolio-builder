@@ -30,7 +30,7 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
   const offset = section.pdf?.offset ?? { x: 0, y: 0 };
   const embeddedUrl = viewerUrl ? `${viewerUrl.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
   return <div data-hero-pdf className="relative mx-auto my-4 text-left" style={{ pointerEvents: 'auto', width: `${pdfWidth(section.pdf?.width)}%` }}>
-    <div ref={card} className="relative" style={{ transform: `translate(${offset.x}%, ${offset.y}%)` }}>
+    <div ref={card} className="relative" style={{ marginTop: `${offset.y}px`, transform: `translateX(${offset.x}%)` }}>
       <div className="flex flex-wrap items-center justify-between gap-3 py-2">
         {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move PDF reader" className="touch-none cursor-move rounded border px-2 py-1 text-sm"
           onPointerDown={event => {
@@ -43,7 +43,7 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
           onPointerMove={event => {
             const start = drag.current;
             if (!start || start.pointer !== event.pointerId) return;
-            onMove({ x: start.offset.x + (event.clientX - start.x) / start.width * 100, y: start.offset.y + (event.clientY - start.y) / start.height * 100 });
+            onMove({ x: start.offset.x + (event.clientX - start.x) / start.width * 100, y: start.offset.y + (event.clientY - start.y) });
           }}
           onPointerUp={event => { if (drag.current?.pointer === event.pointerId) { drag.current = null; setMoving(false); event.currentTarget.releasePointerCapture(event.pointerId); } }}
           onPointerCancel={() => { drag.current = null; setMoving(false); }}

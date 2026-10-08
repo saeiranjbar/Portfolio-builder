@@ -903,7 +903,7 @@ export interface NewsletterSection {
 
 
 
-export type PortfolioSection = 
+export type PortfolioSection = (
   | HeroSection
   | AboutSection
   | ProjectsSection
@@ -923,7 +923,7 @@ export type PortfolioSection =
   | CertificationsSection
   | BlogSection
   | FAQSection
-  | NewsletterSection;
+  | NewsletterSection) & { flowOrder?: Record<string, number> };
 
 
 

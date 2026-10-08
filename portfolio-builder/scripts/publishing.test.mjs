@@ -73,6 +73,8 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
     routing: load(path.join(root, 'proxy.ts')),
     generation: load(path.join(root, 'app/api/generate-website/route.ts')),
     pdf: load(path.join(root, 'lib/hero-pdf.ts')),
+    flow: load(path.join(root, 'lib/flow-layout.ts')),
+    htmlExport: load(path.join(root, 'lib/export.ts')),
     PdfReader: load(path.join(root, 'components/builder/HeroPdfReader.tsx')).HeroPdfReader,
   };
 }
@@ -421,7 +423,100 @@ test('Hero PDF reader renders a titled, bounded iframe and honors visibility', (
   assert.doesNotMatch(html, /Move PDF reader/);
   const movable = renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { ...section.pdf, offset: { x: -12, y: 35 } } }, onMove: () => {} }));
   assert.match(movable, /aria-label="Move PDF reader"/);
-  assert.match(movable, /translate\(-12%, 35%\)/);
+  assert.match(movable, /translateX\(-12%\)/);
+  assert.match(movable, /margin-top:\s*35px/);
   assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, showPdf: false } })), '');
   assert.equal(renderToString(React.createElement(PdfReader, { section: { ...section, pdf: { url: 'javascript:alert(1)' } } })), '');
+});
+
+test('flow components reorder within Hero and across categories without moving their content between sections', () => {
+  const { flow, storeModule } = setup();
+  const store = storeModule.usePortfolioStore;
+  const draft = JSON.parse(JSON.stringify(store.getState().portfolio));
+  const hero = draft.sections.find(section => section.type === 'hero');
+  hero.showPdf = true;
+  hero.pdf = { url: 'https://example.com/document.pdf', height: 600, offset: { x: 30, y: -250 } };
+  hero.galleryImages = [{ id: 'image', url: 'https://example.com/image.jpg' }];
+  const projects = storeModule.createDefaultSection('projects');
+  const experience = storeModule.createDefaultSection('experience');
+  experience.experiences = [{ id: 'job', position: 'Designer', company: 'Studio', startDate: '2020', endDate: '2022', description: 'Design' }];
+  draft.sections = [hero, projects, experience];
+  store.getState().setPortfolio(draft);
+  const initial = flow.getFlowBlocks(draft.sections).map(block => block.id);
+  const photo = flow.flowId(hero.id, 'galleryImages'), title = flow.flowId(hero.id, 'title');
+  const pdf = flow.flowId(hero.id, 'pdf'), project = flow.flowId(projects.id, 'content');
+  const photoFirst = flow.moveFlowBlock(initial, photo, title);
+  assert.ok(photoFirst.indexOf(photo) < photoFirst.indexOf(title));
+  const pdfLast = flow.moveFlowBlock(photoFirst, pdf, project);
+  assert.ok(pdfLast.indexOf(pdf) > pdfLast.indexOf(project));
+  store.getState().reorderFlowComponents(pdfLast);
+  assert.equal(JSON.stringify(flow.getFlowBlocks(store.getState().portfolio.sections).map(block => block.id)), JSON.stringify(pdfLast));
+  assert.equal(JSON.stringify(store.getState().portfolio.sections[0].pdf), JSON.stringify(hero.pdf));
+  assert.equal(store.getState().portfolio.sections[1].id, projects.id);
+  assert.equal(store.getState().isDirty, true);
+  store.getState().undo();
+  assert.equal(JSON.stringify(flow.getFlowBlocks(store.getState().portfolio.sections).map(block => block.id)), JSON.stringify(initial));
+  store.getState().redo();
+  assert.equal(JSON.stringify(flow.getFlowBlocks(store.getState().portfolio.sections).map(block => block.id)), JSON.stringify(pdfLast));
+  const home = store.getState().currentPageId;
+  store.getState().addPage('Second page');
+  assert.ok(flow.getFlowBlocks(store.getState().portfolio.sections).every(block => !block.section.flowOrder));
+  store.getState().switchPage(home);
+  assert.equal(JSON.stringify(flow.getFlowBlocks(store.getState().getSiteData().pages[0].sections).map(block => block.id)), JSON.stringify(pdfLast));
+});
+
+test('flow ranks survive saving, multi-page conversion, publication, and HTML export', async () => {
+  const { record, db, publishing, flow, storeModule, htmlExport } = setup();
+  const draft = JSON.parse(record.data);
+  const hero = draft.sections.find(section => section.type === 'hero');
+  hero.showPdf = true;
+  hero.pdf = { url: 'https://example.com/document.pdf', height: 600, offset: { x: 30, y: -250 } };
+  hero.galleryImages = [{ id: 'image', url: 'https://example.com/image.jpg' }];
+  const projects = storeModule.createDefaultSection('projects');
+  draft.sections = [hero, projects];
+  const pdf = flow.flowId(hero.id, 'pdf'), project = flow.flowId(projects.id, 'content');
+  const order = flow.moveFlowBlock(flow.getFlowBlocks(draft.sections).map(block => block.id), pdf, project);
+  draft.sections = flow.rankFlowBlocks(draft.sections, order);
+  record.data = JSON.stringify(draft);
+  const published = await publishing.publishWebsite(db, id, 'owner');
+  const live = await publishing.readPublishedWebsite(db, published.path.split('/').at(-1));
+  assert.equal(JSON.stringify(flow.getFlowBlocks(live.portfolio.sections).map(block => block.id)), JSON.stringify(order));
+  const html = htmlExport.generateHTML(draft);
+  const expected = order.map(flowId => flowId.replaceAll('&', '&amp;').replaceAll('"', '&quot;'));
+  const offsets = expected.map(flowId => html.indexOf(`data-flow-id="${flowId}"`));
+  assert.ok(offsets.every((offset, index) => offset >= 0 && (index === 0 || offset > offsets[index - 1])));
+  assert.doesNotMatch(html, /translate\(30%, -250%\)|margin-top:-250px/);
+  assert.match(html, /class="flow-layout"/);
+});
+
+test('hidden, deleted, and newly added components do not corrupt the shared order', () => {
+  const { flow, storeModule } = setup();
+  const hero = storeModule.createDefaultSection('hero');
+  const skills = storeModule.createDefaultSection('skills');
+  skills.skills = [{ id: 'skill', name: 'Design', category: 'Visual:Design', level: 75 }];
+  const blocks = flow.getFlowBlocks([hero, skills]);
+  const ranked = flow.rankFlowBlocks([hero, skills], [...blocks.map(block => block.id)].reverse());
+  const hidden = flow.getFlowBlocks(ranked.map(section => section.id === hero.id ? { ...section, visible: false } : section));
+  assert.ok(hidden.every(block => block.section.id === skills.id));
+  const restored = flow.getFlowBlocks(ranked);
+  assert.equal(restored[0].id, blocks.at(-1).id);
+  const newSection = storeModule.createDefaultSection('contact');
+  assert.equal(flow.getFlowBlocks([...ranked, newSection]).at(-1).section.id, newSection.id);
+  assert.equal(flow.moveFlowBlock(blocks.map(block => block.id), 'missing', blocks[0].id).length, blocks.length);
+  const reranked = flow.rankFlowBlocks([skills], ['invalid', ...restored.map(block => block.id)]);
+  assert.ok(flow.getFlowBlocks(reranked).every(block => block.section.id === skills.id));
+});
+
+test('reordering simple-layout body components preserves the omitted profile components', () => {
+  const { flow, storeModule } = setup();
+  const hero = storeModule.createDefaultSection('hero');
+  hero.showPdf = true; hero.pdf = { url: 'https://example.com/document.pdf' };
+  const projects = storeModule.createDefaultSection('projects');
+  const initial = flow.getFlowBlocks([hero, projects]);
+  const body = initial.filter(block => block.section.type !== 'hero' || block.key === 'pdf').map(block => block.id);
+  const reordered = flow.moveFlowBlock(body, flow.flowId(hero.id, 'pdf'), flow.flowId(projects.id, 'content'));
+  const ranked = flow.rankFlowBlocks([hero, projects], reordered);
+  const result = flow.getFlowBlocks(ranked);
+  assert.equal(result[0].id, initial[0].id);
+  assert.equal(JSON.stringify(result.filter(block => body.includes(block.id)).map(block => block.id)), JSON.stringify(reordered));
 });

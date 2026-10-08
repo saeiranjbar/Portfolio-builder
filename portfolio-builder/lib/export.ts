@@ -1,4 +1,5 @@
-import { PortfolioData } from './types';
+import { PortfolioData, PortfolioSection, HeroSection, AboutSection } from './types';
+import { getFlowBlocks, sectionForFlowBlock, type FlowBlock } from './flow-layout';
 import { availableFonts } from './templates';
 import { pdfHeight, pdfSource, pdfWidth } from './hero-pdf';
 
@@ -14,9 +15,7 @@ export function generateHTML(portfolio: PortfolioData): string {
 
   const { theme } = portfolio;
   
-  const sectionsHTML = portfolio.sections
-    .filter(section => section.visible !== false)
-    .map(section => {
+  const renderSectionHTML = (section: PortfolioSection): string => {
     switch (section.type) {
 
       case 'hero':
@@ -62,6 +61,13 @@ export function generateHTML(portfolio: PortfolioData): string {
       default:
         return '';
     }
+  };
+  const sectionsHTML = getFlowBlocks(portfolio.sections).map(block => {
+    const content = block.section.type === 'hero' ? generateFlowHero(block)
+      : block.key === 'title' ? `<h2 style="text-align:center;">${escapeFlow('title' in block.section ? block.section.title : '')}</h2>`
+      : block.section.type === 'about' ? generateFlowAbout(block)
+      : renderSectionHTML({ ...sectionForFlowBlock(block), title: '' } as PortfolioSection).replace(/<h2[^>]*>\s*<\/h2>/g, '');
+    return `<div class="flow-component" data-flow-id="${escapeFlow(block.id)}" data-flow-key="${escapeFlow(block.key)}">${content}</div>`;
   }).join('\n');
 
 
@@ -101,9 +107,9 @@ export function generateHTML(portfolio: PortfolioData): string {
       margin: 0 auto;
       padding: 0 24px;
     }
-    section {
-      padding: 80px 0;
-    }
+    section { padding: 16px 0; }
+    .flow-layout { display:flex; flex-direction:column; gap:24px; max-width:1440px; margin:0 auto; padding:32px 16px; }
+    .flow-component { width:100%; min-width:0; position:relative; overflow-wrap:anywhere; }
     img {
       max-width: 100%;
       height: auto;
@@ -133,7 +139,7 @@ export function generateHTML(portfolio: PortfolioData): string {
   </style>
 </head>
 <body>
-${sectionsHTML}
+<main class="flow-layout">${sectionsHTML}</main>
 ${effectsHTML}
 </body>
 </html>`;
@@ -888,4 +894,52 @@ export function downloadJSON(portfolio: PortfolioData) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function escapeFlow(value: string): string {
+  return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+}
+
+function generateFlowHero(block: FlowBlock): string {
+  const section = block.section as HeroSection;
+  const text = (tag: string, value: string) => `<${tag} style="text-align:center;white-space:pre-wrap;">${escapeFlow(value)}</${tag}>`;
+  switch (block.key) {
+    case 'name': return text('h1', section.name);
+    case 'title': return text('h2', section.title);
+    case 'subtitle': return text('p', section.subtitle);
+    case 'bio': return text('p', section.bio);
+    case 'avatar': return `<img src="${escapeFlow(section.avatar)}" alt="${escapeFlow(section.name)}" style="display:block;margin:auto;width:${section.avatarWidth ?? 120}px;height:${section.avatarHeight ?? 120}px;object-fit:cover;border-radius:${section.avatarShape === 'square' ? '0' : section.avatarShape === 'rounded' ? '12px' : '50%'};">`;
+    case 'ctaButtons': return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">${section.ctaButtons.map(button => `<a class="btn" href="${escapeFlow(button.link)}">${escapeFlow(button.label)}</a>`).join('')}</div>`;
+    case 'pdf': {
+      const source = pdfSource(section.pdf?.url);
+      if (!source) return '';
+      const title = escapeFlow(section.pdf?.title || 'PDF document');
+      const embedded = escapeFlow(source.split('#')[0] + '#toolbar=0&navpanes=0&view=FitH');
+      return `<div style="width:${pdfWidth(section.pdf?.width)}%;margin:auto;"><div style="display:flex;gap:12px;justify-content:space-between;padding:8px 0;"><strong>${title}</strong><a href="${escapeFlow(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>Open PDF</a></div><iframe src="${embedded}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>`;
+    }
+    case 'galleryImages': return `<div style="display:grid;gap:16px;grid-template-columns:repeat(${section.galleryGridCols ?? 2},minmax(0,1fr));">${section.galleryImages?.map(image => `<figure><img src="${escapeFlow(image.url)}" alt="${escapeFlow(image.caption ?? 'Gallery image')}" style="display:block;width:100%;height:auto;">${image.caption ? `<figcaption>${escapeFlow(image.caption)}</figcaption>` : ''}</figure>`).join('') ?? ''}</div>`;
+    case 'galleryVideos': return `<div style="display:grid;gap:16px;grid-template-columns:repeat(${section.galleryVideoGridCols ?? 1},minmax(0,1fr));">${section.galleryVideos?.map(video => video.type === 'uploaded' ? `<video src="${escapeFlow(video.url)}" controls style="width:100%;aspect-ratio:16/9;"></video>` : `<iframe src="${escapeFlow(video.url)}" title="${escapeFlow(video.caption ?? 'Video')}" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;"></iframe>`).join('') ?? ''}</div>`;
+    default: return '';
+  }
+}
+
+function generateFlowAbout(block: FlowBlock): string {
+  const section = block.section as AboutSection;
+  const paragraph = (value: string) => `<p style="text-align:center;white-space:pre-wrap;">${escapeFlow(value)}</p>`;
+  switch (block.key) {
+    case 'tagline': return paragraph(section.tagline ?? '');
+    case 'bio': return paragraph(section.content);
+    case 'secondParagraph': return paragraph(section.secondParagraph ?? '');
+    case 'quote': return `<blockquote>${escapeFlow(section.personalQuote ?? '')}</blockquote>`;
+    case 'image': case 'secondImage': return `<img src="${escapeFlow(block.key === 'image' ? section.imageUrl ?? '' : section.secondImageUrl ?? '')}" alt="About" style="display:block;max-width:100%;height:auto;margin:auto;">`;
+    case 'quickFacts': return `<div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;">${section.quickFacts?.map(fact => `<div><strong>${escapeFlow(fact.value)}</strong><p>${escapeFlow(fact.label)}</p></div>`).join('') ?? ''}</div>`;
+    case 'toolTags': return paragraph(section.toolTags?.join(' ? ') ?? '');
+    case 'location': return paragraph([section.location, section.availabilityStatus].filter(Boolean).join(' ? '));
+    case 'languages': return paragraph(section.languages?.map(language => `${language.language} (${language.proficiency})`).join(' ? ') ?? '');
+    case 'cta': return `<a class="btn" href="${escapeFlow(section.ctaButtonLink ?? '#')}">${escapeFlow(section.ctaButtonText ?? '')}</a>`;
+    case 'resume': return section.resumeDisplayMode === 'download' ? `<a href="${escapeFlow(section.resumeUrl ?? '')}" download>Download resume</a>` : `<iframe src="${escapeFlow(section.resumeUrl ?? '')}" title="Resume" style="display:block;width:100%;height:${section.resumeHeight ?? 600}px;border:0;"></iframe>`;
+    case 'video': return `<iframe src="${escapeFlow(section.videoUrl ?? '')}" title="About video" allowfullscreen style="display:block;width:100%;aspect-ratio:16/9;border:0;"></iframe>`;
+    case 'gallery': return `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">${section.galleryImages?.map(image => `<img src="${escapeFlow(image.url)}" alt="${escapeFlow(image.caption ?? 'Gallery image')}" style="width:100%;height:auto;">`).join('') ?? ''}</div>`;
+    default: return '';
+  }
 }

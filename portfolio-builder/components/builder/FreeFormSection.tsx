@@ -21,6 +21,7 @@ interface FreeFormSectionProps {
   snapEnabled: boolean;
   elements: FreeFormElement[];
   onPositionChange: (key: string, position: ElementPosition) => void;
+  onBatchPositionChange?: (updates: Record<string, ElementPosition>) => void;
   backgroundStyle?: React.CSSProperties;
   className?: string;
   minHeight?: string;
@@ -36,6 +37,7 @@ export function FreeFormSection({
   snapEnabled,
   elements,
   onPositionChange,
+  onBatchPositionChange,
   backgroundStyle,
   className,
   minHeight = 'min-h-screen',
@@ -52,11 +54,34 @@ export function FreeFormSection({
     visibleKeys.push(el.key);
   }
 
+  // Measure element heights as % of section height for collision/push resolution.
+  // Uses elementRefs' parentElement to access the section without needing sectionRef
+  // (which is created inside useFreeFormDrag and not yet available here).
+  const getElementHeights = React.useCallback((): Record<string, number> => {
+    const firstKey = visibleElements[0]?.key;
+    const firstNode = firstKey ? elementRefs.current[firstKey] : null;
+    const sectionEl = firstNode?.parentElement;
+    if (!sectionEl) return {};
+    const sectionRect = sectionEl.getBoundingClientRect();
+    if (sectionRect.height === 0) return {};
+    const heights: Record<string, number> = {};
+    for (const el of visibleElements) {
+      const node = elementRefs.current[el.key];
+      if (node) {
+        const rect = node.getBoundingClientRect();
+        heights[el.key] = (rect.height / sectionRect.height) * 100;
+      }
+    }
+    return heights;
+  }, [visibleElements]);
+
   const { sectionRef, dragging, snapLines, handleMouseDown, handleTouchStart } = useFreeFormDrag({
     snapEnabled,
     getAllPositions: () => allPositions,
     getVisibleKeys: () => visibleKeys,
     onPositionChange,
+    getElementHeights,
+    onBatchPositionChange,
   });
 
   // Measure actual content height to ensure background extends to the bottom.

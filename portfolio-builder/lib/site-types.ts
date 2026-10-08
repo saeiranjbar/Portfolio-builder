@@ -55,6 +55,7 @@ const baseSectionFields = {
   freeFormEnabled: z.boolean().optional(),
   snapEnabled: z.boolean().optional(),
   elementPositions: z.record(ElementPositionSchema).optional(),
+  flowOrder: z.record(z.number().finite().nonnegative()).optional(),
 };
 
 const centered = { x: 50, y: 50 };
@@ -361,6 +362,12 @@ export const HeroSectionSchema = z.object({
   layout: z.enum(['free', 'centered', 'left', 'split']).default('centered'),
   galleryImages: z.array(GalleryImageSchema).optional(),
   typingWords: z.array(z.string()).optional(),
+  galleryGridCols: z.number().int().min(1).max(4).optional(),
+  galleryVideoGridCols: z.number().int().min(1).max(3).optional(),
+  galleryVideos: z.array(z.object({ id: z.string(), url: z.string(), type: z.enum(['youtube', 'vimeo', 'uploaded']), caption: z.string().optional(), size: z.enum(['small', 'medium', 'large']).optional() })).optional(),
+  avatarWidth: z.number().positive().optional(),
+  avatarHeight: z.number().positive().optional(),
+  avatarShape: z.enum(['circle', 'rounded', 'square']).optional(),
   parallaxEnabled: z.boolean().optional(),
 });
 
