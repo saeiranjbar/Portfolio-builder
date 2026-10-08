@@ -323,8 +323,8 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
       }}
       backgroundStyle={{ backgroundColor: 'transparent' }}
       minHeight="min-h-[115vh]"
-      onElementClick={(key) => usePortfolioStore.getState().selectElement(section.id, key)}
     />
+  );
   );
 }
 // ============ HERO ============
