@@ -182,7 +182,6 @@ export function FreeFormSection({
 
             onMouseDown={!previewMode ? (e) => handleMouseDown(e, el.key) : undefined}
             onTouchStart={!previewMode ? (e) => handleTouchStart(e, el.key) : undefined}
-            onClick={!previewMode && onElementClick ? (e) => { e.stopPropagation(); onElementClick(el.key); } : undefined}
           >
             {el.content}
           </div>

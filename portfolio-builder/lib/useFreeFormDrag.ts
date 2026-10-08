@@ -142,14 +142,12 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
   }, []);
 
   const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
+  const draggedElement = React.useRef<string | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
     e.preventDefault();
     e.stopPropagation();
-    // Call onElementClick for selection before drag starts
-    if (configRef.current.onElementClick) {
-      configRef.current.onElementClick(element);
-    }
     if (!sectionRef.current) return;
     const rect = sectionRef.current.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
@@ -157,6 +155,8 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     const allPos = configRef.current.getAllPositions();
     const elemPos = allPos[element] || { x: 50, y: 50 };
     dragOffset.current = { x: mouseX - elemPos.x, y: mouseY - elemPos.y };
+    dragStartPos.current = { x: mouseX, y: mouseY };
+    draggedElement.current = element;
     setDragging(element);
   };
 
@@ -238,8 +238,23 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
   }, [dragging, computeSnap]);
 
   const handleMouseUp = React.useCallback(() => {
+    // Detect click vs drag: if movement was minimal, it's a click
+    const start = dragStartPos.current;
+    const element = draggedElement.current;
+    if (start && element && configRef.current.onElementClick) {
+      const endPos = configRef.current.getAllPositions()[element];
+      // Calculate distance moved (in percentage points)
+      const dx = Math.abs((start.x / 100 * window.innerWidth) - (endPos?.x || 0));
+      const dy = Math.abs((start.y / 100 * window.innerHeight) - (endPos?.y || 0));
+      // If moved less than 5px, treat as click
+      if (dx < 5 && dy < 5) {
+        configRef.current.onElementClick(element);
+      }
+    }
     setDragging(null);
     setSnapLines({});
+    dragStartPos.current = null;
+    draggedElement.current = null;
   }, []);
 
   React.useEffect(() => {

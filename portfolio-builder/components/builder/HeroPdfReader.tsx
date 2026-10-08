@@ -32,7 +32,7 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
   return <div data-hero-pdf className="relative mx-auto my-4 text-left" style={{ pointerEvents: 'auto', width: `${pdfWidth(section.pdf?.width)}%` }}>
     <div ref={card} className="relative" style={{ marginTop: `${offset.y}px`, transform: `translateX(${offset.x}%)` }}>
       <div className="flex flex-wrap items-center justify-between gap-3 py-2">
-        {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move PDF reader" className="touch-none cursor-move rounded border px-2 py-1 text-sm"
+        {onMove && <button type="button" aria-label="Move PDF" title="Drag to move" className="touch-none cursor-move rounded border px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200"
           onPointerDown={event => {
             if (event.button !== 0 || !card.current) return;
             event.preventDefault(); event.stopPropagation();
@@ -48,7 +48,7 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
           onPointerUp={event => { if (drag.current?.pointer === event.pointerId) { drag.current = null; setMoving(false); event.currentTarget.releasePointerCapture(event.pointerId); } }}
           onPointerCancel={() => { drag.current = null; setMoving(false); }}
           onLostPointerCapture={() => { drag.current = null; setMoving(false); }}
-        >↔ Move</button>}
+        >☰</button>}
         <h3 className="min-w-0 break-words font-medium">{title}</h3>
         {viewerUrl && <a href={viewerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-blue-700 hover:underline">Open PDF</a>}
       </div>
