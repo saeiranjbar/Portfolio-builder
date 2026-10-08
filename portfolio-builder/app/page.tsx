@@ -867,11 +867,13 @@ function AuthenticatedBuilder() {
                 {/* Divider */}
                 <div className="border-t" />
 
-                {/* Element Inspector — shows when an element is selected */}
-                {selectedElementId && <ElementInspector onClose={() => selectElement(null, null)} />}
-
-                {/* Section Editor — accordion style, all sections listed */}
-                <SectionEditor />
+                {/* Element Inspector — shows when an element is selected (replaces SectionEditor) */}
+                {selectedElementId ? (
+                  <ElementInspector onClose={() => selectElement(null, null)} />
+                ) : (
+                  /* Section Editor — accordion style, all sections listed */
+                  <SectionEditor />
+                )}
               </div>
             </motion.div>
             )}
