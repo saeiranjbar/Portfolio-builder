@@ -61,7 +61,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BuilderPage() {
   const { status } = useSession();
-  if (status === 'authenticated') return <AuthenticatedBuilder />;
+  // Allow guest access for local testing
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (status === 'authenticated' || isLocal) return <AuthenticatedBuilder />;
   return <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
     {status === 'loading' ? <p role="status" className="p-8 text-center text-white">Checking sign-in…</p>
       : <Dialog open onOpenChange={() => undefined}>

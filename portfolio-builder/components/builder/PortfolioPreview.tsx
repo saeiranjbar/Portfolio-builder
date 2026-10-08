@@ -1246,10 +1246,10 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         {/* Avatar */}
         {section.showAvatar !== false && section.avatar && (
           <div ref={(node) => { elementRefs.current['avatar'] = node; }} className={cn(avatarPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', !previewMode && 'cursor-move', dragging === 'avatar' && 'z-20')}
-            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
+            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none' }}
             onMouseDown={(e) => handleMouseDown(e, 'avatar')}
             onTouchStart={(e) => handleTouchStart(e, 'avatar')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'avatar'); } : undefined}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); console.log('Avatar clicked'); selectElement(section.id, 'avatar'); } : undefined}
           >
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           </div>
@@ -1258,10 +1258,11 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         {/* Name */}
         {section.showName !== false && (
           <div ref={(node) => { elementRefs.current['name'] = node; }} className={cn(namePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'name' && 'z-20')}
-            style={namePos ? { left: `${namePos.x}%`, top: `${namePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
+            style={namePos ? { left: `${namePos.x}%`, top: `${namePos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none' }}
+            tabIndex={-1}
             onMouseDown={(e) => handleMouseDown(e, 'name')}
             onTouchStart={(e) => handleTouchStart(e, 'name')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'name'); } : undefined}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); console.log('Name clicked'); selectElement(section.id, 'name'); } : undefined}
           >
             <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           </div>

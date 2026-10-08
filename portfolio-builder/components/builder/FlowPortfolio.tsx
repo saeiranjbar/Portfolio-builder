@@ -48,7 +48,7 @@ function HeroContent({ block, theme, openImage }: { block: FlowBlock; theme: The
 
 
 export function FlowPortfolio({ sections, theme, renderSection }: Props) {
-  const { previewMode, reorderFlowComponents, selectSection } = usePortfolioStore();
+  const { previewMode, reorderFlowComponents, selectSection, selectElement } = usePortfolioStore();
   const root = useRef<HTMLDivElement>(null);
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const blocks = getFlowBlocks(sections);
@@ -109,23 +109,8 @@ export function FlowPortfolio({ sections, theme, renderSection }: Props) {
       return <div key={id} ref={node => { if (node) nodes.current.set(id, node); else nodes.current.delete(id); }}
         data-flow-id={id} data-flow-section={block.section.id} data-flow-key={block.key} data-section-type={block.section.type}
         id={blocks.find(item => item.section.id === block.section.id)?.id === id ? `section-${block.section.id}` : undefined}
-        className={`flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4 ${dragging === id ? 'outline outline-2 outline-blue-500' : ''}`}>
-        {!previewMode && <button type="button" aria-label={`Move ${block.label}`} title="Drag to reorder, or use the up/down arrow keys" className="mb-2 inline-flex touch-none cursor-grab items-center gap-1 rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-800"
-          onPointerDown={event => {
-            if (event.button !== 0 || !root.current) return;
-            event.preventDefault(); event.stopPropagation();
-            let parent: HTMLElement | null = root.current.parentElement;
-            while (parent && !/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) parent = parent.parentElement;
-            drag.current = { id, pointer: event.pointerId, y: event.clientY, order: [...orderedIds], scroll: parent };
-            root.current.setPointerCapture(event.pointerId); setDragging(id); setDragOrder([...orderedIds]);
-          }}
-          onDoubleClick={() => selectSection(block.section.id)}
-          onKeyDown={event => {
-            if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-            event.preventDefault();
-            const index = orderedIds.indexOf(id), target = index + (event.key === 'ArrowUp' ? -1 : 1);
-            if (orderedIds[target]) reorderFlowComponents(moveFlowBlock(orderedIds, id, orderedIds[target]));
-          }}><GripVertical className="h-4 w-4" />{block.label}</button>}
+        className={`flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4 ${dragging === id ? 'outline outline-2 outline-blue-500' : ''}`}
+        onClick={!previewMode ? () => selectElement(block.section.id, block.key) : undefined}>
         {block.section.type === 'hero' ? <HeroContent block={block} theme={theme} openImage={setImage} />
           : block.key === 'title' ? <h2 className="text-center text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.typography.headingFont, ...textStyle(block.section.textStyles, 'title') }}><AnimatedText text={'title' in block.section ? block.section.title : ''} textStyles={block.section.textStyles?.title} /></h2>
           : renderSection(sectionForFlowBlock(block))}
