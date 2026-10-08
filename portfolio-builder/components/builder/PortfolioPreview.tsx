@@ -325,7 +325,6 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
       minHeight="min-h-[115vh]"
     />
   );
-  );
 }
 // ============ HERO ============
 function HeroPreview({ section, theme, useLandingBackground = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean }) {
