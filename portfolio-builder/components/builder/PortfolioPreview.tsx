@@ -1248,8 +1248,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['avatar'] = node; }} className={cn(avatarPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', !previewMode && 'cursor-move', dragging === 'avatar' && 'z-20')}
             style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'avatar')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'avatar'); } : undefined}>
-            onTouchStart={(e) => handleTouchStart(e, 'avatar')}>
+            onTouchStart={(e) => handleTouchStart(e, 'avatar')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'avatar'); } : undefined}
+          >
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           </div>
         )}
@@ -1259,7 +1260,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['name'] = node; }} className={cn(namePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'name' && 'z-20')}
             style={namePos ? { left: `${namePos.x}%`, top: `${namePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'name')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'name'); } : undefined}>
+            onTouchStart={(e) => handleTouchStart(e, 'name')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'name'); } : undefined}
+          >
             <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           </div>
         )}
@@ -1269,7 +1272,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['title'] = node; }} className={cn(titlePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'title' && 'z-20')}
             style={titlePos ? { left: `${titlePos.x}%`, top: `${titlePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'title')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'title'); } : undefined}>
+            onTouchStart={(e) => handleTouchStart(e, 'title')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'title'); } : undefined}
+          >
             {section.typingWords && section.typingWords.length > 0 ? (
               <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>
                 <TypingAnimation words={section.typingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} />
@@ -1285,7 +1290,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['subtitle'] = node; }} className={cn(subtitlePos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'subtitle' && 'z-20')}
             style={subtitlePos ? { left: `${subtitlePos.x}%`, top: `${subtitlePos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'subtitle')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'subtitle'); } : undefined}>
+            onTouchStart={(e) => handleTouchStart(e, 'subtitle')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'subtitle'); } : undefined}
+          >
             <p className="text-lg whitespace-nowrap" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           </div>
         )}
@@ -1295,7 +1302,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div ref={(node) => { elementRefs.current['bio'] = node; }} className={cn(bioPos ? 'absolute transform -translate-x-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'bio' && 'z-20')}
             style={bioPos ? { left: `${bioPos.x}%`, top: `${bioPos.y}%`, zIndex: 10, pointerEvents: 'auto', maxWidth: section.textStyles?.bio?.maxWidth || 'min(500px, 80vw)' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'bio')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'bio'); } : undefined}>
+            onTouchStart={(e) => handleTouchStart(e, 'bio')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'bio'); } : undefined}
+          >
             <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
           </div>
         )}
@@ -1305,7 +1314,9 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
           <div className={cn(ctaPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'flex flex-col sm:flex-row gap-3 sm:gap-4 items-center', !previewMode && 'cursor-move', dragging === 'ctaButtons' && 'z-20')}
             style={ctaPos ? { left: `${ctaPos.x}%`, top: `${ctaPos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'ctaButtons')}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'ctaButtons'); } : undefined}>
+            onTouchStart={(e) => handleTouchStart(e, 'ctaButtons')}
+            onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'ctaButtons'); } : undefined}
+          >
             {section.ctaButtons.map((btn) => (
               <a key={btn.id} href={btn.link}
                 className={cn('inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium transition-all hover:opacity-90 whitespace-nowrap text-sm sm:text-base',
@@ -1387,6 +1398,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             position: 'relative',
           }}
           onMouseDown={!previewMode ? (e) => handleMouseDown(e, 'galleryImages') : undefined}
+          onTouchStart={!previewMode ? (e) => handleTouchStart(e, 'galleryImages') : undefined}
           onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'galleryImages'); } : undefined}
         >
           <div
@@ -1481,10 +1493,8 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             pointerEvents: 'auto',
           }}
           onMouseDown={(e) => handleMouseDown(e, 'galleryVideos')}
-          onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'galleryVideos'); } : undefined}
-
-
           onTouchStart={(e) => handleTouchStart(e, 'galleryVideos')}
+          onClick={!previewMode ? (e) => { e.stopPropagation(); selectElement(section.id, 'galleryVideos'); } : undefined}
         >
           <div className="grid gap-6" style={{ width: '100%', gridTemplateColumns: `repeat(${section.galleryVideoGridCols || 1}, minmax(0, 1fr))` }}>
             {section.galleryVideos.map((video) => (
