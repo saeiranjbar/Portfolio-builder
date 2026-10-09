@@ -486,13 +486,20 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
     if (previewMode || !sectionRef.current) return;
+    
+    // If Ctrl is held, just select the element - don't drag
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Ctrl+Click on:', element);
+      selectElement(section.id, element);
+      return;
+    }
+    
+    // Regular click - prepare for drag
     e.preventDefault();
     e.stopPropagation();
-    ctrlPressed.current = e.ctrlKey || e.metaKey;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
-    // Gallery images/videos live below the 60vh canvas in normal flow.
-    // Use the full section as the drag surface for these block-level elements
-    // so positions are measured and applied relative to the same container.
     const isGalleryBlock = element === 'galleryImages' || element === 'galleryVideos';
     const dragSurface = isGalleryBlock ? sectionRef.current : (canvasRef.current || sectionRef.current);
     if (!dragSurface) return;
@@ -751,14 +758,16 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
 
   const handleMouseUp = React.useCallback(() => {
-    if (dragging && dragStartPos.current && lastMousePos.current) {
-      const dx = lastMousePos.current.x - dragStartPos.current.x;
-      const dy = lastMousePos.current.y - dragStartPos.current.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < 5 && ctrlPressed.current) {
-        selectElement(section.id, dragging);
-      }
+    // CTRL + Click = SELECT (regardless of distance)
+    if (dragging && ctrlPressed.current) {
+      console.log('✓ SELECTING:', dragging);
+      selectElement(section.id, dragging);
     }
+    // Regular drag = MOVE only (no selection)
+    else if (dragging && !ctrlPressed.current) {
+      console.log('✓ DRAGGED:', dragging);
+    }
+    
     dragStartPos.current = null;
     lastMousePos.current = null;
     ctrlPressed.current = false;
@@ -766,6 +775,34 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     setResizing(null);
     setSnapLines({});
   }, [dragging, section.id, selectElement]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        ctrlPressed.current = true;
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        ctrlPressed.current = false;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleMouseUp = React.useCallback(() => {
+    dragStartPos.current = null;
+    lastMousePos.current = null;
+    ctrlPressed.current = false;
+    setDragging(null);
+    setResizing(null);
+    setSnapLines({});
+  }, []);
 
   React.useEffect(() => {
     if (dragging || resizing) {
