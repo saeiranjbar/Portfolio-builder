@@ -488,7 +488,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     if (previewMode || !sectionRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-    ctrlPressed.current = e.ctrlKey || e.metaKey; // Track if Ctrl/Cmd is held
+    ctrlPressed.current = e.ctrlKey || e.metaKey;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     // Gallery images/videos live below the 60vh canvas in normal flow.
     // Use the full section as the drag surface for these block-level elements
@@ -751,13 +751,11 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
 
   const handleMouseUp = React.useCallback(() => {
-    // Detect if this was a click (moved less than 5 pixels) AND Ctrl was held
     if (dragging && dragStartPos.current && lastMousePos.current) {
       const dx = lastMousePos.current.x - dragStartPos.current.x;
       const dy = lastMousePos.current.y - dragStartPos.current.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance < 5 && ctrlPressed.current) {
-        // It's a Ctrl+Click - select the element
         selectElement(section.id, dragging);
       }
     }
@@ -1254,7 +1252,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onTouchStart={(e) => handleTouchStart(e, 'avatar')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
-            <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
+            <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg pointer-events-none', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           </div>
         )}
 

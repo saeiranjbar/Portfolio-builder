@@ -122,9 +122,16 @@ function AuthenticatedBuilder() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAIChat, setShowAIChat] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Show welcome screen only after client mount to avoid hydration mismatch
+  React.useEffect(() => {
+    if (portfolio.sections.length === 0) {
+      setShowWelcome(true);
+    }
+  }, [portfolio.sections.length]);
   const saveInFlightRef = React.useRef(false);
   const lastSyncedCategoryIdRef = React.useRef<string>('');
   const wasPreviewModeRef = React.useRef(previewMode);
