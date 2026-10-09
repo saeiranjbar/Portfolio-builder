@@ -482,11 +482,13 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
   const lastMousePos = React.useRef<{ x: number; y: number } | null>(null);
+  const ctrlPressed = React.useRef<boolean>(false);
 
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
     if (previewMode || !sectionRef.current) return;
     e.preventDefault();
     e.stopPropagation();
+    ctrlPressed.current = e.ctrlKey || e.metaKey; // Track if Ctrl/Cmd is held
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     // Gallery images/videos live below the 60vh canvas in normal flow.
     // Use the full section as the drag surface for these block-level elements
@@ -749,18 +751,19 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
 
 
   const handleMouseUp = React.useCallback(() => {
-    // Detect if this was a click (moved less than 5 pixels)
+    // Detect if this was a click (moved less than 5 pixels) AND Ctrl was held
     if (dragging && dragStartPos.current && lastMousePos.current) {
       const dx = lastMousePos.current.x - dragStartPos.current.x;
       const dy = lastMousePos.current.y - dragStartPos.current.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < 5) {
-        // It's a click - select the element
+      if (distance < 5 && ctrlPressed.current) {
+        // It's a Ctrl+Click - select the element
         selectElement(section.id, dragging);
       }
     }
     dragStartPos.current = null;
     lastMousePos.current = null;
+    ctrlPressed.current = false;
     setDragging(null);
     setResizing(null);
     setSnapLines({});
@@ -1250,7 +1253,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'avatar')}
             onTouchStart={(e) => handleTouchStart(e, 'avatar')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { console.log('Avatar selected'); selectElement(section.id, 'avatar'); } } : undefined}
           >
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           </div>
@@ -1264,7 +1266,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'name')}
             onTouchStart={(e) => handleTouchStart(e, 'name')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { console.log('Name selected'); selectElement(section.id, 'name'); } } : undefined}
           >
             <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           </div>
@@ -1277,7 +1278,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'title')}
             onTouchStart={(e) => handleTouchStart(e, 'title')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { selectElement(section.id, 'title'); } } : undefined}
           >
             {section.typingWords && section.typingWords.length > 0 ? (
               <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>
@@ -1296,7 +1296,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'subtitle')}
             onTouchStart={(e) => handleTouchStart(e, 'subtitle')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { selectElement(section.id, 'subtitle'); } } : undefined}
           >
             <p className="text-lg whitespace-nowrap" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           </div>
@@ -1309,7 +1308,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'bio')}
             onTouchStart={(e) => handleTouchStart(e, 'bio')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { selectElement(section.id, 'bio'); } } : undefined}
           >
             <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
           </div>
@@ -1322,7 +1320,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
             onMouseDown={(e) => handleMouseDown(e, 'ctaButtons')}
             onTouchStart={(e) => handleTouchStart(e, 'ctaButtons')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
-            onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { selectElement(section.id, 'ctaButtons'); } } : undefined}
           >
             {section.ctaButtons.map((btn) => (
               <a key={btn.id} href={btn.link}
