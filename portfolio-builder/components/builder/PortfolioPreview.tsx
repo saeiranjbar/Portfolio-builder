@@ -1294,7 +1294,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         {/* Avatar */}
         {section.showAvatar !== false && section.avatar && (
           <div ref={(node) => { elementRefs.current['avatar'] = node; }} className={cn(avatarPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', !previewMode && 'cursor-move', dragging === 'avatar' && 'z-20')}
-            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none' }}
+            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none', border: '2px solid red' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none', border: '2px solid red' }}
             onMouseDown={(e) => {
               console.log('👆 Avatar mousedown');
               e.stopPropagation();
