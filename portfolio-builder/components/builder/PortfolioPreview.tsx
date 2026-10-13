@@ -1197,7 +1197,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         />
       )}
 
-      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10, pointerEvents: 'none' }}>
+      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10 }}>
 
         {/* Background Shapes Ã¢â‚¬â€ rendered behind text elements (zIndex 0-9) */}
         {(section.backgroundShapes || []).map((shape) => (
