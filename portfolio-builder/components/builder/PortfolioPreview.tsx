@@ -1295,8 +1295,16 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         {section.showAvatar !== false && section.avatar && (
           <div ref={(node) => { elementRefs.current['avatar'] = node; }} className={cn(avatarPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', !previewMode && 'cursor-move', dragging === 'avatar' && 'z-20')}
             style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none' }}
-            onMouseDown={(e) => handleMouseDown(e, 'avatar')}
-            onTouchStart={(e) => handleTouchStart(e, 'avatar')}
+            onMouseDown={(e) => {
+              console.log('👆 Avatar mousedown');
+              e.stopPropagation();
+              handleMouseDown(e, 'avatar');
+            }}
+            onTouchStart={(e) => {
+              console.log('👆 Avatar touchstart');
+              e.stopPropagation();
+              handleTouchStart(e, 'avatar');
+            }}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg pointer-events-none', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
