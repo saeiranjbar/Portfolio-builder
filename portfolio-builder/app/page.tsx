@@ -480,6 +480,19 @@ function AuthenticatedBuilder() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
+      {/* DEBUG: Top level test button */}
+      <button
+        onClick={() => {
+          console.log('🔴 TOP LEVEL TEST CLICKED!');
+          console.log('previewMode:', previewMode);
+          console.log('layoutMode:', portfolio.layoutMode);
+        }}
+        className="fixed top-4 right-4 z-[99999] bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700"
+        style={{ pointerEvents: 'auto' }}
+      >
+        🔴 TEST
+      </button>
+
       {/* Cursor Glow Effect */}
       <CursorGlow />
 
