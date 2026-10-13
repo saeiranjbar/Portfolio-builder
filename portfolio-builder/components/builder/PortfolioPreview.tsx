@@ -485,13 +485,21 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
   const ctrlPressed = React.useRef<boolean>(false);
 
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
-    if (previewMode || !sectionRef.current) return;
+    console.log('🖱️ handleMouseDown called:', { element, previewMode, hasSectionRef: !!sectionRef.current, ctrlKey: e.ctrlKey });
+    if (previewMode) {
+      console.log('❌ Blocked by previewMode');
+      return;
+    }
+    if (!sectionRef.current) {
+      console.log('❌ No sectionRef');
+      return;
+    }
     
     // If Ctrl is held, just select the element - don't drag
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Ctrl+Click on:', element);
+      console.log('✓ SELECTING:', element);
       selectElement(section.id, element);
       return;
     }
@@ -499,6 +507,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     // Regular click - prepare for drag
     e.preventDefault();
     e.stopPropagation();
+    console.log('✓ STARTING DRAG:', element);
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     const isGalleryBlock = element === 'galleryImages' || element === 'galleryVideos';
     const dragSurface = isGalleryBlock ? sectionRef.current : (canvasRef.current || sectionRef.current);
