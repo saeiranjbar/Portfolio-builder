@@ -795,15 +795,6 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
     };
   }, []);
 
-  const handleMouseUp = React.useCallback(() => {
-    dragStartPos.current = null;
-    lastMousePos.current = null;
-    ctrlPressed.current = false;
-    setDragging(null);
-    setResizing(null);
-    setSnapLines({});
-  }, []);
-
   React.useEffect(() => {
     if (dragging || resizing) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -817,7 +808,7 @@ function HeroPreview({ section, theme, useLandingBackground = false }: { section
         window.removeEventListener('touchend', handleMouseUp);
       };
     }
-  }, [dragging, resizing, handleMouseMove, handleMouseUp, handleTouchMove]);
+  }, [dragging, resizing, handleMouseMove, handleTouchMove]);
 
   const scrollToNext = () => {
     const el = sectionRef.current?.nextElementSibling;
