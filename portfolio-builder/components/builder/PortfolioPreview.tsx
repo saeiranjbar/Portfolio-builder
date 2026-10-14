@@ -327,7 +327,7 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
   );
 }
 // ============ HERO ============
-function HeroPreview({ section, theme, useLandingBackground = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean }) {
+export function HeroPreview({ section, theme, useLandingBackground = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean }) {
   const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const sectionRef = React.useRef<HTMLElement>(null);
