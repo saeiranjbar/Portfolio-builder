@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import { listSavedWebsites, parseSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
 import { usePortfolioStore } from '@/lib/store';
@@ -14,11 +13,7 @@ interface Props { onOpened?: () => void; dark?: boolean; disabled?: boolean }
 export function SavedWebsites(props: Props) {
   const { data: session, status } = useSession();
   if (status === 'loading') return null;
-  if (!session?.user?.email) return (
-    <Link href="/login" className={props.dark ? 'text-sm text-blue-200 underline' : 'text-sm text-blue-700 underline'}>
-      Sign in to open saved websites
-    </Link>
-  );
+  if (!session?.user?.email) return null;
   // Account changes unmount the old list and abort its pending request.
   return <AccountWebsites key={session.user.email} ownerEmail={session.user.email} {...props} />;
 }

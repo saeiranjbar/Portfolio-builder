@@ -39,8 +39,6 @@ import {
   Settings,
   Save,
   Loader2,
-  LayoutGrid,
-  Columns,
   Plus,
   Wand2,
   Sparkles,
@@ -556,11 +554,6 @@ function AuthenticatedBuilder() {
                 } as any);
                 toast.success('Test data loaded into Hero section!');
               }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors"
-              title="Load test data into Hero section"
-            >
-              <span className="hidden md:inline">🧪 Test Data</span>
-              <span className="md:hidden">🧪</span>
             </button>
           )}
           {isDirty && (
@@ -620,30 +613,6 @@ function AuthenticatedBuilder() {
             <span className="hidden md:inline">Search</span>
             <kbd className="hidden md:inline text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-lg">⌘K</kbd>
           </button>
-
-          {/* Layout Mode Toggle */}
-          <div className="flex items-center border border-gray-200 rounded-xl p-1">
-            <button
-              onClick={() => setLayoutMode('flexible')}
-              className={cn(
-                'p-2 rounded-lg transition-all duration-200',
-                portfolio.layoutMode === 'flexible' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'hover:bg-gray-50 text-gray-500'
-              )}
-              title="Website mode - free-form drag and drop with full customization"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setLayoutMode('simple')}
-              className={cn(
-                'p-2 rounded-lg transition-all duration-200',
-                portfolio.layoutMode === 'simple' ? 'bg-green-100 text-green-700 border-green-300' : 'hover:bg-gray-50 text-gray-500'
-              )}
-              title="Portfolio mode - structured template for quick portfolio creation"
-            >
-              <Columns className="w-4 h-4" />
-            </button>
-          </div>
 
           {/* View Mode Toggle */}
           <div className="flex items-center border border-gray-200 rounded-xl p-1">
