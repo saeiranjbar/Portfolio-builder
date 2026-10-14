@@ -40,6 +40,7 @@ import { AnimatedText } from './AnimatedText';
 import { HeroPdfReader } from './HeroPdfReader';
 import { FlowPortfolio } from './FlowPortfolio';
 import { ColorRibbon } from './effects/ColorRibbon';
+import { RulersAndGuides } from './RulersAndGuides';
 
 
 
@@ -1149,6 +1150,22 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
 
   return (
     <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
+      {/* Rulers, Guides & Smart Guides */}
+      <RulersAndGuides
+        containerRef={sectionRef as React.RefObject<HTMLElement>}
+        elements={{
+          ...(avatarPos && { avatar: avatarPos }),
+          ...(namePos && { name: namePos }),
+          ...(titlePos && { title: titlePos }),
+          ...(subtitlePos && { subtitle: subtitlePos }),
+          ...(bioPos && { bio: bioPos }),
+          ...(ctaPos && { ctaButtons: ctaPos }),
+        }}
+        draggingElement={dragging}
+        showRulers={usePortfolioStore.getState().showRulers}
+        showGuides={usePortfolioStore.getState().showGuides}
+        showSmartGuides={usePortfolioStore.getState().showSmartGuides}
+      />
 
       {/* Background layer Ã¢â‚¬â€ parallax-enabled when section.parallaxEnabled is true */}
       {section.backgroundType === 'video' && section.backgroundValue && (

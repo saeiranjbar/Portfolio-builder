@@ -129,6 +129,9 @@ interface PortfolioState {
   previewMode: boolean;
   viewMode: 'desktop' | 'tablet' | 'mobile';
   isDirty: boolean;
+  showRulers: boolean;
+  showGuides: boolean;
+  showSmartGuides: boolean;
 
   // Multi-page site state. The current page's sections are the live
   // portfolio.sections; entries in this array are synced on switch/save.
@@ -170,6 +173,10 @@ interface PortfolioState {
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
   // Interactive effects
   updateEffects: (updates: Partial<PortfolioEffects>) => void;
+  // Rulers & Guides
+  toggleRulers: () => void;
+  toggleGuides: () => void;
+  toggleSmartGuides: () => void;
 
   // Page actions (multi-page site)
   addPage: (title: string, slug?: string, options?: { sectionType?: SectionType; themeMode?: 'inherit' | 'custom'; themeOverride?: Theme }) => void;
@@ -543,6 +550,9 @@ const editorPortfolioStore = create<PortfolioState>()(
       previewMode: false,
       viewMode: 'desktop',
       isDirty: false,
+      showRulers: false,
+      showGuides: false,
+      showSmartGuides: true,
       pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: defaultPortfolio.sections }],
       currentPageId: 'home',
       past: [],
@@ -832,6 +842,10 @@ const editorPortfolioStore = create<PortfolioState>()(
         })),
 
       setViewMode: (mode) => set({ viewMode: mode }),
+
+      toggleRulers: () => set((state) => ({ showRulers: !state.showRulers })),
+      toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
+      toggleSmartGuides: () => set((state) => ({ showSmartGuides: !state.showSmartGuides })),
 
       resetPortfolio: () =>
         set((state) => {

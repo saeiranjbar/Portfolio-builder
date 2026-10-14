@@ -44,6 +44,9 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  Ruler,
+  Grid3x3,
+  Target,
 } from 'lucide-react';
 
 
@@ -85,6 +88,12 @@ function AuthenticatedBuilder() {
     selectElement,
     removeSection,
     updateSection,
+    showRulers,
+    showGuides,
+    showSmartGuides,
+    toggleRulers,
+    toggleGuides,
+    toggleSmartGuides,
     isDirty,
     cloudPortfolio,
     undo,
@@ -612,6 +621,40 @@ function AuthenticatedBuilder() {
               title="Mobile view"
             >
               <Smartphone className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Rulers & Guides Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-xl p-1">
+            <button
+              onClick={toggleRulers}
+              className={cn(
+                'p-2 rounded-lg transition-all duration-200',
+                showRulers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-50'
+              )}
+              title="Toggle Rulers"
+            >
+              <Ruler className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleGuides}
+              className={cn(
+                'p-2 rounded-lg transition-all duration-200',
+                showGuides ? 'bg-cyan-100 text-cyan-600' : 'hover:bg-gray-50'
+              )}
+              title="Toggle Guides (click rulers to add, right-click to remove)"
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleSmartGuides}
+              className={cn(
+                'p-2 rounded-lg transition-all duration-200',
+                showSmartGuides ? 'bg-pink-100 text-pink-600' : 'hover:bg-gray-50'
+              )}
+              title="Toggle Smart Guides (auto-alignment)"
+            >
+              <Target className="w-4 h-4" />
             </button>
           </div>
 
