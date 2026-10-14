@@ -106,8 +106,8 @@ export function RulersAndGuides({
       id: `guide-${Date.now()}`,
       type,
       position: type === 'horizontal'
-        ? ((e.clientY - containerRect.top - RULER_THICKNESS) / (containerRect.height - RULER_THICKNESS * 2)) * 100
-        : ((e.clientX - containerRect.left - RULER_THICKNESS) / (containerRect.width - RULER_THICKNESS * 2)) * 100,
+        ? ((e.clientY - containerRect.top) / containerRect.height * 100)
+        : ((e.clientX - containerRect.left) / containerRect.width * 100),
     };
     setGuides([...guides, newGuide]);
   };
@@ -126,50 +126,63 @@ export function RulersAndGuides({
   const verticalSmartGuides = smartGuides.filter(g => g.type === 'vertical');
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-[1000]" style={{ top: -RULER_THICKNESS, left: -RULER_THICKNESS }}>
+    <>
+      {/* Fixed vertical ruler - spans full viewport height */}
       {showRulers && (
-        <div className="absolute top-0 left-0 right-0 bg-gray-100 border-b border-gray-300 pointer-events-auto cursor-crosshair" style={{ height: RULER_THICKNESS }} onClick={(e) => handleRulerClick(e, 'horizontal')}>
-          <div className="absolute inset-0 flex justify-between px-4">
-            {Array.from({ length: 21 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="w-px h-2 bg-gray-400" />
-                <span className="text-[8px] text-gray-500 mt-0.5">{i * 5}%</span>
-              </div>
-            ))}
+        <div
+          className="fixed top-0 bottom-0 bg-gray-100 border-r border-gray-300 pointer-events-auto cursor-crosshair z-[1001]"
+          style={{ left: containerRect?.left ?? 0, width: RULER_THICKNESS }}
+          onClick={(e) => handleRulerClick(e, 'vertical')}
+        >
+          <div className="absolute inset-0 overflow-hidden">
+            {Array.from({ length: Math.ceil((containerRect?.height ?? 0) / (window.innerHeight / 20)) }).map((_, i) => {
+              const pct = i * 5;
+              const y = (containerRect?.top ?? 0) + (pct / 100) * (containerRect?.height ?? 0);
+              if (y < 0 || y > window.innerHeight) return null;
+              return (
+                <div key={i} className="absolute left-0 flex items-center gap-1" style={{ top: y }}>
+                  <div className="h-px w-2 bg-gray-400" />
+                  <span className="text-[8px] text-gray-500" style={{ writingMode: 'vertical-rl' }}>{pct}%</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {showRulers && (
-        <div className="absolute top-0 left-0 bottom-0 bg-gray-100 border-r border-gray-300 pointer-events-auto cursor-crosshair" style={{ width: RULER_THICKNESS }} onClick={(e) => handleRulerClick(e, 'vertical')}>
-          <div className="absolute inset-0 flex flex-col justify-between py-4">
-            {Array.from({ length: 21 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <div className="h-px w-2 bg-gray-400" />
-                <span className="text-[8px] text-gray-500" style={{ writingMode: 'vertical-rl' }}>{i * 5}%</span>
-              </div>
-            ))}
+      {/* Absolute layer: horizontal ruler + guides + smart guides */}
+      <div className="absolute inset-0 pointer-events-none z-[999]" style={{ top: -RULER_THICKNESS, left: -RULER_THICKNESS }}>
+        {showRulers && (
+          <div className="absolute top-0 left-0 right-0 bg-gray-100 border-b border-gray-300 pointer-events-auto cursor-crosshair" style={{ height: RULER_THICKNESS }} onClick={(e) => handleRulerClick(e, 'horizontal')}>
+            <div className="absolute inset-0 flex justify-between px-4">
+              {Array.from({ length: 21 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="w-px h-2 bg-gray-400" />
+                  <span className="text-[8px] text-gray-500 mt-0.5">{i * 5}%</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showGuides && horizontalGuides.map(guide => (
-        <div key={guide.id} className="absolute left-0 right-0 bg-cyan-400/60 pointer-events-auto cursor-grab hover:bg-cyan-500/80" style={{ top: `${guide.position}%`, height: GUIDE_THICKNESS }} onContextMenu={(e) => handleGuideRightClick(e, guide.id)} title="Right-click to remove guide" />
-      ))}
+        {showGuides && horizontalGuides.map(guide => (
+          <div key={guide.id} className="absolute left-0 right-0 bg-cyan-400/60 pointer-events-auto cursor-grab hover:bg-cyan-500/80" style={{ top: `${guide.position}%`, height: GUIDE_THICKNESS }} onContextMenu={(e) => handleGuideRightClick(e, guide.id)} title="Right-click to remove guide" />
+        ))}
 
-      {showGuides && verticalGuides.map(guide => (
-        <div key={guide.id} className="absolute top-0 bottom-0 bg-cyan-400/60 pointer-events-auto cursor-grab hover:bg-cyan-500/80" style={{ left: `${guide.position}%`, width: GUIDE_THICKNESS }} onContextMenu={(e) => handleGuideRightClick(e, guide.id)} title="Right-click to remove guide" />
-      ))}
+        {showGuides && verticalGuides.map(guide => (
+          <div key={guide.id} className="absolute top-0 bottom-0 bg-cyan-400/60 pointer-events-auto cursor-grab hover:bg-cyan-500/80" style={{ left: `${guide.position}%`, width: GUIDE_THICKNESS }} onContextMenu={(e) => handleGuideRightClick(e, guide.id)} title="Right-click to remove guide" />
+        ))}
 
-      {showSmartGuides && horizontalSmartGuides.map((guide, i) => (
-        <div key={`smart-h-${i}`} className="absolute left-0 right-0 bg-pink-500/80" style={{ top: `${guide.position}%`, height: 1 }} />
-      ))}
+        {showSmartGuides && horizontalSmartGuides.map((guide, i) => (
+          <div key={`smart-h-${i}`} className="absolute left-0 right-0 bg-pink-500/80" style={{ top: `${guide.position}%`, height: 1 }} />
+        ))}
 
-      {showSmartGuides && verticalSmartGuides.map((guide, i) => (
-        <div key={`smart-v-${i}`} className="absolute top-0 bottom-0 bg-pink-500/80" style={{ left: `${guide.position}%`, width: 1 }} />
-      ))}
+        {showSmartGuides && verticalSmartGuides.map((guide, i) => (
+          <div key={`smart-v-${i}`} className="absolute top-0 bottom-0 bg-pink-500/80" style={{ left: `${guide.position}%`, width: 1 }} />
+        ))}
 
-      {showRulers && <div className="absolute top-0 left-0 bg-gray-200 border-r border-b border-gray-300" style={{ width: RULER_THICKNESS, height: RULER_THICKNESS }} />}
-    </div>
+        {showRulers && <div className="absolute top-0 left-0 bg-gray-200 border-r border-b border-gray-300" style={{ width: RULER_THICKNESS, height: RULER_THICKNESS }} />}
+      </div>
+    </>
   );
 }
