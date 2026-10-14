@@ -222,6 +222,8 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
       className={cn('h-full overflow-y-auto transition-all duration-300', viewModeClasses[viewMode])}
       style={{ ...landingBackgroundStyle, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative' }}
     >
+      {/* Document-level rulers and guides */}
+      <RulersAndGuides containerRef={containerRef} />
       {/* Interactive Effects Ã¢â‚¬â€ only in preview mode */}
       {isPreview && effects?.mouseColorShift?.enabled && (
         <MouseColorShift
@@ -1150,23 +1152,6 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
 
   return (
     <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
-      {/* Rulers, Guides & Smart Guides */}
-      <RulersAndGuides
-        containerRef={sectionRef as React.RefObject<HTMLElement>}
-        elements={{
-          ...(avatarPos && { avatar: avatarPos }),
-          ...(namePos && { name: namePos }),
-          ...(titlePos && { title: titlePos }),
-          ...(subtitlePos && { subtitle: subtitlePos }),
-          ...(bioPos && { bio: bioPos }),
-          ...(ctaPos && { ctaButtons: ctaPos }),
-        }}
-        draggingElement={dragging}
-        showRulers={usePortfolioStore.getState().showRulers}
-        showGuides={usePortfolioStore.getState().showGuides}
-        showSmartGuides={usePortfolioStore.getState().showSmartGuides}
-      />
-
       {/* Background layer Ã¢â‚¬â€ parallax-enabled when section.parallaxEnabled is true */}
       {section.backgroundType === 'video' && section.backgroundValue && (
         <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
