@@ -512,50 +512,6 @@ function AuthenticatedBuilder() {
             <span className="hidden md:inline">AI Website Builder</span>
             <span className="md:hidden">AI</span>
           </button>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={() => {
-                const hero = portfolio.sections.find(s => s.type === 'hero');
-                if (!hero) { toast.error('No Hero section found'); return; }
-                // Find existing sections to link CTA buttons to real targets
-                const about = portfolio.sections.find(s => s.type === 'about');
-                const contact = portfolio.sections.find(s => s.type === 'contact');
-                const projects = portfolio.sections.find(s => s.type === 'projects');
-                updateSection(hero.id, {
-                  name: 'Jane Doe', title: 'Senior Product Designer',
-                  subtitle: 'Creating delightful digital experiences',
-                  bio: 'Passionate designer with 8+ years of experience crafting user-centered digital products.',
-                  avatar: 'https://picsum.photos/seed/avatar/300/300',
-                  avatarShape: 'circle', avatarWidth: 120, avatarHeight: 120,
-                  showName: true, showTitle: true, showSubtitle: true, showBio: true, showAvatar: true, showScrollIndicator: true,
-                  avatarPosition: { x: 50, y: 8 }, namePosition: { x: 50, y: 18 },
-                  titlePosition: { x: 50, y: 28 }, subtitlePosition: { x: 50, y: 38 },
-                  bioPosition: { x: 50, y: 50 }, ctaButtonsPosition: { x: 50, y: 75 },
-                  ctaButtons: [
-                    { id: 'cta-1', label: 'About Me', link: about ? `#section-${about.id}` : '#about', variant: 'primary' as const },
-                    { id: 'cta-2', label: 'My Projects', link: projects ? `#section-${projects.id}` : '#projects', variant: 'outline' as const },
-                    { id: 'cta-3', label: 'Get In Touch', link: contact ? `#section-${contact.id}` : '#contact', variant: 'secondary' as const },
-                  ],
-                  freeFormEnabled: true, snapEnabled: true,
-                  galleryImages: [
-                    { id: 'gi-1', url: 'https://picsum.photos/seed/test1/800/600', caption: 'Test 1' },
-                    { id: 'gi-2', url: 'https://picsum.photos/seed/test2/800/600', caption: 'Test 2' },
-                    { id: 'gi-3', url: 'https://picsum.photos/seed/test3/800/600', caption: 'Test 3' },
-                    { id: 'gi-4', url: 'https://picsum.photos/seed/test4/800/600', caption: 'Test 4' },
-                    { id: 'gi-5', url: 'https://picsum.photos/seed/test5/800/600', caption: 'Test 5' },
-                    { id: 'gi-6', url: 'https://picsum.photos/seed/test6/800/600', caption: 'Test 6' },
-                  ],
-                  galleryVideos: [
-                    { id: 'gv-1', type: 'youtube', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', caption: 'YouTube Test' },
-                    { id: 'gv-2', type: 'vimeo', url: 'https://player.vimeo.com/video/76979871', caption: 'Vimeo Test' },
-                  ],
-                  galleryGridCols: 3, galleryVideoGridCols: 2,
-                  typingWords: ['Designer', 'Developer', 'Creator'], parallaxEnabled: false,
-                } as any);
-                toast.success('Test data loaded into Hero section!');
-              }}
-            </button>
-          )}
           {isDirty && (
             <span className="text-xs text-orange-500 flex items-center gap-1">
               <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
