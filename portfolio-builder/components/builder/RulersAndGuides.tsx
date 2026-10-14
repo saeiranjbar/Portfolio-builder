@@ -162,11 +162,11 @@ export function RulersAndGuides({
       {/* Vertical ruler: absolute at canvas left edge */}
       {showRulers && (
         <div
-          className="absolute top-0 bottom-0 left-0 pointer-events-none"
-          style={{ width: 0, zIndex: 1001 }}
+          className="absolute inset-y-0 left-0 pointer-events-none"
+          style={{ width: RULER_THICKNESS, zIndex: 1001 }}
         >
           <div
-            className="absolute top-0 bottom-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300"
+            className="absolute inset-y-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300"
             style={{ width: RULER_THICKNESS, backgroundColor: 'rgba(243, 244, 246, 0.95)' }}
             onClick={(e) => handleRulerClick(e, 'vertical')}
           >
@@ -187,10 +187,10 @@ export function RulersAndGuides({
       {showRulers && (
         <div
           className="absolute top-0 left-0 right-0 pointer-events-none"
-          style={{ height: 0, zIndex: 1002 }}
+          style={{ height: RULER_THICKNESS, zIndex: 1002 }}
         >
           <div
-            className="absolute top-0 left-0 w-full pointer-events-auto cursor-crosshair border-b border-gray-300"
+            className="absolute top-0 left-0 right-0 pointer-events-auto cursor-crosshair border-b border-gray-300"
             style={{ height: RULER_THICKNESS, backgroundColor: 'rgba(243, 244, 246, 0.95)' }}
             onClick={(e) => handleRulerClick(e, 'horizontal')}
           >
