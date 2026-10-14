@@ -1206,24 +1206,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
         />
       )}
 
-      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10, border: '10px dashed lime' }}>
-        {/* DEBUG: Big visible box */}
-        {!previewMode && (
-          <div style={{ position: 'fixed', top: '150px', right: '50px', background: 'lime', color: 'black', padding: '30px', zIndex: 99999, fontWeight: 'bold', border: '5px solid black', fontSize: '20px' }}>
-            🟢 CANVAS RENDERED! Clicks should work here
-          </div>
-        )}
-        {/* DEBUG: Test button to verify clicks work */}
-        {!previewMode && (
-          <button
-            onClick={() => console.log('🔴 TEST BUTTON CLICKED! previewMode:', previewMode)}
-            className="fixed top-4 right-4 z-[99999] bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700"
-            style={{ pointerEvents: 'auto' }}
-          >
-            🔴 CLICK TEST
-          </button>
-        )}
-
+      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10 }}>
         {/* Background Shapes Ã¢â‚¬â€ rendered behind text elements (zIndex 0-9) */}
         {(section.backgroundShapes || []).map((shape) => (
           <div
