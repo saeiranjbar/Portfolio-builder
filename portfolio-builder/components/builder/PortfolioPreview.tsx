@@ -427,51 +427,146 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     ctaButtons: ctaPos,
   };
 
-  // Compute snap for a given raw position against other elements + center lines
+  // Compute snap for a given raw position against other elements + center lines (Photoshop-style Smart Guides)
   const computeSnap = (element: string, rawX: number, rawY: number): { x: number; y: number; snapV?: number; snapH?: number } => {
-    if (!snapEnabled) return { x: rawX, y: rawY };
+    if (!snapEnabled) { setSmartGuides([]); return { x: rawX, y: rawY }; }
 
-    let snappedX = rawX;
-    let snappedY = rawY;
-    let snapV: number | undefined;
-    let snapH: number | undefined;
+    // Get canvas dimensions for pixel-based detection
+    const canvasEl = canvasRef.current;
+    const sectionEl = sectionRef.current;
+    const canvasRect = canvasEl?.getBoundingClientRect() ?? { width: 1000, height: 800 };
+    const sectionRect = sectionEl?.getBoundingClientRect() ?? { width: 1000, height: 800 };
+    
+    // Canvas width from actual DOM, height from section's min-height
+    const canvasWidth = canvasRect.width;
+    const canvasHeight = sectionRect.height > 0 ? sectionRect.height : 800;
 
-    // Build list of target X values: other elements' X + center (50)
-    const targetXs: number[] = [50]; // center line
-    const targetYs: number[] = [50]; // center line
+    // Default element sizes for detection
+    const defaultSizes: Record<string, { w: number; h: number }> = {
+      avatar: { w: 120, h: 120 },
+      name: { w: 200, h: 40 },
+      title: { w: 250, h: 35 },
+      subtitle: { w: 200, h: 30 },
+      bio: { w: 400, h: 60 },
+      ctaButtons: { w: 300, h: 50 },
+    };
 
+    // Build element rects
+    const rects: Record<string, { left: number; top: number; right: number; bottom: number; cx: number; cy: number; w: number; h: number }> = {};
     for (const [key, pos] of Object.entries(allPositions)) {
-      if (key === element) continue;
-      // Only include visible elements
-      if (key === 'avatar' && section.showAvatar === false) continue;
-      if (key === 'name' && section.showName === false) continue;
-      if (key === 'title' && section.showTitle === false) continue;
-      if (key === 'subtitle' && section.showSubtitle === false) continue;
-      if (key === 'bio' && section.showBio === false) continue;
-      if (key === 'ctaButtons' && (!section.ctaButtons || section.ctaButtons.length === 0)) continue;
-      targetXs.push(pos.x);
-      targetYs.push(pos.y);
+      if (key === element || !pos) continue;
+      const size = defaultSizes[key] ?? { w: 100, h: 40 };
+      const cx = (pos.x / 100) * canvasWidth;
+      const cy = (pos.y / 100) * canvasHeight;
+      rects[key] = {
+        left: cx - size.w / 2, top: cy - size.h / 2,
+        right: cx + size.w / 2, bottom: cy + size.h / 2,
+        cx, cy, w: size.w, h: size.h,
+      };
     }
 
-    // Check X snap
-    for (const tx of targetXs) {
-      if (Math.abs(rawX - tx) < SNAP_THRESHOLD) {
-        snappedX = tx;
-        snapV = tx;
-        break;
+    const dragSize = defaultSizes[element] ?? { w: 100, h: 40 };
+    const dragCx = (rawX / 100) * canvasWidth;
+    const dragCy = (rawY / 100) * canvasHeight;
+    const dragRect = {
+      left: dragCx - dragSize.w / 2, top: dragCy - dragSize.h / 2,
+      right: dragCx + dragSize.w / 2, bottom: dragCy + dragSize.h / 2,
+      cx: dragCx, cy: dragCy, w: dragSize.w, h: dragSize.h,
+    };
+
+    const guides: typeof smartGuides = [];
+    let snappedX = rawX, snappedY = rawY;
+    let bestXDx = PIXEL_SNAP_THRESHOLD + 1, bestYDy = PIXEL_SNAP_THRESHOLD + 1;
+
+    // Canvas edges & center
+    const canvasX = [{ px: 0, label: 'Left', isEdge: true }, { px: canvasWidth / 2, label: 'Center', isEdge: false }, { px: canvasWidth, label: 'Right', isEdge: true }];
+    const canvasY = [{ px: 0, label: 'Top', isEdge: true }, { px: canvasHeight / 2, label: 'Center', isEdge: false }, { px: canvasHeight, label: 'Bottom', isEdge: true }];
+    const dragXPoints = [{ px: dragRect.left, ref: 'left' }, { px: dragRect.cx, ref: 'center' }, { px: dragRect.right, ref: 'right' }];
+    const dragYPoints = [{ px: dragRect.top, ref: 'top' }, { px: dragRect.cy, ref: 'center' }, { px: dragRect.bottom, ref: 'bottom' }];
+
+    // X alignment (vertical guides)
+    for (const dp of dragXPoints) {
+      for (const ct of canvasX) {
+        const dx = Math.abs(dp.px - ct.px);
+        if (dx < bestXDx) {
+          bestXDx = dx;
+          snappedX = ((ct.px + (dragRect.cx - dp.px)) / canvasWidth) * 100;
+          guides.length = 0;
+          guides.push({ type: 'alignment', orientation: 'vertical', position: (ct.px / canvasWidth) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
+        }
+      }
+      for (const [key, rect] of Object.entries(rects)) {
+        const otherX = [{ px: rect.left, ref: 'left' }, { px: rect.cx, ref: 'center' }, { px: rect.right, ref: 'right' }];
+        for (const op of otherX) {
+          const dx = Math.abs(dp.px - op.px);
+          if (dx < bestXDx) {
+            bestXDx = dx;
+            snappedX = ((op.px + (dragRect.cx - dp.px)) / canvasWidth) * 100;
+            guides.length = 0;
+            guides.push({ type: 'alignment', orientation: 'vertical', position: (op.px / canvasWidth) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
+          }
+        }
       }
     }
 
-    // Check Y snap
-    for (const ty of targetYs) {
-      if (Math.abs(rawY - ty) < SNAP_THRESHOLD) {
-        snappedY = ty;
-        snapH = ty;
-        break;
+    // Y alignment (horizontal guides)
+    for (const dp of dragYPoints) {
+      for (const ct of canvasY) {
+        const dy = Math.abs(dp.px - ct.px);
+        if (dy < bestYDy) {
+          bestYDy = dy;
+          snappedY = ((ct.px + (dragRect.cy - dp.px)) / canvasHeight) * 100;
+          guides.length = 0;
+          guides.push({ type: 'alignment', orientation: 'horizontal', position: (ct.px / canvasHeight) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
+        }
+      }
+      for (const [key, rect] of Object.entries(rects)) {
+        const otherY = [{ px: rect.top, ref: 'top' }, { px: rect.cy, ref: 'center' }, { px: rect.bottom, ref: 'bottom' }];
+        for (const op of otherY) {
+          const dy = Math.abs(dp.px - op.px);
+          if (dy < bestYDy) {
+            bestYDy = dy;
+            snappedY = ((op.px + (dragRect.cy - dp.px)) / canvasHeight) * 100;
+            guides.length = 0;
+            guides.push({ type: 'alignment', orientation: 'horizontal', position: (op.px / canvasHeight) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
+          }
+        }
       }
     }
 
-    return { x: snappedX, y: snappedY, snapV, snapH };
+    // Spacing detection
+    const sortedByX = Object.entries(rects).sort((a, b) => a[1].cx - b[1].cx);
+    for (let i = 0; i < sortedByX.length - 1; i++) {
+      const [, l] = sortedByX[i], [, r] = sortedByX[i + 1];
+      const gap = r.left - l.right;
+      if (gap > 0 && Math.abs(dragRect.cx - (l.right + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
+        guides.push({ type: 'spacing', orientation: 'vertical', position: ((l.right + gap / 2) / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]] });
+      }
+    }
+
+    const sortedByY = Object.entries(rects).sort((a, b) => a[1].cy - b[1].cy);
+    for (let i = 0; i < sortedByY.length - 1; i++) {
+      const [, t] = sortedByY[i], [, b] = sortedByY[i + 1];
+      const gap = b.top - t.bottom;
+      if (gap > 0 && Math.abs(dragRect.cy - (t.bottom + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
+        guides.push({ type: 'spacing', orientation: 'horizontal', position: ((t.bottom + gap / 2) / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]] });
+      }
+    }
+
+    // Size match
+    for (const [key, rect] of Object.entries(rects)) {
+      if (Math.abs(dragRect.w - rect.w) < SIZE_MATCH_THRESHOLD) {
+        guides.push({ type: 'size', orientation: 'vertical', position: (dragRect.cx / canvasWidth) * 100, label: 'W', elements: [element, key] });
+      }
+      if (Math.abs(dragRect.h - rect.h) < SIZE_MATCH_THRESHOLD) {
+        guides.push({ type: 'size', orientation: 'horizontal', position: (dragRect.cy / canvasHeight) * 100, label: 'H', elements: [element, key] });
+      }
+    }
+
+    setSmartGuides(guides);
+    const alignV = guides.find((g) => g.type === 'alignment' && g.orientation === 'vertical');
+    const alignH = guides.find((g) => g.type === 'alignment' && g.orientation === 'horizontal');
+    return { x: Math.max(0, Math.min(100, snappedX)), y: Math.max(0, Math.min(100, snappedY)), snapV: alignV?.position, snapH: alignH?.position };
   };
 
   // Track drag offset so elements don't jump to mouse position
