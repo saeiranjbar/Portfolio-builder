@@ -159,11 +159,11 @@ export function RulersAndGuides({
 
   return (
     <>
-      {/* Vertical ruler: sticky to canvas left edge, spans full section height */}
+      {/* Vertical ruler: absolute at canvas left edge */}
       {showRulers && (
         <div
-          className="sticky top-0 h-full pointer-events-none"
-          style={{ left: 0, width: RULER_THICKNESS, zIndex: 1001 }}
+          className="absolute top-0 bottom-0 left-0 pointer-events-none"
+          style={{ width: 0, zIndex: 1001 }}
         >
           <div
             className="absolute top-0 bottom-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300"
@@ -183,11 +183,11 @@ export function RulersAndGuides({
         </div>
       )}
 
-      {/* Horizontal ruler: sticky to canvas top, spans full width */}
+      {/* Horizontal ruler: absolute at canvas top */}
       {showRulers && (
         <div
-          className="sticky top-0 w-full pointer-events-none"
-          style={{ height: RULER_THICKNESS, zIndex: 1002 }}
+          className="absolute top-0 left-0 right-0 pointer-events-none"
+          style={{ height: 0, zIndex: 1002 }}
         >
           <div
             className="absolute top-0 left-0 w-full pointer-events-auto cursor-crosshair border-b border-gray-300"
