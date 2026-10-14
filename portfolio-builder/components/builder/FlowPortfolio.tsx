@@ -83,12 +83,15 @@ export function FlowPortfolio({ sections, theme, renderSection }: Props) {
     onPointerCancel={() => finish(false)} onLostPointerCapture={() => { if (drag.current) finish(false); }}>
     {orderedIds.map(id => {
       const block = lookup.get(id)!;
+      // Only render HeroPreview once per hero section (for the first block)
+      const isFirstBlockOfSection = blocks.findIndex(b => b.section.id === block.section.id) === blocks.findIndex(b => b.id === id);
       return <div key={id} ref={node => { if (node) nodes.current.set(id, node); else nodes.current.delete(id); }}
         data-flow-id={id} data-flow-section={block.section.id} data-flow-key={block.key} data-section-type={block.section.type}
         id={blocks.find(item => item.section.id === block.section.id)?.id === id ? `section-${block.section.id}` : undefined}
         className={`flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4 ${dragging === id ? 'outline outline-2 outline-blue-500' : ''}`}
         onClick={!previewMode ? () => selectElement(block.section.id, block.key) : undefined}>
-        {block.section.type === 'hero' ? <HeroPreview section={block.section as HeroSection} theme={theme} />
+        {block.section.type === 'hero' && isFirstBlockOfSection ? <HeroPreview section={block.section as HeroSection} theme={theme} />
+          : block.section.type === 'hero' ? null
           : block.key === 'title' ? <h2 className="text-center text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.typography.headingFont, ...textStyle(block.section.textStyles, 'title') }}><AnimatedText text={'title' in block.section ? block.section.title : ''} textStyles={block.section.textStyles?.title} /></h2>
           : renderSection(sectionForFlowBlock(block))}
       </div>;
