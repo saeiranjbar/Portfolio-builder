@@ -129,16 +129,19 @@ export function RulersAndGuides({
   }, [draggingElement, elements, containerRect]);
 
   const handleRulerClick = (e: React.MouseEvent, type: 'horizontal' | 'vertical') => {
-    if (previewMode || !containerRect) return;
+    if (previewMode) return;
     e.stopPropagation();
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect(); // Fresh measurement at click time — always accurate
     const newGuide: Guide = {
       id: `guide-${Date.now()}`,
       type,
       position: type === 'horizontal'
-        ? ((e.clientY - containerRect.top) / containerRect.height * 100)
-        : ((e.clientX - containerRect.left) / containerRect.width * 100),
+        ? ((e.clientX - rect.left) / rect.width * 100)
+        : ((e.clientY - rect.top) / rect.height * 100),
     };
-    setGuides([...guides, newGuide]);
+    setGuides(prev => [...prev, newGuide]);
   };
 
   const handleGuideRightClick = (e: React.MouseEvent, guideId: string) => {
@@ -147,7 +150,7 @@ export function RulersAndGuides({
     setGuides(guides.filter(g => g.id !== guideId));
   };
 
-  if (previewMode || (!showRulers && !guides.length && !smartGuides.length)) return null;
+  if (previewMode) return null;
 
   const horizontalGuides = guides.filter(g => g.type === 'horizontal');
   const verticalGuides = guides.filter(g => g.type === 'vertical');
@@ -156,23 +159,23 @@ export function RulersAndGuides({
 
   return (
     <>
-      {/* Fixed vertical ruler - spans full viewport height, positioned at canvas left edge */}
-      {showRulers && containerRect && (
+      {/* Vertical ruler: sticky to canvas left edge, spans full section height */}
+      {showRulers && (
         <div
-          className="fixed top-0 bottom-0 bg-gray-100 border-r border-gray-300 pointer-events-auto cursor-crosshair z-[1001]"
-          style={{ left: containerRect.left, width: RULER_THICKNESS }}
-          onClick={(e) => handleRulerClick(e, 'vertical')}
+          className="sticky top-0 h-full pointer-events-none"
+          style={{ left: 0, width: 0, zIndex: 1001 }}
         >
-          {/* Vertical ruler markings - positioned relative to viewport, showing canvas percentage */}
-          <div className="absolute inset-0 overflow-hidden">
+          <div
+            className="absolute top-0 bottom-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300"
+            style={{ width: RULER_THICKNESS, backgroundColor: 'rgba(243, 244, 246, 0.95)' }}
+            onClick={(e) => handleRulerClick(e, 'vertical')}
+          >
             {Array.from({ length: 21 }).map((_, i) => {
               const pct = i * 5;
-              const y = containerRect.top + (pct / 100) * containerRect.height;
-              if (y < 0 || y > window.innerHeight) return null;
               return (
-                <div key={i} className="absolute left-0 flex items-center gap-1" style={{ top: y }}>
+                <div key={i} className="absolute left-0 flex items-center" style={{ top: `${pct}%` }}>
                   <div className="h-px w-2 bg-gray-400" />
-                  <span className="text-[8px] text-gray-500" style={{ writingMode: 'vertical-rl' }}>{pct}%</span>
+                  <span className="text-[8px] text-gray-500 ml-0.5" style={{ writingMode: 'vertical-rl' }}>{pct}%</span>
                 </div>
               );
             })}
@@ -180,49 +183,40 @@ export function RulersAndGuides({
         </div>
       )}
 
-      {/* Guides and smart guides layer - absolute within section */}
-      <div className="absolute inset-0 pointer-events-none z-[999]">
-        {/* Horizontal ruler - spans exactly the canvas width at canvas top */}
-        {showRulers && containerRect && (
+      {/* Horizontal ruler: sticky to canvas top, spans full width */}
+      {showRulers && (
+        <div
+          className="sticky top-0 w-full h-0 pointer-events-none"
+          style={{ zIndex: 1002 }}
+        >
           <div
-            className="fixed bg-gray-100 border-b border-gray-300 pointer-events-auto cursor-crosshair z-[1002]"
-            style={{
-              left: containerRect.left + RULER_THICKNESS,
-              top: containerRect.top,
-              width: Math.max(0, containerRect.width - RULER_THICKNESS),
-              height: RULER_THICKNESS,
-            }}
+            className="absolute top-0 left-0 w-full pointer-events-auto cursor-crosshair border-b border-gray-300"
+            style={{ height: RULER_THICKNESS, backgroundColor: 'rgba(243, 244, 246, 0.95)' }}
             onClick={(e) => handleRulerClick(e, 'horizontal')}
           >
-            {/* Horizontal ruler markings - 0% at canvas edge, 100% at canvas right edge */}
-            <div className="absolute inset-0">
-              {Array.from({ length: 21 }).map((_, i) => {
-                const pct = i * 5;
-                return (
-                  <div key={i} className="absolute top-0 h-full flex flex-col items-center" style={{ left: `${pct}%` }}>
-                    <div className="w-px h-2 bg-gray-400" />
-                    <span className="text-[8px] text-gray-500 mt-0.5 -translate-x-1/2 absolute top-2">{pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
+            {Array.from({ length: 21 }).map((_, i) => {
+              const pct = i * 5;
+              return (
+                <div key={i} className="absolute top-0 flex flex-col items-center" style={{ left: `${pct}%` }}>
+                  <div className="w-px h-2 bg-gray-400" />
+                  <span className="absolute top-2.5 -translate-x-1/2 text-[8px] text-gray-500">{pct}%</span>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Corner piece where rulers meet */}
-        {showRulers && containerRect && (
-          <div
-            className="fixed bg-gray-200 border-r border-b border-gray-300 z-[1003]"
-            style={{
-              left: containerRect.left,
-              top: containerRect.top,
-              width: RULER_THICKNESS,
-              height: RULER_THICKNESS,
-            }}
-          />
-        )}
+      {/* Corner square where rulers meet */}
+      {showRulers && (
+        <div
+          className="absolute top-0 left-0 border-r border-b border-gray-300 pointer-events-none"
+          style={{ width: RULER_THICKNESS, height: RULER_THICKNESS, backgroundColor: 'rgba(229, 231, 235, 0.95)', zIndex: 1003 }}
+        />
+      )}
 
-        {/* User-placed guides */}
+      {/* Guides and smart guides layer */}
+      <div className="absolute inset-0 pointer-events-none z-[999]">
         {showGuides && horizontalGuides.map(guide => (
           <div
             key={guide.id}
@@ -243,7 +237,6 @@ export function RulersAndGuides({
           />
         ))}
 
-        {/* Smart guides */}
         {showSmartGuides && horizontalSmartGuides.map((guide, i) => (
           <div
             key={`smart-h-${i}`}
