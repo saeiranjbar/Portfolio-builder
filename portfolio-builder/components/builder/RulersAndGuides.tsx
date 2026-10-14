@@ -163,7 +163,7 @@ export function RulersAndGuides({
       {showRulers && (
         <div
           className="sticky top-0 h-full pointer-events-none"
-          style={{ left: 0, width: 0, zIndex: 1001 }}
+          style={{ left: 0, width: RULER_THICKNESS, zIndex: 1001 }}
         >
           <div
             className="absolute top-0 bottom-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300"
@@ -186,8 +186,8 @@ export function RulersAndGuides({
       {/* Horizontal ruler: sticky to canvas top, spans full width */}
       {showRulers && (
         <div
-          className="sticky top-0 w-full h-0 pointer-events-none"
-          style={{ zIndex: 1002 }}
+          className="sticky top-0 w-full pointer-events-none"
+          style={{ height: RULER_THICKNESS, zIndex: 1002 }}
         >
           <div
             className="absolute top-0 left-0 w-full pointer-events-auto cursor-crosshair border-b border-gray-300"
