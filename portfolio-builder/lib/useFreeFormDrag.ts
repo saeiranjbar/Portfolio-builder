@@ -189,7 +189,7 @@ function computeSmartGuides(
       if (dx < bestXDx) {
         bestXDx = dx;
         snappedX = ((ct.px + (dragRect.cx - dp.px)) / canvas.width) * 100;
-        guides = guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment'));
+        guides.splice(0, guides.length, ...guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment')));
         guides.push({ type: 'alignment', orientation: 'vertical', position: (ct.px / canvas.width) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
       }
     }
@@ -200,7 +200,7 @@ function computeSmartGuides(
         if (dx < bestXDx) {
           bestXDx = dx;
           snappedX = ((op.px + (dragRect.cx - dp.px)) / canvas.width) * 100;
-          guides = guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment'));
+          guides.splice(0, guides.length, ...guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment')));
           guides.push({ type: 'alignment', orientation: 'vertical', position: (op.px / canvas.width) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
         }
       }
@@ -213,7 +213,7 @@ function computeSmartGuides(
       if (dy < bestYDy) {
         bestYDy = dy;
         snappedY = ((ct.px + (dragRect.cy - dp.px)) / canvas.height) * 100;
-        guides = guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment'));
+        guides.splice(0, guides.length, ...guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment')));
         guides.push({ type: 'alignment', orientation: 'horizontal', position: (ct.px / canvas.height) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
       }
     }
@@ -224,7 +224,7 @@ function computeSmartGuides(
         if (dy < bestYDy) {
           bestYDy = dy;
           snappedY = ((op.px + (dragRect.cy - dp.px)) / canvas.height) * 100;
-          guides = guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment'));
+          guides.splice(0, guides.length, ...guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment')));
           guides.push({ type: 'alignment', orientation: 'horizontal', position: (op.px / canvas.height) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
         }
       }
