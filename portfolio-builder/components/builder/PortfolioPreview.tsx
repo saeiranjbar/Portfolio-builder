@@ -244,9 +244,15 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
         />
       )}
 
-      {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" />}
-      {(heroSection?.backgroundType === 'video' || heroSection?.backgroundType === 'image') && !!heroSection.backgroundOverlayOpacity && <div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: heroSection.backgroundOverlayOpacity / 100 }} />}
-      <div style={{ minHeight: '100vh' }}>
+      {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
+      {/* Overlay is now applied to the wrapper div for consistent coverage */}
+      <div style={{ 
+        minHeight: '100vh',
+        position: 'relative',
+        ...(heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color' ? { background: heroSection.backgroundValue } : {}),
+        ...(heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
+        ...(heroSection?.backgroundOverlayOpacity && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') ? { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` } : {})
+      }}>
         <FlowPortfolio sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
       </div>
 
@@ -348,26 +354,9 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     ? { backgroundColor: '#000' }
     : {};
 
-  // Always apply the background style directly to the section so it covers
-  // all content, including a tall single-column gallery that extends beyond
-  // the viewport.  Previously, when useLandingBackground was true the section
-  // had no background of its own ({}) and relied on a parent wrapper div.
-  // That wrapper's background did not always stretch to cover very tall
-  // gallery content, leaving a white gap at the bottom of the page.
-  // When parallax is enabled with an image background, don't set the
-  // backgroundImage on the section itself Ã¢â‚¬â€ it will be rendered by the
-  // Parallax component instead, otherwise it would show through and hide
-  // the parallax movement.
-  // When useLandingBackground is true and no parallax, keep the section
-  // transparent so the parent landingBackgroundStyle shows through
-  // seamlessly Ã¢â‚¬â€ this prevents subtle color mismatches between the hero
-  // and the sections below it.
+  // When rendered in FlowPortfolio, the wrapper has the background, so hero surface is transparent
   const useParallax = section.parallaxEnabled && section.backgroundType === 'image' && section.backgroundValue;
-  const heroSurfaceStyle = useParallax
-    ? { backgroundColor: theme.colors.background }
-    : useLandingBackground
-      ? { backgroundColor: 'transparent' }
-      : bgStyle;
+  const heroSurfaceStyle = { backgroundColor: 'transparent' }; // Always transparent - wrapper has background
 
   const overlayStyle = (section.backgroundType === 'image' || section.backgroundType === 'video') && section.backgroundOverlayOpacity
     ? { position: 'absolute' as const, inset: 0, backgroundColor: `rgba(0,0,0,${section.backgroundOverlayOpacity / 100})`, pointerEvents: 'none' as const }
@@ -1185,7 +1174,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
           </Parallax>
         </div>
       )}
-      {overlayStyle && Object.keys(overlayStyle).length > 0 && <div style={overlayStyle} />}
+      {/* Non-parallax image/color/gradient background - rendered on wrapper, skip here */}
 
       {/* Fixed-height free-form canvas for text elements (avatar, name, title, subtitle, bio, CTA) */}
       {/* Positions use % within this stable canvas, not the full expanding section */}
