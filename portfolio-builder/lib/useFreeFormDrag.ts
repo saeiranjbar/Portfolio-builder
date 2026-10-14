@@ -3,6 +3,18 @@
 import React from 'react';
 import { ElementPosition } from './types';
 
+/** Smart Guide types mimicking Photoshop's Smart Guides */
+interface SmartGuide {
+  type: 'alignment' | 'spacing' | 'size';
+  orientation: 'horizontal' | 'vertical';
+  position: number; // percentage position on canvas
+  value?: number; // pixel distance for spacing guides
+  label?: string; // e.g., "50px", "W", "H", "Center"
+  elements?: string[]; // which elements this guide relates to
+  isEdge?: boolean; // true for edge alignment, false for center
+  isEqualSpacing?: boolean; // true if spacing is equal on both sides
+}
+
 interface FreeFormDragConfig {
   snapEnabled: boolean;
   getAllPositions: () => Record<string, ElementPosition>;
@@ -10,10 +22,14 @@ interface FreeFormDragConfig {
   onPositionChange: (element: string, position: ElementPosition) => void;
   /** Returns element heights as percentage of section height (key -> height%). Enables push behavior. */
   getElementHeights?: () => Record<string, number>;
+  /** Returns element sizes in pixels (key -> {width, height}). Used for size matching detection. */
+  getElementSizes?: () => Record<string, { width: number; height: number }>;
   /** Batch position update for multiple elements at once (used by push/collision resolution). */
   onBatchPositionChange?: (updates: Record<string, ElementPosition>) => void;
   /** Called when user clicks on an element (for selection). */
   onElementClick?: (key: string) => void;
+  /** Canvas dimensions in pixels for pixel-based measurements */
+  getCanvasDimensions?: () => { width: number; height: number };
 }
 
 /** Minimum vertical gap between elements after push resolution (in % of section height). */
@@ -84,64 +100,199 @@ export function resolveOverlaps(
 }
 
 const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
+const PIXEL_SNAP_THRESHOLD = 8; // pixels — Photoshop uses ~8px snap threshold
+const SIZE_MATCH_THRESHOLD = 3; // pixels — tolerance for "same size" detection
+const SPACING_EQUAL_THRESHOLD = 4; // pixels — tolerance for "equal spacing" detection
 
 /**
- * Reusable hook for free-form drag with snap guides.
- * Encapsulates the drag + snap logic used by the hero section,
- * making it available to all section types.
+ * Compute all Photoshop-style Smart Guides for a dragged element.
+ * Detects: edge/center alignment, canvas edges/center, equal spacing, size matches.
+ */
+function computeSmartGuides(
+  element: string,
+  rawX: number,
+  rawY: number,
+  cfg: FreeFormDragConfig,
+  draggedSize?: { width: number; height: number },
+  canvasDims?: { width: number; height: number },
+): { x: number; y: number; guides: SmartGuide[] } {
+  const guides: SmartGuide[] = [];
+  if (!cfg.snapEnabled) return { x: rawX, y: rawY, guides };
+
+  const allPositions = cfg.getAllPositions();
+  const visibleKeys = cfg.getVisibleKeys();
+  const sizes = cfg.getElementSizes?.() ?? {};
+  const canvas = canvasDims ?? { width: 1000, height: 800 };
+
+  // Convert percentage positions to pixel rects for precise measurement
+  const rects: Record<string, { left: number; top: number; right: number; bottom: number; cx: number; cy: number; w: number; h: number }> = {};
+  for (const key of visibleKeys) {
+    if (key === element) continue;
+    const pos = allPositions[key];
+    if (!pos) continue;
+    const size = sizes[key] ?? { width: 100, height: 40 };
+    const cx = (pos.x / 100) * canvas.width;
+    const cy = (pos.y / 100) * canvas.height;
+    rects[key] = {
+      left: cx - size.width / 2,
+      top: cy - size.height / 2,
+      right: cx + size.width / 2,
+      bottom: cy + size.height / 2,
+      cx, cy, w: size.width, h: size.height,
+    };
+  }
+
+  // Dragged element's pixel rect (center-based)
+  const dragSize = draggedSize ?? { width: 100, height: 40 };
+  const dragCx = (rawX / 100) * canvas.width;
+  const dragCy = (rawY / 100) * canvas.height;
+  const dragRect = {
+    left: dragCx - dragSize.width / 2,
+    top: dragCy - dragSize.height / 2,
+    right: dragCx + dragSize.width / 2,
+    bottom: dragCy + dragSize.height / 2,
+    cx: dragCx, cy: dragCy, w: dragSize.width, h: dragSize.height,
+  };
+
+  let snappedX = rawX;
+  let snappedY = rawY;
+  let bestXDx = PIXEL_SNAP_THRESHOLD + 1;
+  let bestYDy = PIXEL_SNAP_THRESHOLD + 1;
+
+  // Canvas edges & center as snap targets
+  const canvasX = [
+    { px: 0, label: 'Left Edge', isEdge: true },
+    { px: canvas.width / 2, label: 'Center', isEdge: false },
+    { px: canvas.width, label: 'Right Edge', isEdge: true },
+  ];
+  const canvasY = [
+    { px: 0, label: 'Top Edge', isEdge: true },
+    { px: canvas.height / 2, label: 'Center', isEdge: false },
+    { px: canvas.height, label: 'Bottom Edge', isEdge: true },
+  ];
+
+  const dragXPoints = [
+    { px: dragRect.left, ref: 'left' },
+    { px: dragRect.cx, ref: 'center' },
+    { px: dragRect.right, ref: 'right' },
+  ];
+  const dragYPoints = [
+    { px: dragRect.top, ref: 'top' },
+    { px: dragRect.cy, ref: 'center' },
+    { px: dragRect.bottom, ref: 'bottom' },
+  ];
+
+  // ===== 1. ALIGNMENT DETECTION (edges, centers, canvas) =====
+  for (const dp of dragXPoints) {
+    for (const ct of canvasX) {
+      const dx = Math.abs(dp.px - ct.px);
+      if (dx < bestXDx) {
+        bestXDx = dx;
+        snappedX = ((ct.px + (dragRect.cx - dp.px)) / canvas.width) * 100;
+        guides = guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment'));
+        guides.push({ type: 'alignment', orientation: 'vertical', position: (ct.px / canvas.width) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
+      }
+    }
+    for (const [key, rect] of Object.entries(rects)) {
+      const otherX = [{ px: rect.left, ref: 'left' }, { px: rect.cx, ref: 'center' }, { px: rect.right, ref: 'right' }];
+      for (const op of otherX) {
+        const dx = Math.abs(dp.px - op.px);
+        if (dx < bestXDx) {
+          bestXDx = dx;
+          snappedX = ((op.px + (dragRect.cx - dp.px)) / canvas.width) * 100;
+          guides = guides.filter((g) => !(g.orientation === 'vertical' && g.type === 'alignment'));
+          guides.push({ type: 'alignment', orientation: 'vertical', position: (op.px / canvas.width) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
+        }
+      }
+    }
+  }
+
+  for (const dp of dragYPoints) {
+    for (const ct of canvasY) {
+      const dy = Math.abs(dp.px - ct.px);
+      if (dy < bestYDy) {
+        bestYDy = dy;
+        snappedY = ((ct.px + (dragRect.cy - dp.px)) / canvas.height) * 100;
+        guides = guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment'));
+        guides.push({ type: 'alignment', orientation: 'horizontal', position: (ct.px / canvas.height) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
+      }
+    }
+    for (const [key, rect] of Object.entries(rects)) {
+      const otherY = [{ px: rect.top, ref: 'top' }, { px: rect.cy, ref: 'center' }, { px: rect.bottom, ref: 'bottom' }];
+      for (const op of otherY) {
+        const dy = Math.abs(dp.px - op.px);
+        if (dy < bestYDy) {
+          bestYDy = dy;
+          snappedY = ((op.px + (dragRect.cy - dp.px)) / canvas.height) * 100;
+          guides = guides.filter((g) => !(g.orientation === 'horizontal' && g.type === 'alignment'));
+          guides.push({ type: 'alignment', orientation: 'horizontal', position: (op.px / canvas.height) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
+        }
+      }
+    }
+  }
+
+  // ===== 2. SPACING DETECTION (equal gaps) =====
+  const sortedByX = Object.entries(rects).sort((a, b) => a[1].cx - b[1].cx);
+  for (let i = 0; i < sortedByX.length - 1; i++) {
+    const [, left] = sortedByX[i];
+    const [, right] = sortedByX[i + 1];
+    const gap = right.left - left.right;
+    if (gap <= 0) continue;
+    const midX = left.right + gap / 2;
+    if (Math.abs(dragRect.cx - midX) < SPACING_EQUAL_THRESHOLD) {
+      guides.push({ type: 'spacing', orientation: 'vertical', position: (midX / canvas.width) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]] });
+    }
+  }
+
+  const sortedByY = Object.entries(rects).sort((a, b) => a[1].cy - b[1].cy);
+  for (let i = 0; i < sortedByY.length - 1; i++) {
+    const [, t] = sortedByY[i];
+    const [, b] = sortedByY[i + 1];
+    const gap = b.top - t.bottom;
+    if (gap <= 0) continue;
+    const midY = t.bottom + gap / 2;
+    if (Math.abs(dragRect.cy - midY) < SPACING_EQUAL_THRESHOLD) {
+      guides.push({ type: 'spacing', orientation: 'horizontal', position: (midY / canvas.height) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]] });
+    }
+  }
+
+  // ===== 3. SIZE MATCH DETECTION =====
+  for (const [key, rect] of Object.entries(rects)) {
+    if (Math.abs(dragRect.w - rect.w) < SIZE_MATCH_THRESHOLD) {
+      guides.push({ type: 'size', orientation: 'vertical', position: (dragRect.cx / canvas.width) * 100, label: 'W', elements: [element, key] });
+    }
+    if (Math.abs(dragRect.h - rect.h) < SIZE_MATCH_THRESHOLD) {
+      guides.push({ type: 'size', orientation: 'horizontal', position: (dragRect.cy / canvas.height) * 100, label: 'H', elements: [element, key] });
+    }
+  }
+
+  snappedX = Math.max(0, Math.min(100, snappedX));
+  snappedY = Math.max(0, Math.min(100, snappedY));
+  return { x: snappedX, y: snappedY, guides };
+}
+
+/**
+ * Reusable hook for free-form drag with Photoshop-style Smart Guides.
  */
 export function useFreeFormDrag(config: FreeFormDragConfig) {
   const sectionRef = React.useRef<HTMLElement>(null);
   const [dragging, setDragging] = React.useState<string | null>(null);
   const [snapLines, setSnapLines] = React.useState<{ vertical?: number; horizontal?: number }>({});
+  const [smartGuides, setSmartGuides] = React.useState<SmartGuide[]>([]);
   const configRef = React.useRef(config);
   configRef.current = config;
 
-  const computeSnap = React.useCallback((element: string, rawX: number, rawY: number): { x: number; y: number; snapV?: number; snapH?: number } => {
+  const computeSnap = React.useCallback((element: string, rawX: number, rawY: number): { x: number; y: number; snapV?: number; snapH?: number; guides: SmartGuide[] } => {
     const cfg = configRef.current;
-    if (!cfg.snapEnabled) return { x: rawX, y: rawY };
-
-    let snappedX = rawX;
-    let snappedY = rawY;
-    let snapV: number | undefined;
-    let snapH: number | undefined;
-
-    // Build list of target X/Y values: center line (50) + other elements' positions
-    const targetXs: number[] = [50];
-    const targetYs: number[] = [50];
-
-    const allPositions = cfg.getAllPositions();
-    const visibleKeys = cfg.getVisibleKeys();
-
-    for (const [key, pos] of Object.entries(allPositions)) {
-      if (key === element) continue;
-      if (!visibleKeys.includes(key)) continue;
-      targetXs.push(pos.x);
-      targetYs.push(pos.y);
-    }
-
-    // Check X snap
-    for (const tx of targetXs) {
-      if (Math.abs(rawX - tx) < SNAP_THRESHOLD) {
-        snappedX = tx;
-        snapV = tx;
-        break;
-      }
-    }
-
-    // Check Y snap
-    for (const ty of targetYs) {
-      if (Math.abs(rawY - ty) < SNAP_THRESHOLD) {
-        snappedY = ty;
-        snapH = ty;
-        break;
-      }
-    }
-
-    return { x: snappedX, y: snappedY, snapV, snapH };
+    if (!cfg.snapEnabled) return { x: rawX, y: rawY, guides: [] };
+    const sizes = cfg.getElementSizes?.();
+    const draggedSize = sizes?.[element];
+    const canvasDims = cfg.getCanvasDimensions?.();
+    const result = computeSmartGuides(element, rawX, rawY, cfg, draggedSize, canvasDims);
+    const alignV = result.guides.find((g) => g.type === 'alignment' && g.orientation === 'vertical');
+    const alignH = result.guides.find((g) => g.type === 'alignment' && g.orientation === 'horizontal');
+    return { x: result.x, y: result.y, snapV: alignV?.position, snapH: alignH?.position, guides: result.guides };
   }, []);
-
-  const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
   const draggedElement = React.useRef<string | null>(null);
 
@@ -213,12 +364,12 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
     const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
-    // Hold Alt to temporarily disable snapping for fine-tuning position
     const useSnap = configRef.current.snapEnabled && !e.altKey;
-    const { x: snappedX, y: snappedY, snapV, snapH } = useSnap
+    const { x: snappedX, y: snappedY, snapV, snapH, guides } = useSnap
       ? computeSnap(dragging, clampedX, clampedY)
-      : { x: clampedX, y: clampedY, snapV: undefined, snapH: undefined };
+      : { x: clampedX, y: clampedY, snapV: undefined, snapH: undefined, guides: [] as SmartGuide[] };
     setSnapLines({ vertical: snapV, horizontal: snapH });
+    setSmartGuides(guides);
     applyPosition(dragging, snappedX, snappedY);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging, computeSnap]);
@@ -231,8 +382,9 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     const y = ((touch.clientY - rect.top) / rect.height) * 100;
     const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
     const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
-    const { x: snappedX, y: snappedY, snapV, snapH } = computeSnap(dragging, clampedX, clampedY);
+    const { x: snappedX, y: snappedY, snapV, snapH, guides } = computeSnap(dragging, clampedX, clampedY);
     setSnapLines({ vertical: snapV, horizontal: snapH });
+    setSmartGuides(guides);
     applyPosition(dragging, snappedX, snappedY);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging, computeSnap]);
@@ -253,6 +405,7 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     }
     setDragging(null);
     setSnapLines({});
+    setSmartGuides([]);
     dragStartPos.current = null;
     draggedElement.current = null;
   }, []);
@@ -276,6 +429,7 @@ export function useFreeFormDrag(config: FreeFormDragConfig) {
     sectionRef,
     dragging,
     snapLines,
+    smartGuides,
     handleMouseDown,
     handleTouchStart,
   };

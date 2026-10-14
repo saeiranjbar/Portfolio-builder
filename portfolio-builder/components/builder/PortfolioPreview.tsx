@@ -345,9 +345,13 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   const resizingRef = React.useRef(resizing);
   React.useEffect(() => { resizingRef.current = resizing; }, [resizing]);
   const [snapLines, setSnapLines] = React.useState<{ vertical?: number; horizontal?: number }>({});
+  const [smartGuides, setSmartGuides] = React.useState<Array<{ type: string; orientation: string; position: number; value?: number; label?: string; elements?: string[]; isEdge?: boolean; isEqualSpacing?: boolean }>>([]);
 
   const snapEnabled = section.snapEnabled !== false;
-  const SNAP_THRESHOLD = 1; // percentage points Ã¢â‚¬â€ only snaps when extremely close for fine control
+  const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
+  const PIXEL_SNAP_THRESHOLD = 8; // pixels — Photoshop uses ~8px snap threshold
+  const SIZE_MATCH_THRESHOLD = 3; // pixels — tolerance for "same size" detection
+  const SPACING_EQUAL_THRESHOLD = 4; // pixels — tolerance for "equal spacing" detection
 
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? { background: section.backgroundValue }
@@ -775,6 +779,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     setDragging(null);
     setResizing(null);
     setSnapLines({});
+    setSmartGuides([]);
   }, [dragging, section.id, selectElement]);
 
   React.useEffect(() => {
@@ -1181,7 +1186,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       {/* Fixed-height free-form canvas for text elements (avatar, name, title, subtitle, bio, CTA) */}
       {/* Positions use % within this stable canvas, not the full expanding section */}
       {/* Canvas height is measured from the actual bottom edge of the lowest text element + 20px gap */}
-      {/* Snap guide lines Ã¢â‚¬â€ rendered at the section level so they are visible
+      {/* Snap guide lines - rendered at the section level so they are visible
           across the full section height, including when dragging gallery
           images/videos which live below the 60vh canvas. */}
       {dragging && snapEnabled && snapLines.vertical !== undefined && (
@@ -1196,6 +1201,44 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
           style={{ top: `${snapLines.horizontal}%`, height: '1px', backgroundColor: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.6)' }}
         />
       )}
+
+      {/* Photoshop-style Smart Guides (pink alignment lines, yellow spacing) */}
+      {dragging && snapEnabled && smartGuides.map((guide, i) => {
+        const isAlignment = guide.type === 'alignment';
+        const isSpacing = guide.type === 'spacing';
+        const isSize = guide.type === 'size';
+        const color = isAlignment ? '#FF2D55' : isSpacing ? '#FFB800' : '#00C7BE';
+        const thickness = isAlignment ? '2px' : '1px';
+        
+        return (
+          <React.Fragment key={i}>
+            {guide.orientation === 'vertical' && (
+              <div
+                className="absolute top-0 bottom-0 pointer-events-none z-40"
+                style={{ left: `${guide.position}%`, width: thickness, backgroundColor: color }}
+              >
+                {guide.label && (
+                  <span className="absolute top-2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
+                    {guide.label}
+                  </span>
+                )}
+              </div>
+            )}
+            {guide.orientation === 'horizontal' && (
+              <div
+                className="absolute left-0 right-0 pointer-events-none z-40"
+                style={{ top: `${guide.position}%`, height: thickness, backgroundColor: color }}
+              >
+                {guide.label && (
+                  <span className="absolute left-2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
+                    {guide.label}
+                  </span>
+                )}
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
 
       <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10 }}>
         {/* Background Shapes Ã¢â‚¬â€ rendered behind text elements (zIndex 0-9) */}
