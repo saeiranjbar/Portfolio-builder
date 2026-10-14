@@ -208,6 +208,17 @@ function AuthenticatedBuilder() {
     }
   }, [previewMode, activeSectionId, portfolio.sections, selectSection]);
 
+  // Handle Escape key to exit element edit mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && selectedElementId) {
+        selectElement(null, null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedElementId, selectElement]);
+
   const handleSave = useCallback(async (publish = false, subdomain?: string) => {
     if (saveInFlightRef.current) return;
 
