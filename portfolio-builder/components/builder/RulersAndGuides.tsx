@@ -2,19 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/lib/store';
-import { ElementPosition } from '@/lib/types';
 
 interface Guide {
   id: string;
   type: 'horizontal' | 'vertical';
   position: number;
-}
-
-interface SmartGuide {
-  type: 'horizontal' | 'vertical';
-  position: number;
-  alignsWith: string[];
-  alignmentType: 'edge' | 'center';
 }
 
 const GUIDE_THICKNESS = 8;
@@ -24,6 +16,7 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
   const { previewMode, showRulers, showGuides } = usePortfolioStore();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [docHeight, setDocHeight] = useState(0);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -34,6 +27,30 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
     observer.observe(el);
     return () => observer.disconnect();
   }, [containerRef]);
+
+  // Track cursor position for ruler indicators
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const docY = el.scrollTop + (e.clientY - rect.top);
+      const xPct = (x / rect.width) * 100;
+      const yPct = (docY / docHeight) * 100;
+      setCursorPos({ x: xPct, y: yPct });
+    };
+
+    const handleMouseLeave = () => setCursorPos(null);
+
+    el.addEventListener('mousemove', handleMouseMove);
+    el.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      el.removeEventListener('mousemove', handleMouseMove);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [containerRef, docHeight]);
 
   const addGuide = (e: React.MouseEvent, type: 'horizontal' | 'vertical') => {
     if (previewMode) return;
@@ -64,6 +81,7 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
 
   return (
     <>
+      {/* Guide lines */}
       {showGuides && (horizontalGuides.length > 0 || verticalGuides.length > 0) && (
         <div className="absolute left-0 right-0 top-0 pointer-events-none z-[999]" style={{ height: docHeight }}>
           {horizontalGuides.map((guide) => (
@@ -74,9 +92,13 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
           ))}
         </div>
       )}
+
+      {/* Ruler bars */}
       {showRulers && (
         <div className="sticky top-0 h-0 z-[1001] pointer-events-none">
+          {/* Vertical ruler */}
           <div className="absolute top-0 left-0 pointer-events-auto cursor-crosshair border-r border-gray-300" style={{ width: RULER_THICKNESS, height: '100vh', backgroundColor: 'rgba(243, 244, 246, 0.95)' }} onClick={(e) => addGuide(e, 'vertical')}>
+            {/* Tick marks */}
             {Array.from({ length: 21 }).map((_, i) => {
               const pct = i * 5;
               return (
@@ -86,8 +108,21 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
                 </div>
               );
             })}
+            {/* Cursor indicator */}
+            {cursorPos && (
+              <div
+                className="absolute left-0 flex items-center"
+                style={{ top: `${cursorPos.y}%`, transform: 'translateY(-50%)' }}
+              >
+                <div className="h-px w-3 bg-red-500" />
+                <span className="text-[8px] text-red-600 ml-0.5 font-bold" style={{ writingMode: 'vertical-rl' }}>{cursorPos.y.toFixed(1)}%</span>
+              </div>
+            )}
           </div>
+
+          {/* Horizontal ruler */}
           <div className="absolute top-0 pointer-events-auto cursor-crosshair border-b border-gray-300" style={{ left: RULER_THICKNESS, right: 0, height: RULER_THICKNESS, backgroundColor: 'rgba(243, 244, 246, 0.95)' }} onClick={(e) => addGuide(e, 'horizontal')}>
+            {/* Tick marks */}
             {Array.from({ length: 21 }).map((_, i) => {
               const pct = i * 5;
               return (
@@ -97,7 +132,19 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
                 </div>
               );
             })}
+            {/* Cursor indicator */}
+            {cursorPos && (
+              <div
+                className="absolute top-0 flex flex-col items-center"
+                style={{ left: `${cursorPos.x}%`, transform: 'translateX(-50%)' }}
+              >
+                <div className="w-px h-3 bg-red-500" />
+                <span className="absolute top-3 -translate-x-1/2 text-[8px] text-red-600 font-bold">{cursorPos.x.toFixed(1)}%</span>
+              </div>
+            )}
           </div>
+
+          {/* Corner */}
           <div className="absolute top-0 left-0 border-r border-b border-gray-300" style={{ width: RULER_THICKNESS, height: RULER_THICKNESS, backgroundColor: 'rgba(229, 231, 235, 0.95)' }} />
         </div>
       )}
