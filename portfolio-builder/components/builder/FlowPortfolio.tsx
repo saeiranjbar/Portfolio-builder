@@ -36,6 +36,9 @@ export function FlowPortfolio({ sections, theme, renderSection }: Props) {
   const drag = useRef<{ id: string; pointer: number; y: number; order: string[]; scroll: HTMLElement | null } | null>(null);
   const lookup = new Map(blocks.map(block => [block.id, block]));
   const orderedIds = dragOrder ? [...dragOrder.filter(id => lookup.has(id)), ...baseIds.filter(id => !dragOrder.includes(id))] : baseIds;
+  
+  // Track which hero sections we've already rendered (to avoid duplicates)
+  const renderedHeroSections = useRef<Set<string>>(new Set());
 
   const updateDrag = useCallback((y: number) => {
     const current = drag.current;
@@ -77,22 +80,38 @@ export function FlowPortfolio({ sections, theme, renderSection }: Props) {
     if (commit && current && current.order.some((id, index) => id !== baseIds[index])) reorderFlowComponents(current.order);
   }
 
+  // Reset rendered heroes when sections change
+  React.useEffect(() => {
+    renderedHeroSections.current = new Set();
+  }, [sections]);
+
   return <div ref={root} data-flow-layout data-flow-dragging={dragging ? 'true' : undefined} className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-8"
     onPointerMove={event => { if (drag.current?.pointer === event.pointerId) updateDrag(event.clientY); }}
     onPointerUp={event => { if (drag.current?.pointer === event.pointerId) { finish(true); event.currentTarget.releasePointerCapture(event.pointerId); } }}
     onPointerCancel={() => finish(false)} onLostPointerCapture={() => { if (drag.current) finish(false); }}>
     {orderedIds.map(id => {
       const block = lookup.get(id)!;
-      // Only render HeroPreview once per hero section (for the first block)
-      const isFirstBlockOfSection = blocks.findIndex(b => b.section.id === block.section.id) === blocks.findIndex(b => b.id === id);
+      // Skip hero blocks - they're rendered separately as complete sections
+      if (block.section.type === 'hero') {
+        // Only render HeroPreview once per unique hero section
+        if (renderedHeroSections.current.has(block.section.id)) {
+          return null;
+        }
+        renderedHeroSections.current.add(block.section.id);
+        return <div key={id} ref={node => { if (node) nodes.current.set(id, node); else nodes.current.delete(id); }}
+          data-flow-id={id} data-flow-section={block.section.id} data-section-type={block.section.type}
+          id={`section-${block.section.id}`}
+          className="flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4">
+          <HeroPreview section={block.section as HeroSection} theme={theme} />
+        </div>;
+      }
+      // Non-hero sections render normally
       return <div key={id} ref={node => { if (node) nodes.current.set(id, node); else nodes.current.delete(id); }}
         data-flow-id={id} data-flow-section={block.section.id} data-flow-key={block.key} data-section-type={block.section.type}
         id={blocks.find(item => item.section.id === block.section.id)?.id === id ? `section-${block.section.id}` : undefined}
         className={`flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4 ${dragging === id ? 'outline outline-2 outline-blue-500' : ''}`}
         onClick={!previewMode ? () => selectElement(block.section.id, block.key) : undefined}>
-        {block.section.type === 'hero' && isFirstBlockOfSection ? <HeroPreview section={block.section as HeroSection} theme={theme} />
-          : block.section.type === 'hero' ? null
-          : block.key === 'title' ? <h2 className="text-center text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.typography.headingFont, ...textStyle(block.section.textStyles, 'title') }}><AnimatedText text={'title' in block.section ? block.section.title : ''} textStyles={block.section.textStyles?.title} /></h2>
+        {block.key === 'title' ? <h2 className="text-center text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.typography.headingFont, ...textStyle(block.section.textStyles, 'title') }}><AnimatedText text={'title' in block.section ? block.section.title : ''} textStyles={block.section.textStyles?.title} /></h2>
           : renderSection(sectionForFlowBlock(block))}
       </div>;
     })}
