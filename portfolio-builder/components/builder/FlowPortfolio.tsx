@@ -95,12 +95,12 @@ export function FlowPortfolio({ sections, theme, renderSection }: Props) {
       // Skip hero blocks that aren't the first of their section
       if (!shouldRenderBlock(block)) return null;
       
-      // Hero sections render as complete units
+      // Hero sections render as complete units with full background
       if (block.section.type === 'hero') {
         return <div key={id} ref={node => { if (node) nodes.current.set(id, node); else nodes.current.delete(id); }}
           data-flow-id={id} data-flow-section={block.section.id} data-section-type={block.section.type}
           id={`section-${block.section.id}`}
-          className="flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-4">
+          className="flow-component min-w-0 w-full [&_section]:min-h-0 [&_section]:py-0">
           <HeroPreview section={block.section as HeroSection} theme={theme} />
         </div>;
       }

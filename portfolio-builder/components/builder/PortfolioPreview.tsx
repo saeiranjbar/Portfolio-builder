@@ -1155,11 +1155,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   const contentBottom = Math.max(400, galleryImgBottom, galleryVidBottom);
   const dynamicMinHeight = anyGalleryDragged && contentBottom > 400
     ? `${contentBottom + 20}px`
-    : isVideoBg ? '100vh' : 'auto';
+    : isVideoBg ? '100vh' : '60vh'; // Always ensure minimum canvas height
 
 
   return (
-    <section ref={sectionRef} className="relative" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
+    <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
 
       {/* Background layer Ã¢â‚¬â€ parallax-enabled when section.parallaxEnabled is true */}
       {section.backgroundType === 'video' && section.backgroundValue && (
