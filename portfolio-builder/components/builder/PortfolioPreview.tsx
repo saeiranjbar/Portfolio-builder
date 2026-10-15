@@ -345,7 +345,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   const resizingRef = React.useRef(resizing);
   React.useEffect(() => { resizingRef.current = resizing; }, [resizing]);
   const [snapLines, setSnapLines] = React.useState<{ vertical?: number; horizontal?: number }>({});
-  const [smartGuides, setSmartGuides] = React.useState<Array<{ type: string; orientation: string; position: number; value?: number; label?: string; elements?: string[]; isEdge?: boolean; isEqualSpacing?: boolean }>>([]);
+  const [smartGuides, setSmartGuides] = React.useState<Array<{ type: string; orientation: string; position: number; value?: number; label?: string; elements?: string[]; isEdge?: boolean; isEqualSpacing?: boolean; dualLine?: boolean }>>([]);
 
   const snapEnabled = section.snapEnabled !== false;
   const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
@@ -441,21 +441,32 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     const canvasWidth = canvasRect.width;
     const canvasHeight = sectionRect.height > 0 ? sectionRect.height : 800;
 
-    // Default element sizes for detection
-    const defaultSizes: Record<string, { w: number; h: number }> = {
-      avatar: { w: 120, h: 120 },
-      name: { w: 200, h: 40 },
-      title: { w: 250, h: 35 },
-      subtitle: { w: 200, h: 30 },
-      bio: { w: 400, h: 60 },
-      ctaButtons: { w: 300, h: 50 },
+    // Measure actual element sizes from DOM refs (Photoshop-accurate)
+    const getElementSize = (key: string): { w: number; h: number } => {
+      const node = elementRefs.current[key];
+      if (node) {
+        const rect = node.getBoundingClientRect();
+        return { w: rect.width, h: rect.height };
+      }
+      // Fallback defaults if ref not available
+      const fallback: Record<string, { w: number; h: number }> = {
+        avatar: { w: 120, h: 120 },
+        name: { w: 200, h: 40 },
+        title: { w: 250, h: 35 },
+        subtitle: { w: 200, h: 30 },
+        bio: { w: 400, h: 60 },
+        ctaButtons: { w: 300, h: 50 },
+        galleryImages: { w: 900, h: 400 },
+        galleryVideos: { w: 900, h: 400 },
+      };
+      return fallback[key] ?? { w: 100, h: 40 };
     };
 
-    // Build element rects
+    // Build element rects with actual measured sizes
     const rects: Record<string, { left: number; top: number; right: number; bottom: number; cx: number; cy: number; w: number; h: number }> = {};
     for (const [key, pos] of Object.entries(allPositions)) {
       if (key === element || !pos) continue;
-      const size = defaultSizes[key] ?? { w: 100, h: 40 };
+      const size = getElementSize(key);
       const cx = (pos.x / 100) * canvasWidth;
       const cy = (pos.y / 100) * canvasHeight;
       rects[key] = {
@@ -465,7 +476,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       };
     }
 
-    const dragSize = defaultSizes[element] ?? { w: 100, h: 40 };
+    const dragSize = getElementSize(element);
     const dragCx = (rawX / 100) * canvasWidth;
     const dragCy = (rawY / 100) * canvasHeight;
     const dragRect = {
@@ -534,13 +545,16 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       }
     }
 
-    // Spacing detection
+    // Spacing detection (Photoshop-style: dual lines on both sides)
     const sortedByX = Object.entries(rects).sort((a, b) => a[1].cx - b[1].cx);
     for (let i = 0; i < sortedByX.length - 1; i++) {
       const [, l] = sortedByX[i], [, r] = sortedByX[i + 1];
       const gap = r.left - l.right;
       if (gap > 0 && Math.abs(dragRect.cx - (l.right + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
-        guides.push({ type: 'spacing', orientation: 'vertical', position: ((l.right + gap / 2) / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]] });
+        const leftMid = l.right + gap / 4;
+        const rightMid = r.left - gap / 4;
+        guides.push({ type: 'spacing', orientation: 'vertical', position: (leftMid / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]], dualLine: true });
+        guides.push({ type: 'spacing', orientation: 'vertical', position: (rightMid / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]], dualLine: true });
       }
     }
 
@@ -549,7 +563,10 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       const [, t] = sortedByY[i], [, b] = sortedByY[i + 1];
       const gap = b.top - t.bottom;
       if (gap > 0 && Math.abs(dragRect.cy - (t.bottom + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
-        guides.push({ type: 'spacing', orientation: 'horizontal', position: ((t.bottom + gap / 2) / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]] });
+        const topMid = t.bottom + gap / 4;
+        const bottomMid = b.top - gap / 4;
+        guides.push({ type: 'spacing', orientation: 'horizontal', position: (topMid / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]], dualLine: true });
+        guides.push({ type: 'spacing', orientation: 'horizontal', position: (bottomMid / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]], dualLine: true });
       }
     }
 
@@ -1297,12 +1314,14 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
         />
       )}
 
-      {/* Photoshop-style Smart Guides (pink alignment lines, yellow spacing) */}
+      {/* Photoshop-style Smart Guides (pink alignment lines, dual-line spacing) */}
       {dragging && snapEnabled && smartGuides.map((guide, i) => {
         const isAlignment = guide.type === 'alignment';
         const isSpacing = guide.type === 'spacing';
         const isSize = guide.type === 'size';
-        const color = isAlignment ? '#FF2D55' : isSpacing ? '#FFB800' : '#00C7BE';
+        const isDualLine = guide.dualLine === true;
+        // Photoshop uses pink (#FF00FF) for ALL Smart Guides
+        const color = '#FF00FF';
         const thickness = isAlignment ? '2px' : '1px';
         
         return (
@@ -1312,7 +1331,12 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
                 className="absolute top-0 bottom-0 pointer-events-none z-40"
                 style={{ left: `${guide.position}%`, width: thickness, backgroundColor: color }}
               >
-                {guide.label && (
+                {guide.label && !isDualLine && (
+                  <span className="absolute top-2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
+                    {guide.label}
+                  </span>
+                )}
+                {guide.label && isDualLine && (
                   <span className="absolute top-2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
                     {guide.label}
                   </span>
@@ -1324,7 +1348,12 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
                 className="absolute left-0 right-0 pointer-events-none z-40"
                 style={{ top: `${guide.position}%`, height: thickness, backgroundColor: color }}
               >
-                {guide.label && (
+                {guide.label && !isDualLine && (
+                  <span className="absolute left-2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
+                    {guide.label}
+                  </span>
+                )}
+                {guide.label && isDualLine && (
                   <span className="absolute left-2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
                     {guide.label}
                   </span>
