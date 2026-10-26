@@ -66,6 +66,7 @@ export function getElementDefinition(
     if (elementKey === 'title') return { label: 'Section Title', type: 'text', textKey: 'title', contentField: 'title', showField: 'showTitle' };
     const catMatch = elementKey.match(/^cat-(\d+)$/);
     if (catMatch) return { label: `Skill Category ${parseInt(catMatch[1]) + 1}`, type: 'grid' };
+    if (elementKey === 'skillBars') return { label: 'Skill Bar Colors', type: 'grid' };
   }
 
   // --- Experience ---

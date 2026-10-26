@@ -13,13 +13,14 @@ import { VideoUploader } from './VideoUploader';
 import { CollapsibleSection } from './CollapsibleSection';
 import { AnchorLinkInput } from './AnchorLinkInput';
 import { TextStyleControls } from './TextStyleControls';
-import { Type, Image as ImageIcon, Video, Briefcase, Trash2, Plus, X, Sparkles } from 'lucide-react';
+import { Type, Image as ImageIcon, Video, Briefcase, Trash2, Plus, X, Sparkles, Palette } from 'lucide-react';
 import { SECTION_TEXT_FIELDS } from '@/lib/text-style-fields';
+import { getElementDefinition } from '@/lib/element-registry';
 
 interface ElementInspectorProps { onClose?: () => void; }
 
 // Media/composite tiles carry no text of their own — no style controls for them.
-const MEDIA_ELEMENT_KEYS = new Set(['pageHero', 'avatar', 'galleryImages', 'galleryVideos', 'image', 'secondImage', 'video', 'quickFacts', 'ctaButtons']);
+const MEDIA_ELEMENT_KEYS = new Set(['pageHero', 'avatar', 'galleryImages', 'galleryVideos', 'image', 'secondImage', 'video', 'quickFacts', 'ctaButtons', 'skillBars']);
 
 /**
  * Maps a canvas element key to the text-style field(s) its tile renders, using
@@ -69,7 +70,7 @@ export function ElementInspector({ onClose }: ElementInspectorProps) {
       default: return <GenericElementInspector section={section} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
     }
   };
-  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{(section as any).name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{selectedElementId}</span></div>{renderInspector()}{styleBlock}</div>);
+  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{(section as any).name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{getElementDefinition(section.type, selectedElementId)?.label || selectedElementId}</span></div>{renderInspector()}{styleBlock}</div>);
 }
 
 interface HeroElementInspectorProps { section: HeroSection; onUpdate: (u: Partial<HeroSection>) => void; elementKey: string; }
@@ -108,6 +109,7 @@ function AboutElementInspector({ section, onUpdate, elementKey }: AboutElementIn
 interface GenericElementInspectorProps { section: any; onUpdate: (u: Partial<any>) => void; elementKey: string; }
 
 function GenericElementInspector({ section, onUpdate, elementKey }: GenericElementInspectorProps) {
+  if (elementKey === 'skillBars') return <SkillBarColorsPanel section={section} onUpdate={onUpdate} />;
   if (elementKey.startsWith('exp-')||elementKey.startsWith('edu-')||elementKey.startsWith('award-')||elementKey.startsWith('cert-')) {
     const parts = elementKey.split('-'), type = parts[0], idx = parseInt(parts[1]);
     const arr = section[type==='exp'?'experiences':type==='edu'?'education':type==='award'?'awards':'certifications'];
@@ -117,4 +119,33 @@ function GenericElementInspector({ section, onUpdate, elementKey }: GenericEleme
   }
   if (elementKey.startsWith('cat-')) return <div className="text-sm text-gray-500">Edit in Skills panel</div>;
   return <div className="text-sm text-gray-500">Edit in section panel</div>;
+}
+
+// Focus-mode panel shown when a percentage bar/circle is clicked in the preview.
+function SkillBarColorsPanel({ section, onUpdate }: { section: any; onUpdate: (u: Partial<any>) => void }) {
+  const theme = usePortfolioStore((s) => s.portfolio.theme);
+  const fill = section.barColor || theme.colors.primary;
+  const track = section.barTrackColor || '#e5e7eb';
+  const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v.trim());
+  return (
+    <div className="space-y-3">
+      <CollapsibleSection title="Bar Fill Color" icon={Palette}>
+        <div className="flex items-center gap-2">
+          <input type="color" value={isHex(fill) ? fill : '#000000'} onChange={(e) => onUpdate({ barColor: e.target.value })} className="h-8 w-12 shrink-0 cursor-pointer rounded border bg-transparent" />
+          <Input value={fill} onChange={(e) => onUpdate({ barColor: e.target.value })} className="text-xs" placeholder={theme.colors.primary} />
+        </div>
+        <p className="mt-1 text-[10px] text-gray-400">The colored part of the percentage bars. Defaults to the theme&apos;s primary color.</p>
+      </CollapsibleSection>
+      <CollapsibleSection title="Track Color" icon={Palette}>
+        <div className="flex items-center gap-2">
+          <input type="color" value={isHex(track) ? track : '#000000'} onChange={(e) => onUpdate({ barTrackColor: e.target.value })} className="h-8 w-12 shrink-0 cursor-pointer rounded border bg-transparent" />
+          <Input value={track} onChange={(e) => onUpdate({ barTrackColor: e.target.value })} className="text-xs" placeholder="#e5e7eb" />
+        </div>
+        <p className="mt-1 text-[10px] text-gray-400">The empty remainder of each bar. Defaults to light gray.</p>
+      </CollapsibleSection>
+      {(section.barColor || section.barTrackColor) && (
+        <Button variant="outline" size="sm" onClick={() => onUpdate({ barColor: undefined, barTrackColor: undefined })}><X className="w-3 h-3" /> Reset to theme colors</Button>
+      )}
+    </div>
+  );
 }

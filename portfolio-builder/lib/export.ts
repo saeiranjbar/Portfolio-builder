@@ -511,6 +511,11 @@ function generateProjectsSection(section: any, theme: any): string {
 
 function generateSkillsSection(section: any, theme: any): string {
   const categories = [...new Set(section.skills.map((s: any) => s.category))];
+  const hex = (v: any, fallback: string) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim()) ? v.trim() : fallback);
+  const barColor = hex(section.barColor, theme.colors.primary);
+  const barTrackColor = hex(section.barTrackColor, '#e5e7eb');
+  const barNum = parseInt(barColor.slice(1), 16);
+  const barIsLight = !Number.isNaN(barNum) && 0.299 * ((barNum >> 16) & 255) + 0.587 * ((barNum >> 8) & 255) + 0.114 * (barNum & 255) > 160;
   
   return `
   <section style="background-color: ${theme.colors.background}; padding: 80px 24px;">
@@ -523,9 +528,9 @@ function generateSkillsSection(section: any, theme: any): string {
             ${section.skills.filter((s: any) => s.category === category).map((skill: any) => `
               <div>
                 <div style="margin-bottom: 4px;"><span>${skill.name}</span></div>
-                <div style="position: relative; height: 24px; min-width: 160px; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden;">
-                  <div style="height: 100%; width: ${skill.level}%; background-color: ${theme.colors.primary}; border-radius: 9999px;"></div>
-                  <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: ${skill.level >= 50 ? '#ffffff' : theme.colors.text};">${skill.level}%</span>
+                <div style="position: relative; height: 24px; min-width: 160px; background-color: ${barTrackColor}; border-radius: 9999px; overflow: hidden;">
+                  <div style="height: 100%; width: ${skill.level}%; background-color: ${barColor}; border-radius: 9999px;"></div>
+                  <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: ${skill.level >= 50 && !barIsLight ? '#ffffff' : theme.colors.text};">${skill.level}%</span>
                 </div>
               </div>
             `).join('')}

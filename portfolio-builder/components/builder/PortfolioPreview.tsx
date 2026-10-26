@@ -3199,11 +3199,30 @@ function getSkillIcon(iconId: string | undefined): React.ElementType {
   return iconMap[iconId] || Star;
 }
 
+// #rrggbb → true when the color is light enough that white text would vanish
+function isLightColor(hex: string): boolean {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 160;
+}
+
 // ============ SKILLS ============
 function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSection; theme: any; tileMode?: boolean }) {
-  const { updateSection, selectElement } = usePortfolioStore();
+  const { updateSection, selectElement, previewMode } = usePortfolioStore();
   const categories = [...new Set(section.skills.map((s) => s.category))];
   const displayStyle = section.displayStyle || 'bars';
+  // Custom bar colors (theme fallback); clicking a bar opens focus mode on the color panel
+  const barColor = section.barColor || theme.colors.primary;
+  const barTrackColor = section.barTrackColor || '#e5e7eb';
+  const barLabelColor = (level: number) => (level >= 50 && !isLightColor(barColor) ? '#ffffff' : theme.colors.text);
+  const barClickable = !previewMode;
+  const barClickProps = barClickable ? {
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); selectElement(section.id, 'skillBars'); },
+    title: 'Click to customize bar colors',
+  } : {};
+  const barTrackClass = 'relative h-6 w-full rounded-full overflow-hidden' + (barClickable ? ' cursor-pointer' : '');
+  const barCircleClass = 'relative w-20 h-20' + (barClickable ? ' cursor-pointer' : '');
 
   // Render a single skill category group (header + skills in the chosen display style)
   const renderCategoryContent = (category: string) => {
@@ -3222,9 +3241,9 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                   </div>
                   <div className="flex-1 min-w-[160px]">
                     <div className="mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span></div>
-                    <div className="relative h-6 w-full bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} />
-                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: skill.level >= 50 ? '#ffffff' : theme.colors.text }}>{skill.level}%</span>
+                    <div className={barTrackClass} style={{ backgroundColor: barTrackColor }} {...barClickProps}>
+                      <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: barColor }} />
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: barLabelColor(skill.level) }}>{skill.level}%</span>
                     </div>
                   </div>
                 </div>
@@ -3238,8 +3257,8 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
               const Icon = getSkillIcon(skill.icon);
               return (
                 <div key={skill.id} className="flex flex-col items-center">
-                  <div className="relative w-20 h-20">
-                    <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={theme.colors.primary} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
+                  <div className={barCircleClass} {...barClickProps}>
+                    <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke={barTrackColor} strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={barColor} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
                     <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
                     <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
                   </div>
@@ -3335,9 +3354,9 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                         </div>
                         <div className="flex-1 min-w-[160px]">
                           <div className="mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span></div>
-                          <div className="relative h-6 w-full bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} />
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: skill.level >= 50 ? '#ffffff' : theme.colors.text }}>{skill.level}%</span>
+                          <div className={barTrackClass} style={{ backgroundColor: barTrackColor }} {...barClickProps}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: barColor }} />
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: barLabelColor(skill.level) }}>{skill.level}%</span>
                           </div>
                         </div>
                       </div>
@@ -3351,8 +3370,8 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                     const Icon = getSkillIcon(skill.icon);
                     return (
                       <div key={skill.id} className="flex flex-col items-center">
-                        <div className="relative w-20 h-20">
-                          <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={theme.colors.primary} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
+                        <div className={barCircleClass} {...barClickProps}>
+                          <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke={barTrackColor} strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={barColor} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
                           <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
                         </div>
@@ -4468,3 +4487,4 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
     </AnimatedSection>
   );
 }
+

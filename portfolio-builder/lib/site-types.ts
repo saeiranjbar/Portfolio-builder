@@ -436,6 +436,8 @@ export const SkillsSectionSchema = z.object({
   skills: z.array(SkillSchema).default([]),
   displayStyle: z.enum(['bars', 'circles', 'tags', 'icons']).default('tags'),
   showTitle: z.boolean().optional(),
+  barColor: z.string().optional(),
+  barTrackColor: z.string().optional(),
 });
 
 export const ExperienceSectionSchema = z.object({

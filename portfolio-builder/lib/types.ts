@@ -527,6 +527,9 @@ export interface SkillsSection {
   title: string;
   skills: Skill[];
   displayStyle: 'bars' | 'circles' | 'tags' | 'icons';
+  /** Custom colors for the percentage bars/circles; fall back to theme colors */
+  barColor?: string;
+  barTrackColor?: string;
   textStyles?: TextStyles;
   sectionBackground?: SectionBackground;
   showTitle?: boolean;
