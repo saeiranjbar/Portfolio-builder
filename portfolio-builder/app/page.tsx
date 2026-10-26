@@ -46,7 +46,8 @@ import {
   PanelLeftOpen,
   Ruler,
   Grid3x3,
-  Target,
+  LayoutGrid,
+  RotateCcw,
 } from 'lucide-react';
 
 
@@ -90,10 +91,12 @@ function AuthenticatedBuilder() {
     updateSection,
     showRulers,
     showGuides,
-    showSmartGuides,
+    showGrid,
+    gridColor,
+    setGridColor,
     toggleRulers,
     toggleGuides,
-    toggleSmartGuides,
+    toggleGrid,
     isDirty,
     cloudPortfolio,
     undo,
@@ -116,6 +119,22 @@ function AuthenticatedBuilder() {
     const heroSection = portfolio.sections.find(s => s.type === 'hero');
     return heroSection?.id || portfolio.sections[0].id;
   }, [portfolio.sections]);
+
+  // Clears every saved free-form position on the page. Positions are stored as
+  // percentages of the page canvas height; after structural changes (sections
+  // added/removed, canvas-height convention changes) old values can map to
+  // compressed/overlapping spots. This drops them so the default top-to-bottom
+  // stacking is recomputed from the current slot layout.
+  const resetElementPositions = () => {
+    const affected = portfolio.sections.filter((s) => ((s as any).elementPositions
+      && Object.keys((s as any).elementPositions).length > 0)
+      || ((s as any).pageLayout && Object.keys((s as any).pageLayout).length > 0));
+    if (affected.length === 0) return;
+    if (!window.confirm('Reset all dragged positions? Every block returns to its default stacked position. (Ctrl+Z / Undo can restore this.)')) return;
+    for (const section of affected) {
+      updateSection(section.id, { elementPositions: {}, pageLayout: {} } as any);
+    }
+  };
 
   // State
   const [activeSectionId, setActiveSectionId] = useState<string>('');
@@ -496,10 +515,32 @@ function AuthenticatedBuilder() {
     );
   }
 
+  // Grid overlay for the builder: painted INSIDE the preview column only
+  // (never over the left menu or the header), colored by gridColor, and only
+  // while editing — preview mode must show the clean page.
+  const gridLine = (() => {
+    const c = (gridColor || '#50648c').replace('#', '');
+    const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c;
+    const n = parseInt(full, 16);
+    return Number.isFinite(n) ? `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0.25)` : 'rgba(80, 100, 140, 0.25)';
+  })();
+  const gridOverlay = showGrid && !previewMode ? (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-40"
+      style={{
+        backgroundImage: `linear-gradient(to right, ${gridLine} 1px, transparent 1px), linear-gradient(to bottom, ${gridLine} 1px, transparent 1px)`,
+        backgroundSize: '50px 50px',
+      }}
+    />
+  ) : null;
+
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       {/* Cursor Glow Effect */}
       <CursorGlow />
+
+      {/* Grid Overlay — scoped to the preview column(s) below, never over the menus */}
 
       {/* Header */}
       <motion.header
@@ -634,14 +675,31 @@ function AuthenticatedBuilder() {
               <Grid3x3 className="w-4 h-4" />
             </button>
             <button
-              onClick={toggleSmartGuides}
+              onClick={toggleGrid}
               className={cn(
                 'p-2 rounded-lg transition-all duration-200',
-                showSmartGuides ? 'bg-pink-100 text-pink-600' : 'hover:bg-gray-50'
+                showGrid ? 'bg-slate-200 text-slate-700' : 'hover:bg-gray-50'
               )}
-              title="Toggle Smart Guides (auto-alignment)"
+              title="Toggle Grid"
             >
-              <Target className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            {showGrid && (
+              <label className="p-1 rounded-lg hover:bg-gray-50 flex items-center cursor-pointer" title="Grid color">
+                <input
+                  type="color"
+                  value={gridColor}
+                  onChange={(e) => setGridColor(e.target.value)}
+                  className="w-6 h-6 p-0 border border-gray-300 rounded cursor-pointer bg-transparent"
+                />
+              </label>
+            )}
+            <button
+              onClick={resetElementPositions}
+              className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-50 text-gray-500 hover:text-gray-800"
+              title="Reset all dragged positions (fixes squeezed/overlapping blocks after layout changes)"
+            >
+              <RotateCcw className="w-4 h-4" />
             </button>
           </div>
 
@@ -755,8 +813,9 @@ function AuthenticatedBuilder() {
       <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {!previewMode && portfolio.layoutMode === 'simple' ? (
           /* Simple mode - full width preview with inline editing */
-          <div className="flex-1 bg-gray-200 overflow-auto flex flex-col">
-            <div className="flex-1 overflow-visible p-4">
+          <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative">
+            {gridOverlay}
+            <div className="flex-1 overflow-auto p-4">
               {isLoading ? (
                 <div className="h-full overflow-y-auto bg-white rounded-2xl">
                   <PortfolioSkeleton />
@@ -905,8 +964,9 @@ function AuthenticatedBuilder() {
               initial={{ x: 360, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
-              className="flex-1 min-h-0 bg-gray-200 overflow-hidden flex flex-col"
+              className="flex-1 min-h-0 bg-gray-200 overflow-hidden flex flex-col relative"
             >
+              {gridOverlay}
               <div className="flex-1 overflow-hidden p-2 sm:p-4">
                 {isLoading ? (
                   <div className="h-full overflow-y-auto bg-white rounded-2xl">
@@ -940,7 +1000,8 @@ function AuthenticatedBuilder() {
           </>
         ) : (
           /* Full Preview Mode */
-          <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col">
+          <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative">
+            {gridOverlay}
             <div className="flex-1 overflow-hidden p-4">
               <PortfolioPreview viewMode={viewMode} activeSection={activeSectionId} />
             </div>

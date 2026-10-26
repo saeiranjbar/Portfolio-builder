@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { resolveAnchorTarget } from '@/lib/anchor-scroll';
 
 interface SplashButtonProps {
   text: string;
@@ -30,15 +31,8 @@ export function SplashButton({ text, link, color, position }: SplashButtonProps)
     setTimeout(() => {
       setSplashing(false);
       if (link.startsWith('#')) {
-        const linkId = link.slice(1);
-        let el = document.getElementById(linkId.startsWith('section-') ? linkId : `section-${linkId}`);
-        if (!el) {
-          const sections = document.querySelectorAll('[data-section-type]');
-          for (const s of sections) {
-            if (s.getAttribute('data-section-type') === linkId) { el = s as HTMLElement; break; }
-          }
-        }
-        el?.scrollIntoView({ behavior: 'smooth' });
+        const el = resolveAnchorTarget(link);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.open(link, '_blank', 'noopener,noreferrer');
       }

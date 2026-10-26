@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { CollapsibleSection } from '../CollapsibleSection';
+import { AnchorLinkInput } from '../AnchorLinkInput';
 import { Type, FileText, MousePointerClick, Palette } from 'lucide-react';
 
 interface CTABannerEditorProps {
@@ -48,7 +49,7 @@ export function CTABannerEditor({ section, onUpdate }: CTABannerEditorProps) {
           </div>
           <div>
             <Label>Button Link</Label>
-            <Input value={section.buttonLink} onChange={(e) => onUpdate({ buttonLink: e.target.value })} placeholder="#contact" />
+            <AnchorLinkInput value={section.buttonLink} onChange={(v) => onUpdate({ buttonLink: v })} placeholder="#contact" />
           </div>
         </div>
       </CollapsibleSection>

@@ -72,6 +72,16 @@ export function AnimatedCounter({ value, suffix, duration = 2 }: { value: number
   const [count, setCount] = React.useState(0);
   const ref = React.useRef<HTMLSpanElement>(null);
   const hasAnimated = React.useRef(false);
+  // Live-edit safe: the counter must always reflect the LATEST value prop.
+  // Previously the displayed number froze at whatever it first counted to,
+  // so editing a stat in the settings panel never showed up in the preview.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+  // Already animated once (or never): any edit to the value reflects
+  // immediately — the builder preview must mirror the settings panel.
+  React.useEffect(() => {
+    if (hasAnimated.current) setCount(valueRef.current);
+  }, [value]);
 
   React.useEffect(() => {
     const observer = new IntersectionObserver(
@@ -83,11 +93,11 @@ export function AnimatedCounter({ value, suffix, duration = 2 }: { value: number
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / (duration * 1000), 1);
             const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
-            setCount(Math.floor(eased * value));
+            setCount(Math.floor(eased * valueRef.current));
             if (progress < 1) {
               requestAnimationFrame(animate);
             } else {
-              setCount(value);
+              setCount(valueRef.current);
             }
           };
           requestAnimationFrame(animate);
@@ -101,7 +111,7 @@ export function AnimatedCounter({ value, suffix, duration = 2 }: { value: number
     }
 
     return () => observer.disconnect();
-  }, [value, duration]);
+  }, [duration]);
 
   return (
     <span ref={ref}>

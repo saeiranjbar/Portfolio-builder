@@ -27,7 +27,6 @@ import { PortfolioSection } from '@/lib/types';
 import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProjectBackgroundSettings } from './ProjectBackgroundSettings';
-import { GlobalTextStylePanel } from './GlobalTextStylePanel';
 import { Magnet } from 'lucide-react';
 
 export function SectionEditor() {
@@ -135,9 +134,6 @@ export function SectionEditor() {
 
       {/* Project-level Background Settings — always visible at top */}
       <ProjectBackgroundSettings />
-
-      {/* Global Text Style Panel — edit text styles per category */}
-      <GlobalTextStylePanel />
 
       {portfolio.sections.map((section) => {
 

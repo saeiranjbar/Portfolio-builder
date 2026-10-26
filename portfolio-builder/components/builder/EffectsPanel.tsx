@@ -4,6 +4,7 @@ import React from 'react';
 import { MousePointerClick, Droplet, Palette } from 'lucide-react';
 import { usePortfolioStore } from '@/lib/store';
 import { CollapsibleSection } from './CollapsibleSection';
+import { AnchorLinkInput } from './AnchorLinkInput';
 
 export function EffectsPanel() {
   const { portfolio, updateEffects } = usePortfolioStore();
@@ -51,7 +52,7 @@ export function EffectsPanel() {
                     type="text"
                     value={effects.mouseColorShift.startColor}
                     onChange={(e) => updateEffects({ mouseColorShift: { ...effects.mouseColorShift, startColor: e.target.value } })}
-                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-black"
                   />
                 </div>
               </div>
@@ -72,7 +73,7 @@ export function EffectsPanel() {
                     type="text"
                     value={effects.mouseColorShift.endColor}
                     onChange={(e) => updateEffects({ mouseColorShift: { ...effects.mouseColorShift, endColor: e.target.value } })}
-                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-black"
                   />
                 </div>
               </div>
@@ -123,7 +124,7 @@ export function EffectsPanel() {
                   type="text"
                   value={effects.splashButton.text}
                   onChange={(e) => updateEffects({ splashButton: { ...effects.splashButton, text: e.target.value } })}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-black"
                   placeholder="Click Me!"
                 />
               </div>
@@ -131,11 +132,9 @@ export function EffectsPanel() {
               {/* Button link */}
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">Link (URL or #section)</label>
-                <input
-                  type="text"
+                <AnchorLinkInput
                   value={effects.splashButton.link}
-                  onChange={(e) => updateEffects({ splashButton: { ...effects.splashButton, link: e.target.value } })}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                  onChange={(v) => updateEffects({ splashButton: { ...effects.splashButton, link: v } })}
                   placeholder="#contact"
                 />
               </div>
@@ -156,7 +155,7 @@ export function EffectsPanel() {
                     type="text"
                     value={effects.splashButton.color}
                     onChange={(e) => updateEffects({ splashButton: { ...effects.splashButton, color: e.target.value } })}
-                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-black"
                   />
                 </div>
               </div>
@@ -167,7 +166,7 @@ export function EffectsPanel() {
                 <select
                   value={effects.splashButton.position}
                   onChange={(e) => updateEffects({ splashButton: { ...effects.splashButton, position: e.target.value as any } })}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900"
                 >
                   <option value="bottom-center">Bottom Center</option>
                   <option value="bottom-right">Bottom Right</option>
@@ -215,7 +214,7 @@ export function EffectsPanel() {
                     type="text"
                     value={effects.colorRibbon.color}
                     onChange={(e) => updateEffects({ colorRibbon: { ...effects.colorRibbon, color: e.target.value } })}
-                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-black"
                   />
                 </div>
               </div>

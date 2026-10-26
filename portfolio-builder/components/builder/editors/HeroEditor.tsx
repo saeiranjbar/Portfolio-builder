@@ -11,6 +11,7 @@ import { ImageUploader } from '../ImageUploader';
 import { GalleryUploader } from '../GalleryUploader';
 import { VideoUploader } from '../VideoUploader';
 import { CollapsibleSection } from '../CollapsibleSection';
+import { AnchorLinkInput } from '../AnchorLinkInput';
 import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images, Type, MousePointerClick, Plus, Trash2, Video as VideoIcon } from 'lucide-react';
 
 import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
@@ -183,11 +184,11 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
               </div>
               <div>
                 <Label className="text-xs">Link / URL</Label>
-                <Input
+                <AnchorLinkInput
                   value={btn.link}
-                  onChange={(e) => {
+                  onChange={(v) => {
                     const updated = (section.ctaButtons || []).map((b) =>
-                      b.id === btn.id ? { ...b, link: e.target.value } : b
+                      b.id === btn.id ? { ...b, link: v } : b
                     );
                     onUpdate({ ctaButtons: updated });
                   }}

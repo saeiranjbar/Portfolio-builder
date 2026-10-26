@@ -75,6 +75,27 @@ export function generateHTML(portfolio: PortfolioData): string {
   // Generate interactive effects HTML/JS
   const effectsHTML = generateEffects(portfolio);
 
+  // Single landing background (the hero section holds the project-level
+  // background). It is painted ONCE on <body> — cover, no-repeat, spanning the
+  // whole document from top to bottom — and the hero blocks themselves stay
+  // transparent so there is no second, differently-cropped copy to seam.
+  const heroSection = portfolio.sections.find((s) => s.type === 'hero') as HeroSection | undefined;
+  let landingCSS = '';
+  if (heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color') {
+    landingCSS = `background: ${heroSection.backgroundValue};`;
+  } else if (heroSection?.backgroundType === 'image' && heroSection.backgroundValue) {
+    landingCSS = `background-image: url('${heroSection.backgroundValue}'); background-size: cover; background-position: center top; background-repeat: no-repeat;`;
+  } else if (heroSection?.backgroundType === 'video') {
+    landingCSS = 'background: #000;';
+  }
+  if (heroSection && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') && heroSection.backgroundOverlayOpacity) {
+    landingCSS += ` box-shadow: inset 0 0 0 100000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100});`;
+  }
+  const landingVideoHTML = heroSection?.backgroundType === 'video' && heroSection.backgroundValue
+    ? `<div style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;z-index:0;"><video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><source src="${heroSection.backgroundValue}"></video></div>`
+    : '';
+  const landingBodyCSS = landingCSS + (landingVideoHTML ? ' position: relative;' : '');
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +118,7 @@ export function generateHTML(portfolio: PortfolioData): string {
       line-height: 1.6;
       color: ${theme.colors.text};
       background-color: ${theme.colors.background};
+      ${landingBodyCSS}
     }
     h1, h2, h3, h4, h5, h6 {
       font-family: '${theme.typography.headingFont}', serif;
@@ -139,7 +161,7 @@ export function generateHTML(portfolio: PortfolioData): string {
   </style>
 </head>
 <body>
-<main class="flow-layout">${sectionsHTML}</main>
+${landingVideoHTML}<main class="flow-layout" style="position:relative;z-index:1;">${sectionsHTML}</main>
 ${effectsHTML}
 </body>
 </html>`;
@@ -157,7 +179,7 @@ function generateEffects(portfolio: PortfolioData): string {
     const { startColor, endColor, intensity } = effects.mouseColorShift;
     const opacity = Math.max(0, Math.min(100, intensity)) / 100;
     html += `
-<div id="mouse-color-shift-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:5;background-color:rgba(59,130,246,${opacity});transition:background-color 0.1s linear;"></div>
+<div id="mouse-color-shift-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:150;mix-blend-mode:overlay;background-color:rgba(59,130,246,${opacity});transition:background-color 0.1s linear;"></div>
 <script>
 (function(){
   var overlay=document.getElementById('mouse-color-shift-overlay');
@@ -184,7 +206,7 @@ function generateEffects(portfolio: PortfolioData): string {
   }
 
   // Color Ribbon effect
-  if (effects.colorRibbon?.enabled) {
+  if (effects.colorRibbon?.enabled && !effects.mouseColorShift?.enabled) {
     const { color, intensity } = effects.colorRibbon;
     const opacity = Math.max(0, Math.min(100, intensity)) / 100;
     html += `
@@ -276,21 +298,12 @@ function generateHeroSection(section: any, theme: any): string {
     <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
     <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;"><iframe src="${escape(embeddedSource)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>
   </div>` : '';
-  const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
-    ? `background: ${section.backgroundValue};`
-    : section.backgroundType === 'image'
-    ? `background-image: url('${section.backgroundValue}'); background-size: cover; background-position: center;`
-    : section.backgroundType === 'video'
-    ? `background: #000;`
-    : '';
-
-  const videoBg = section.backgroundType === 'video' && section.backgroundValue
-    ? `<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;"><source src="${section.backgroundValue}"></video>`
-    : '';
-
-  const overlay = (section.backgroundType === 'image' || section.backgroundType === 'video') && section.backgroundOverlayOpacity
-    ? `<div style="position:absolute;inset:0;background-color:rgba(0,0,0,${section.backgroundOverlayOpacity / 100});z-index:1;"></div>`
-    : '';
+  // The hero no longer paints its own background band here: the page <body>
+  // carries the single landing background top to bottom (see the page
+  // template), so a second cover-cropped copy in the hero band would seam.
+  const bgStyle = '';
+  const videoBg = '';
+  const overlay = '';
 
   return `
   <section style="${bgStyle} position: relative; min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; overflow: hidden;">

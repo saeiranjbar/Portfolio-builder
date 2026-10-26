@@ -71,9 +71,10 @@ export function MouseColorShift({ startColor, endColor, intensity }: MouseColorS
   return (
     <div
       ref={overlayRef}
-      className="pointer-events-none fixed left-0 right-0 bottom-0 z-[5]"
+      className="pointer-events-none fixed left-0 right-0 bottom-0 z-[150]"
       style={{
         top: '64px', /* Start below the navbar (h-16 = 64px) so it only affects the main body */
+        mixBlendMode: 'overlay', /* Blend with the page instead of hiding it */
         backgroundColor: `rgba(59, 130, 246, ${intensity / 100})`,
         willChange: 'background-color',
         transition: 'background-color 0.1s linear',

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HeroSection } from '@/lib/types';
 import { pdfHeight, pdfWidth, pdfSource } from '@/lib/hero-pdf';
+import { cn } from '@/lib/utils';
 
-export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMove?: (offset: { x: number; y: number }) => void }) {
+export function HeroPdfReader({ section, onMove, tileMoveHint }: { section: HeroSection; onMove?: (offset: { x: number; y: number }) => void; tileMoveHint?: boolean }) {
   const card = useRef<HTMLDivElement>(null);
   const drag = useRef<{ pointer: number; x: number; y: number; width: number; height: number; offset: { x: number; y: number } } | null>(null);
   const [moving, setMoving] = useState(false);
@@ -31,7 +32,8 @@ export function HeroPdfReader({ section, onMove }: { section: HeroSection; onMov
   const embeddedUrl = viewerUrl ? `${viewerUrl.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
   return <div data-hero-pdf className="relative mx-auto my-4 text-left" style={{ pointerEvents: 'auto', width: `${pdfWidth(section.pdf?.width)}%` }}>
     <div ref={card} className="relative" style={{ marginTop: `${offset.y}px`, transform: `translateX(${offset.x}%)` }}>
-      <div className="flex flex-wrap items-center justify-between gap-3 py-2">
+      <div className={cn('flex flex-wrap items-center justify-between gap-3 py-2', tileMoveHint && !onMove && 'cursor-move select-none')}
+        title={tileMoveHint && !onMove ? 'Drag this bar to move the PDF • scroll inside the document to read it' : undefined}>
         {onMove && <button type="button" aria-label="Move PDF" title="Drag to move" className="touch-none cursor-move rounded border px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200"
           onPointerDown={event => {
             if (event.button !== 0 || !card.current) return;

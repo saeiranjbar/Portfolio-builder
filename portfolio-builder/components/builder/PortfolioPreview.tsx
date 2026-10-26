@@ -2,6 +2,9 @@
 
 import React from 'react';
 import { usePortfolioStore } from '@/lib/store';
+import { getScrollParent } from '@/lib/useFreeFormDrag';
+import { GridLayout, useContainerWidth, type Layout as GridLayoutDef, type Compactor as GridCompactor } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
 import {
   HeroSection, AboutSection, ProjectsSection, SkillsSection,
   ExperienceSection, EducationSection, TestimonialsSection,
@@ -36,9 +39,11 @@ import { ElementPosition } from '@/lib/types';
 import { BehanceLayout } from './BehanceLayout';
 import { MouseColorShift } from './effects/MouseColorShift';
 import { SplashButton } from './effects/SplashButton';
+import { resolveAnchorTarget } from '@/lib/anchor-scroll';
 import { AnimatedText } from './AnimatedText';
 import { HeroPdfReader } from './HeroPdfReader';
-import { FlowPortfolio } from './FlowPortfolio';
+import { pdfSource, pdfHeight } from '@/lib/hero-pdf';
+// Page-level free-form canvas (PageFreeFormCanvas) is defined in this file below.
 import { ColorRibbon } from './effects/ColorRibbon';
 import { RulersAndGuides } from './RulersAndGuides';
 
@@ -176,11 +181,10 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
   // The Hero controls one shared landing-page canvas. Categories remain separate
   // editor items but stay visually embedded in that same page background.
   const heroSection = portfolio.sections.find((section) => section.type === 'hero') as HeroSection | undefined;
-  const landingBackgroundStyle: React.CSSProperties = heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color'
-    ? { background: heroSection.backgroundValue }
-    : heroSection?.backgroundType === 'image'
-      ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
-      : { backgroundColor: theme.colors.background };
+  // The page background is painted ONCE, by the page-height wrapper div in the
+  // return below (image: cover + no-repeat across the full document height).
+  // Painting it on the scroll container too would stack a second, viewport-
+  // sized copy behind it — the mismatch read as a repeated/torn background.
   const sectionsToShow = portfolio.sections.filter(s => s.visible !== false);
 
   // When a category is selected, render ONLY the projects section with the category detail view
@@ -220,11 +224,11 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
     <div
       ref={containerRef}
       className={cn('h-full overflow-y-auto transition-all duration-300', viewModeClasses[viewMode])}
-      style={{ ...landingBackgroundStyle, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative' }}
+      style={{ backgroundColor: theme.colors.background, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative' }}
     >
       {/* Document-level rulers and guides */}
       <RulersAndGuides containerRef={containerRef} />
-      {/* Interactive Effects Ã¢â‚¬â€ only in preview mode */}
+      {/* Interactive Effects — only in preview mode */}
       {isPreview && effects?.mouseColorShift?.enabled && (
         <MouseColorShift
           startColor={effects.mouseColorShift.startColor}
@@ -240,14 +244,14 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
           position={effects.splashButton.position}
         />
       )}
-      {isPreview && effects?.colorRibbon?.enabled && (
+      {isPreview && effects?.colorRibbon?.enabled && !effects?.mouseColorShift?.enabled && (
         <ColorRibbon
           color={effects.colorRibbon.color}
           intensity={effects.colorRibbon.intensity}
         />
       )}
 
-      {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
+      {/* A hero video, if any, is painted once inside the page wrapper below */}
       {/* Overlay is now applied to the wrapper div for consistent coverage */}
       <div style={{ 
         minHeight: '100vh',
@@ -256,7 +260,8 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
         ...(heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
         ...(heroSection?.backgroundOverlayOpacity && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') ? { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` } : {})
       }}>
-        <FlowPortfolio sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
+        {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
+        <PageFreeFormCanvas sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
       </div>
 
     </div>
@@ -335,23 +340,920 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
     />
   );
 }
+// ============ PAGE-LEVEL FREE-FORM CANVAS ============
+
+const PAGE_KEY_SEP = '||';
+
+/** Keeps a page-canvas position inside the canvas. Stored values outside 0-100 (from older
+ *  drags) would otherwise place a block off the bottom of the page where it can't be reached. */
+function clampCanvasPosition(pos: ElementPosition): ElementPosition;
+function clampCanvasPosition(pos: ElementPosition | undefined): ElementPosition | undefined;
+function clampCanvasPosition(pos: ElementPosition | undefined): ElementPosition | undefined {
+  if (!pos) return undefined;
+  return { x: Math.max(0, Math.min(100, pos.x)), y: Math.max(0, Math.min(100, pos.y)) };
+}
+
+/**
+ * One GRID canvas for the WHOLE page (react-grid-layout, 12 columns): every
+ * element of every category is a tile that can be dragged anywhere; the grid
+ * reflows predictably (vertical compaction), so no tile ever masks another
+ * and unrelated tiles never move. Sections are flattened into draggable slots:
+ *  - hero        -> background block + one tile per text element
+ *  - skills      -> title + one block per skill category
+ *  - everything else -> one content block per category / item
+ * Grid geometry (x/w/y) is persisted per section in `pageLayout`.
+ */
+/** Stack-rendered list sections flattened into per-item page slots: a title
+ *  slot plus one slot per entry. Grid-rendered sections stay one block, since
+ *  their responsive columns track the viewport, not the slot width. */
+const FLATTENABLE_SECTIONS: Record<string, { itemsKey: string; width: string; estVh: number }> = {
+  education: { itemsKey: 'educations', width: 'min(600px, calc(100vw - 48px))', estVh: 10 },
+  experience: { itemsKey: 'experiences', width: 'min(640px, calc(100vw - 48px))', estVh: 14 },
+  awards: { itemsKey: 'awards', width: 'min(640px, calc(100vw - 48px))', estVh: 8 },
+  certifications: { itemsKey: 'certifications', width: 'min(640px, calc(100vw - 48px))', estVh: 8 },
+  press: { itemsKey: 'items', width: 'min(320px, calc(100vw - 48px))', estVh: 6 },
+};
+
+/** Sensible default grid width (of 1920 columns ≈ pixels) for a page slot.
+ * Tiles are deliberately kept NARROWER than full width: react-grid-layout
+ * clamps a tile's x to 0..(COLS - w), so a full-width tile can never be
+ * dragged sideways. Any w < COLS gives the tile horizontal freedom.
+ * (Values are the old 48-col defaults × 40.) */
+function defaultTileCols(sectionType: string, slotKey: string): number {
+  // The hero PDF reader needs a much wider box than text elements to be
+  // readable, and its own width is a % of the tile. 90% of the canvas keeps it
+  // by far the widest tile while leaving a horizontal travel band, so its
+  // left/center/right edges can reach the x-magnets (full-width tiles are
+  // x-locked and would never paint a vertical snap guide).
+  if (sectionType === 'hero') return slotKey === 'avatar' ? 480 : slotKey === 'pdf' ? 1728 : 960;
+  if (sectionType === 'skills') return slotKey === 'title' ? 1280 : 960;
+  if (slotKey === 'title') return 1280;
+  const flat = (FLATTENABLE_SECTIONS as Record<string, { width: string }>)[sectionType];
+  if (flat && slotKey.startsWith('item-')) return flat.width.startsWith('min(320') ? 640 : 960;
+  return 1920; // whole-section content blocks stay full width (vertical-only)
+}
+
+/** The surface a tile's purple card should paint: the section's configured
+ * background, or the background a preview paints on its own <section>
+ * element (stats is always primary; cta/newsletter use their backgroundType
+ * fields). Inside tiles the inner section's own painting is neutralized by
+ * the scoped .ff-tile CSS, so this function is the single source of truth
+ * for the card color — every element keeps ITS OWN color, with identical
+ * card shape + padding. */
+function tileBackgroundFor(section: PortfolioSection, theme: any): React.CSSProperties {
+  const own = getSectionBackgroundStyle((section as any).sectionBackground, theme);
+  if (own && Object.keys(own).length > 0) return own;
+  const s = section as any;
+  if (section.type === 'stats') return { backgroundColor: theme.colors.primary };
+  if (section.type === 'ctaBanner' || section.type === 'newsletter') {
+    if (s.backgroundType === 'gradient' || s.backgroundType === 'color') return { background: s.backgroundValue };
+    if (s.backgroundType === 'image' && s.backgroundValue) {
+      return { backgroundImage: `url(${s.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+    }
+  }
+  return {};
+}
+
+/**
+ * Free-placement compactor: no compaction + overlap allowed. Tiles stay
+ * exactly where they are dropped (any x, any y — even on top of each other),
+ * and dragging one never moves another. This is what turns the grid engine
+ * into a true free-form canvas; ↺ Reset rebuilds the tidy stacked layout.
+ */
+const freePageCompactor: GridCompactor = {
+  type: null,
+  allowOverlap: true,
+  compact: (l) => l,
+};
+
+/**
+ * INTRINSIC width of a subtree — completely independent of the width the
+ * element currently has. Flips the wrapper to width:max-content, reads the
+ * box back, and restores the inline styles, all inside one synchronous task
+ * (no paint happens between the flip and the restore, so nothing flickers).
+ * This is what makes content tiles shrink correctly: leaf-union measurement
+ * at the CURRENT box width reports the box back for anything that stretches
+ * (progress bars, grid cells, cards), so it can never see the real content
+ * width; max-content always can.
+ */
+/** Shared click handler for every "#..." CTA link. Resolves the target as a
+ * published-page element (id="section-<id>"), a data-section-type fallback,
+ * or — inside the builder's page canvas — the first tile of the target
+ * section (data-tk="<sectionId>||<slot>"), then smooth-scrolls to it.
+ * Non-anchor hrefs (http/mailto) are left to the browser. */
+function scrollToAnchor(e: { preventDefault(): void }, link: string | undefined) {
+  if (!link || !link.startsWith('#') || link.length < 2) return;
+  const el = resolveAnchorTarget(link);
+  if (!el) return; // malformed/unknown format — default behavior
+  e.preventDefault();
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function probeMaxContentWidth(el: HTMLElement): number {
+  const prevW = el.style.width;
+  const prevMaxW = el.style.maxWidth;
+  try {
+    el.style.width = 'max-content';
+    el.style.maxWidth = 'none';
+    return Math.max(0, Math.round(el.getBoundingClientRect().width));
+  } catch {
+    return 0;
+  } finally {
+    el.style.width = prevW;
+    el.style.maxWidth = prevMaxW;
+  }
+}
+
+/** A draggable page block rendered as one react-grid-layout tile. */
+interface PageTile {
+  key: string;          // composite `${sectionId}||${slotKey}`
+  sectionId: string;
+  slotKey: string;
+  content: React.ReactNode;
+  estVh: number;
+  defaultW: number;
+  /** Purple card painted on the grid box itself (section background), so
+   * every tile on the canvas shows the SAME surface + breathing room. */
+  tileBg: React.CSSProperties;
+  /** Tile shrinks to the measured width of its content (hero elements,
+   * section titles). A snug box maximizes the drag range: RGL clamps a tile's
+   * x to 0..(COLS - w), so the narrower the box, the closer to the page edges
+   * the element can be dragged. */
+  autoW?: boolean;
+  static?: boolean;
+}
+
+// Snap-guide helpers for PageFreeFormCanvas: targets are pixel positions
+// relative to the canvas container, captured once at drag start.
+type SnapTarget = { v: number; lo: number; hi: number; kind: 'element' | 'canvas' | 'guide' };
+type SnapLineHit = { axis: 'x' | 'y'; pos: number; start: number; end: number; kind: SnapTarget['kind'] };
+
+export function PageFreeFormCanvas({ sections, theme, renderSection }: {
+  sections: PortfolioSection[];
+  theme: any;
+  renderSection: (section: PortfolioSection) => React.ReactNode;
+}) {
+  const { updateSection, selectElement } = usePortfolioStore();
+  const visibleSections = sections.filter((s) => s.visible !== false);
+
+  // Flatten sections into draggable slots with estimated natural heights (vh),
+  // used for the default top-to-bottom stacking.
+  type Slot = { section: PortfolioSection; key: string; estVh: number; defaultTopVh?: number };
+  const slots: Slot[] = [];
+  for (const section of visibleSections) {
+    if (section.type === 'hero') {
+      const hero = section as HeroSection;
+      slots.push({ section, key: 'pageHero', estVh: 65 });
+      // Flattened hero elements: individually draggable page slots, exactly
+      // like the Skills title/categories — free to move anywhere on the page.
+      if (hero.showAvatar !== false && hero.avatar) slots.push({ section, key: 'avatar', estVh: 16, defaultTopVh: 8 });
+      if (hero.showName !== false && hero.name) slots.push({ section, key: 'name', estVh: 8, defaultTopVh: 26 });
+      if (hero.showTitle !== false && hero.title) slots.push({ section, key: 'title', estVh: 5, defaultTopVh: 32 });
+      if (hero.showSubtitle !== false && hero.subtitle) slots.push({ section, key: 'subtitle', estVh: 4, defaultTopVh: 37 });
+      if (hero.showBio !== false && hero.bio) slots.push({ section, key: 'bio', estVh: 10, defaultTopVh: 42 });
+      if (hero.ctaButtons && hero.ctaButtons.length > 0) slots.push({ section, key: 'ctaButtons', estVh: 8, defaultTopVh: 52 });
+      // PDF reader: its own draggable slot. The compact hero tiles never paint
+      // it, so without a dedicated slot an uploaded PDF would never show.
+      if (hero.showPdf && pdfSource(hero.pdf?.url)) slots.push({ section, key: 'pdf', estVh: Math.min(70, Math.max(25, Math.round(pdfHeight(hero.pdf?.height) / 12))), defaultTopVh: 62 });
+    } else if (section.type === 'skills') {
+      const skills = section as SkillsSection;
+      if (skills.showTitle !== false) slots.push({ section, key: 'title', estVh: 6 });
+      for (const category of [...new Set(skills.skills.map((s) => s.category))]) {
+        const count = skills.skills.filter((s) => s.category === category).length;
+        slots.push({ section, key: `cat-${category}`, estVh: Math.min(40, 12 + count * 3) });
+      }
+    } else {
+      const flat = FLATTENABLE_SECTIONS[section.type];
+      const flatItems = flat ? (((section as any)[flat.itemsKey] as { id: string }[] | undefined) ?? []) : [];
+      if (flat && flatItems.length > 0) {
+        // One draggable slot per entry — entries move independently of each
+        // other and of the section title, anywhere on the page.
+        if ((section as any).showTitle !== false) slots.push({ section, key: 'title', estVh: 6 });
+        for (const item of flatItems) slots.push({ section, key: `item-${item.id}`, estVh: flat.estVh });
+      } else {
+        slots.push({ section, key: 'categoryContent', estVh: 45 });
+      }
+    }
+  }
+
+  // Convert the virtual vh stack into % of the estimated canvas height. The
+  // canvas measures itself from the lowest element's bottom, so these
+  // positions are approximately self-consistent for a fresh (undragged) page.
+  let cursorVh = 4;
+  const topsVh = slots.map((slot) => {
+    if (slot.defaultTopVh !== undefined) return slot.defaultTopVh;
+    const top = cursorVh;
+    cursorVh += slot.estVh + 2;
+    return top;
+  });
+  const canvasEstVh = cursorVh + 15;
+
+  const elements: FreeFormElement[] = slots.map((slot, index) => {
+    const positions = ((slot.section as any).elementPositions || {}) as Record<string, ElementPosition>;
+    const position = (key: string) => clampCanvasPosition(positions[key]);
+    const defaultPosition: ElementPosition = { x: 50, y: (topsVh[index] / canvasEstVh) * 100 };
+
+    if (slot.section.type === 'hero') {
+      const hero = slot.section as HeroSection;
+      if (slot.key === 'pageHero') {
+        // The hero block now carries only its background, overlay, shapes and
+        // gallery — text elements are flattened into their own page slots.
+        const backgroundOnly = {
+          ...hero,
+          showAvatar: false, showName: false, showTitle: false,
+          showSubtitle: false, showBio: false, ctaButtons: [],
+          showPdf: false,
+        } as HeroSection;
+        return {
+          key: `${hero.id}${PAGE_KEY_SEP}pageHero`,
+          visible: true,
+          position: position('pageHero'),
+          defaultPosition,
+          // Pure background layer: never pushed by, and never pushes, other
+          // elements — content drags freely over it.
+          staticDuringPush: true,
+          content: (
+            <div style={{ width: '100%' }}>
+              <HeroPreview section={backgroundOnly} theme={theme} />
+            </div>
+          ),
+        };
+      }
+      // Flattened hero text element (avatar/name/title/subtitle/bio/CTAs):
+      // rendered in normal flow inside a compact hero with no background, so
+      // it drags exactly like the Skills title slot — anywhere on the page,
+      // including the very top.
+      const isolated = {
+        ...hero,
+        showAvatar: slot.key === 'avatar',
+        showName: slot.key === 'name',
+        showTitle: slot.key === 'title',
+        showSubtitle: slot.key === 'subtitle',
+        showBio: slot.key === 'bio',
+        ctaButtons: slot.key === 'ctaButtons' ? hero.ctaButtons : [],
+        showPdf: slot.key === 'pdf',
+        avatarPosition: undefined, namePosition: undefined, titlePosition: undefined,
+        subtitlePosition: undefined, bioPosition: undefined, ctaButtonsPosition: undefined,
+        backgroundType: 'none', backgroundValue: '', backgroundOverlayOpacity: 0,
+        galleryImages: [], galleryVideos: [],
+        // Shapes live ONLY in the backdrop layer — rendered inside a tile they
+        // would overflow the small fit-content box (huge translucent rect over
+        // the whole page) and steal mouse events with their own drag handles.
+        backgroundShapes: [],
+      } as unknown as HeroSection;
+      return {
+        key: `${hero.id}${PAGE_KEY_SEP}${slot.key}`,
+        visible: true,
+        position: position(slot.key),
+        defaultPosition,
+        content: (
+          <div style={{ width: slot.key === 'pdf' ? '100%' : 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
+            <HeroPreview section={isolated} theme={theme} compact />
+          </div>
+        ),
+      };
+    }
+    if (slot.section.type === 'skills') {
+      const skills = slot.section as SkillsSection;
+      if (slot.key === 'title') {
+        return {
+          key: `${skills.id}${PAGE_KEY_SEP}title`,
+          visible: true,
+          position: position('title'),
+          defaultPosition,
+          content: (
+            <div style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
+              <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle(skills.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
+                <AnimatedText text={skills.title} textStyles={skills.textStyles?.title} />
+              </h2>
+            </div>
+          ),
+        };
+      }
+      const category = slot.key.slice(4);
+      const categorySection = { ...skills, showTitle: false, freeFormEnabled: false, skills: skills.skills.filter((s) => s.category === category) } as SkillsSection;
+      return {
+        key: `${skills.id}${PAGE_KEY_SEP}${slot.key}`,
+        visible: true,
+        position: position(slot.key),
+        defaultPosition,
+        content: (
+          <div style={{ width: '100%' }}>
+            <SkillsPreview section={categorySection} theme={theme} tileMode />
+          </div>
+        ),
+      };
+    }
+    const flat = FLATTENABLE_SECTIONS[slot.section.type];
+    const flatItems = flat ? (((slot.section as any)[flat.itemsKey] as { id: string }[] | undefined) ?? []) : [];
+    if (flat && flatItems.length > 0 && slot.key !== 'categoryContent') {
+      if (slot.key === 'title') {
+        return {
+          key: `${slot.section.id}${PAGE_KEY_SEP}title`,
+          visible: true,
+          position: position('title'),
+          defaultPosition,
+          content: (
+            <div>
+              <div style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
+                <h2 className="text-3xl font-bold text-center whitespace-nowrap" style={getTextStyle((slot.section as any).textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>
+                  <AnimatedText text={(slot.section as any).title} textStyles={(slot.section as any).textStyles?.title} />
+                </h2>
+              </div>
+            </div>
+          ),
+        };
+      }
+      if (slot.key.startsWith('item-')) {
+        const item = flatItems.find((it) => `item-${it.id}` === slot.key);
+        if (item) {
+          // Same renderer, narrowed to this single entry (no title/background),
+          // so the card looks identical but is freely draggable on its own.
+          const solo = {
+            ...slot.section,
+            freeFormEnabled: false,
+            showTitle: false,
+            showSubtitle: false,
+            sectionBackground: undefined,
+            [flat.itemsKey]: [item],
+          } as unknown as PortfolioSection;
+          return {
+            key: `${slot.section.id}${PAGE_KEY_SEP}${slot.key}`,
+            visible: true,
+            position: position(slot.key),
+            defaultPosition,
+            content: (
+              <div style={{ width: '100%' }}>
+                {renderSection(solo)}
+              </div>
+            ),
+          };
+        }
+      }
+    }
+    return {
+      key: `${slot.section.id}${PAGE_KEY_SEP}categoryContent`,
+      visible: true,
+      position: position('categoryContent'),
+      defaultPosition,
+      content: (
+        <div style={{ width: '100%' }}>
+          {renderSection({ ...slot.section, freeFormEnabled: false, sectionBackground: undefined } as PortfolioSection)}
+        </div>
+      ),
+    };
+  });
+
+  // ===== Grid engine (react-grid-layout, FREE mode) =====
+  // Tiles live on a 1920-column × 1px-row grid: one column ≈ one CSS pixel
+  // (~0.98px at a 1920px canvas), so dragging moves elements in 1px steps on
+  // BOTH axes instead of jumping whole fat columns. Layouts are stored in
+  // column units (pageLayout v4) and scale proportionally with canvas width,
+  // exactly like the old 48-col grid (v3) did. Compaction is off and overlap
+  // is allowed (freePageCompactor), so a tile lands EXACTLY where you drop it
+  // — anywhere on the page, including on top of other tiles. Nothing else
+  // moves.
+  const COLS = 1920;
+  const ROW_H = 1;                                   // 1px per row → pixel-free vertical placement
+  const MARGIN: readonly [number, number] = [0, 0];  // no gaps: the user controls spacing by placing tiles
+  const PAD = 16;
+  // Uniform purple-card padding painted on every tile box [horizontal,
+  // vertical]. The grid box = content + this padding, so every element on the
+  // canvas gets the identical breathing room regardless of section type.
+  const TILE_PAD: readonly [number, number] = [20, 16];
+  // Growth cap for whole-section tiles: the published design never lets
+  // section content get wider than max-w-6xl (1152px). Without this cap the
+  // max-content probe would stretch a 3-card grid into one giant line.
+  const SECTION_CONTENT_MAX = 1152;
+
+  const previewMode = usePortfolioStore((s) => s.previewMode);
+  const { width: canvasWidth, mounted, containerRef } = useContainerWidth();
+
+  // Click-to-select: react-grid-layout v2's drag engine retargets the mouseup
+  // away from the tile element, so a per-tile React onMouseUp never fires for
+  // plain clicks (dragging still works). Catch the click at the document level
+  // instead: mousedown records the real tile under the cursor, mouseup selects
+  // it only when the cursor barely moved — movement means it was a drag, which
+  // the grid already handles.
+  const clickSelSectionsRef = React.useRef(visibleSections);
+  clickSelSectionsRef.current = visibleSections;
+  React.useEffect(() => {
+    if (previewMode) return;
+    let hitTile: HTMLElement | null = null;
+    let downX = 0;
+    let downY = 0;
+    const onDown = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      hitTile = el && el.closest ? (el.closest('[data-tk]') as HTMLElement | null) : null;
+      if (hitTile && hitTile.hasAttribute('data-no-select')) hitTile = null;
+      downX = e.clientX;
+      downY = e.clientY;
+    };
+    const onUp = (e: MouseEvent) => {
+      const tile = hitTile;
+      hitTile = null;
+      if (!tile || Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
+      const tk = tile.getAttribute('data-tk') || '';
+      const sep = tk.indexOf('||');
+      if (sep < 0) return;
+      const section = clickSelSectionsRef.current.find((s) => String(s.id) === tk.slice(0, sep));
+      if (section) selectElement(section.id, tk.slice(sep + 2));
+    };
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('mouseup', onUp, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('mouseup', onUp, true);
+    };
+  }, [previewMode, selectElement]);
+
+  const tiles: PageTile[] = slots.map((slot, index) => ({
+    key: elements[index].key,
+    sectionId: slot.section.id,
+    slotKey: slot.key,
+    content: elements[index].content,
+    estVh: slot.estVh,
+    defaultW: defaultTileCols(slot.section.type, slot.key),
+    tileBg: tileBackgroundFor(slot.section, theme),
+    autoW: (slot.section.type === 'hero' && slot.key !== 'pdf') || slot.key === 'title',
+    static: slot.key === 'pageHero',
+    // The hero background is NOT a grid tile: grid tiles can never overlap, so
+    // a full-width static background tile (min 60vh tall) would push every
+    // hero content tile below its full height — the "content starts halfway
+    // down the page" bug. It renders as a backdrop layer behind the grid
+    // instead (see heroBackdrop below), so it's filtered out of the tiles.
+  })).filter((tile) => !tile.static);
+
+  // Content-driven tile heights (px) via ResizeObserver per tile, plus the
+  // natural (shrink-to-fit) width of each tile's content — autoW tiles size
+  // their grid box to that width so they can be dragged near the page edges.
+  const [heightPx, setHeightPx] = React.useState<Record<string, number>>({});
+  const [naturalW, setNaturalW] = React.useState<Record<string, number>>({});
+  // Widest ONE-LINE heading (h1/h2/h3) inside each tile — the floor that
+  // keeps section titles like "Awards & Recognition" on a single line even
+  // when the tile's overall content must wrap (capped whole-section tiles).
+  const [headingW, setHeadingW] = React.useState<Record<string, number>>({});
+  // ---- Snap guides (smart alignment while dragging) ----
+  // react-grid-layout has NO built-in guides, so a custom LayoutConstraint
+  // performs the magnetic snapping INSIDE RGL's drag pipeline (it receives the
+  // proposed grid cell before the move is committed), while the magenta lines
+  // are painted imperatively into a fixed pool of divs below. No React state
+  // updates mid-drag: that would push a stale layout prop back into GridLayout
+  // and fight the active drag.
+  const showGuides = usePortfolioStore((s) => s.showGuides);
+  const builderGuides = usePortfolioStore((s) => s.builderGuides);
+  const snapTargetsRef = React.useRef<{ x: SnapTarget[]; y: SnapTarget[] }>({ x: [], y: [] });
+  const snapLinesRef = React.useRef<SnapLineHit[]>([]);
+  const guidesLayerRef = React.useRef<HTMLDivElement>(null);
+  // Measure every tile after each commit: pixel height (drives h) and the
+  // INTRINSIC max-content width (drives w). The probe flips the wrapper to
+  // width:max-content, reads it, and restores it within the same JS task, so
+  // the number never depends on the current box width — no freeze needed,
+  // no shrink spiral possible, and editing a tile's text re-measures it
+  // automatically. Every tile then shrinks to its true card width + the same
+  // uniform card padding, so left/right spacing is consistent everywhere.
+  React.useEffect(() => {
+    const rootEl = containerRef.current;
+    if (!rootEl) return;
+    let probing = false;
+    let pending = false;
+    let dead = false;
+    const measureAll = () => {
+      if (probing) { pending = true; return; }
+      probing = true;
+      try {
+        rootEl.querySelectorAll<HTMLElement>('[data-tk]').forEach((el) => {
+          const key = el.getAttribute('data-tk');
+          if (!key) return;
+          const target = (el.firstElementChild as HTMLElement) ?? el;
+          const h = target.getBoundingClientRect().height;
+          if (h > 0) setHeightPx((prev) => (Math.abs((prev[key] ?? -1) - h) > 2 ? { ...prev, [key]: h } : prev));
+          const w = probeMaxContentWidth(target);
+          if (w > 0) setNaturalW((prev) => (Math.abs((prev[key] ?? -1) - w) > 2 ? { ...prev, [key]: w } : prev));
+          // Headings must never wrap: probe each h1/h2/h3 on its own (its
+          // max-content = the title's full one-line width) and keep the
+          // widest as this tile's floor.
+          let head = 0;
+          target.querySelectorAll<HTMLElement>('h1, h2, h3').forEach((hn) => {
+            const hw = probeMaxContentWidth(hn);
+            if (hw > head) head = hw;
+          });
+          if (head > 0) setHeadingW((prev) => (Math.abs((prev[key] ?? -1) - head) > 2 ? { ...prev, [key]: head } : prev));
+        });
+      } finally {
+        probing = false;
+        // Resize notifications that arrived DURING the probe were dropped —
+        // re-run once so a just-added button / finished animation can never
+        // leave the tile at a stale (too narrow) width.
+        if (pending) { pending = false; if (!dead) setTimeout(measureAll, 30); }
+      }
+    };
+    measureAll();
+    const ro = new ResizeObserver(measureAll);
+    rootEl.querySelectorAll('[data-tk] > *').forEach((el) => ro.observe(el));
+    // Webfonts usually finish loading AFTER the first measurements. Text
+    // gets wider with the real font, but 100%-wide wrappers never resize,
+    // so the ResizeObserver stays silent — re-measure once fonts settle.
+    if (typeof document !== 'undefined' && (document as any).fonts) {
+      (document as any).fonts.ready.then(() => { if (!dead) measureAll(); }).catch(() => {});
+    }
+    return () => { dead = true; ro.disconnect(); };
+  });
+
+  const rowsFor = (tile: PageTile) => {
+    const px = heightPx[tile.key]
+      ?? (tile.estVh / 100) * (typeof window !== 'undefined' ? window.innerHeight : 800);
+    return Math.max(4, Math.ceil((px + 2 * TILE_PAD[1] + MARGIN[1]) / (ROW_H + MARGIN[1])));
+  };
+
+  const savedOf = (tile: PageTile): { x: number; y: number; w: number } | undefined => {
+    const section = visibleSections.find((s) => s.id === tile.sectionId);
+    const pl = (section as any)?.pageLayout as Record<string, unknown> | undefined;
+    const raw = pl?.[tile.slotKey] as { x: number; y: number; w: number } | undefined;
+    if (!raw) return undefined;
+    const ver = (pl?.v as number | undefined) ?? 1;
+    if (ver >= 4) return raw;
+    // v1: 12 cols, 8px rows + 10px gaps. v2: 24 cols, 1px rows. v3: 48 cols,
+    // 1px rows. All rescaled into the 1920-col (≈1px) grid; any full-width
+    // tile (which could never move sideways) adopts the new narrower default
+    // so it becomes draggable.
+    const scale = ver >= 3 ? 40 : ver >= 2 ? 80 : 160;
+    const oldFullWidth = raw.w * scale >= COLS;
+    const w = oldFullWidth ? tile.defaultW : Math.min(COLS, raw.w * scale);
+    const rawX = oldFullWidth ? Math.floor((COLS - w) / 2) : raw.x * scale;
+    return { x: Math.max(0, Math.min(rawX, COLS - w)), y: ver >= 2 ? raw.y : PAD + raw.y * 18, w };
+  };
+
+  // Convert a measured content width (px) into grid columns: k cols span
+  // k*colW + (k-1)*margin px. autoW boxes shrink to their content so the
+  // element can be dragged until its own edge touches the page edge.
+  const colStepPx = canvasWidth > 0 ? (canvasWidth - 2 * PAD - (COLS - 1) * MARGIN[0]) / COLS + MARGIN[0] : 1;
+  const colsForPx = (px: number) => Math.max(2, Math.min(COLS, Math.ceil((px + MARGIN[0]) / colStepPx)));
+
+  // Paint magenta snap lines into the fixed pool of divs (see guidesLayer
+  // below). axis 'x' = vertical line at left=pos; axis 'y' = horizontal line
+  // at top=pos; start/end span the other axis across both involved boxes.
+  const paintGuides = (lines: SnapLineHit[]) => {
+    const layer = guidesLayerRef.current;
+    if (!layer) return;
+    const colors: Record<SnapTarget['kind'], string> = { element: '#ff2bd6', canvas: '#06b6d4', guide: '#f59e0b' };
+    for (let i = 0; i < layer.children.length; i++) {
+      const el = layer.children[i] as HTMLElement;
+      const ln = lines[i];
+      if (!ln) { el.style.display = 'none'; continue; }
+      el.style.display = 'block';
+      el.style.background = colors[ln.kind];
+      const a = Math.round(ln.start);
+      const span = Math.max(2, Math.round(ln.end - ln.start));
+      if (ln.axis === 'x') {
+        el.style.left = `${Math.round(ln.pos)}px`; el.style.top = `${a}px`;
+        el.style.width = '1px'; el.style.height = `${span}px`;
+      } else {
+        el.style.top = `${Math.round(ln.pos)}px`; el.style.left = `${a}px`;
+        el.style.width = `${span}px`; el.style.height = '1px';
+      }
+    }
+  };
+
+  // Capture snap targets (px, relative to the canvas container) when a drag
+  // begins: every sibling tile's edges + centers, and — when ruler guides are
+  // visible — the guides from the store (converted from the ruler's document-%
+  // space, same math the old useFreeFormDrag hook used).
+  const collectSnapTargets = (dragKey: string) => {
+    const root = containerRef.current;
+    if (!root) return;
+    const rect = root.getBoundingClientRect();
+    const xT: SnapTarget[] = [];
+    const yT: SnapTarget[] = [];
+    root.querySelectorAll<HTMLElement>('[data-tk]').forEach((el) => {
+      if (el.getAttribute('data-tk') === dragKey) return;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const l = r.left - rect.left;
+      const t = r.top - rect.top;
+      xT.push({ v: l, lo: t, hi: t + r.height, kind: 'element' },
+        { v: l + r.width / 2, lo: t, hi: t + r.height, kind: 'element' },
+        { v: l + r.width, lo: t, hi: t + r.height, kind: 'element' });
+      yT.push({ v: t, lo: l, hi: l + r.width, kind: 'element' },
+        { v: t + r.height / 2, lo: l, hi: l + r.width, kind: 'element' },
+        { v: t + r.height, lo: l, hi: l + r.width, kind: 'element' });
+    });
+    if (showGuides && builderGuides.length > 0) {
+      const sc = getScrollParent(root);
+      const scRect = sc.getBoundingClientRect();
+      const docW = scRect.width || 1;
+      const docH = sc.scrollHeight || 1;
+      const leftInDoc = rect.left - scRect.left + sc.scrollLeft;
+      const topInDoc = rect.top - scRect.top + sc.scrollTop;
+      for (const g of builderGuides) {
+        if (g.type === 'vertical') xT.push({ v: (g.position / 100) * docW - leftInDoc, lo: 0, hi: rect.height, kind: 'guide' });
+        else yT.push({ v: (g.position / 100) * docH - topInDoc, lo: 0, hi: rect.width, kind: 'guide' });
+      }
+    }
+    snapTargetsRef.current = { x: xT, y: yT };
+  };
+  // The magnet itself. RGL calls constrainPosition() with the PROPOSED grid
+  // cell on every drag move, before committing it — perfect for snapping.
+  // Passing this in `constraints` REPLACES the default gridBounds constraint,
+  // so it also clamps x/y to the grid. Both axes are ~1px (1920 cols, 1px
+  // rows), so every snap lands dead-on the guide line — the correction is a
+  // pixel at most, never a visible jump.
+  const smartSnapConstraint = {
+    name: 'smart-snap',
+    constrainPosition(item: { w: number; h: number }, xIn: number, yIn: number) {
+      const lines: SnapLineHit[] = [];
+      let x = Math.max(0, Math.min(COLS - item.w, Math.round(xIn)));
+      let y = Math.max(0, Math.round(yIn));
+      const rw = item.w * colStepPx - MARGIN[0];
+      const rh = item.h; // ROW_H=1 + MARGIN[1]=0 → 1 grid row = 1px
+      const canvasH = containerRef.current?.getBoundingClientRect().height ?? 0;
+      // --- X axis: left / center / right vs sibling features + canvas center.
+      const featsX = [0, rw / 2, rw];
+      let bestX: { d: number; fi: number; t: SnapTarget } | null = null;
+      for (const t of snapTargetsRef.current.x) {
+        for (let fi = 0; fi < 3; fi++) {
+          const d = Math.abs(t.v - (PAD + x * colStepPx + featsX[fi]));
+          if (d <= 7 && (!bestX || d < bestX.d)) bestX = { d, fi, t };
+        }
+      }
+      {
+        const v = (canvasWidth - rw) / 2;
+        const d = Math.abs(v - (PAD + x * colStepPx));
+        if (d <= 7 && (!bestX || d < bestX.d)) bestX = { d, fi: 0, t: { v, lo: 0, hi: canvasH, kind: 'canvas' } };
+      }
+      if (bestX) {
+        const b = bestX;
+        // Columns are ~1px wide as well, so X magnets work exactly like rows:
+        // compute the precise pixel delta, round it into a (tiny) column
+        // shift, and only accept it when the target lands dead-on — the
+        // correction is imperceptible, it just glues edges together at
+        // sub-pixel accuracy.
+        const dx = Math.round((b.t.v - (PAD + x * colStepPx + featsX[b.fi])) / colStepPx);
+        if (dx !== 0) {
+          const nx = Math.max(0, Math.min(COLS - item.w, x + dx));
+          const err = Math.abs(PAD + nx * colStepPx + featsX[b.fi] - b.t.v);
+          if (err <= 2) {
+            x = nx;
+            const topNow = PAD + y;
+            lines.push({ axis: 'x', pos: b.t.v, start: Math.min(topNow, b.t.lo), end: Math.max(topNow + rh, b.t.hi), kind: b.t.kind });
+          }
+        }
+      }
+      // --- Y axis: top / middle / bottom (1px rows → exact landing).
+      const featsY = [0, rh / 2, rh];
+      let bestY: { d: number; fi: number; t: SnapTarget } | null = null;
+      for (const t of snapTargetsRef.current.y) {
+        for (let fi = 0; fi < 3; fi++) {
+          const d = Math.abs(t.v - (PAD + y + featsY[fi]));
+          if (d <= 7 && (!bestY || d < bestY.d)) bestY = { d, fi, t };
+        }
+      }
+      if (bestY) {
+        const b = bestY;
+        const cy = Math.max(0, y + Math.round(b.t.v - (PAD + y + featsY[b.fi])));
+        const err = Math.abs(PAD + cy + featsY[b.fi] - b.t.v);
+        if (err <= 1) {
+          y = cy;
+          const leftNow = PAD + x * colStepPx;
+          lines.push({ axis: 'y', pos: b.t.v, start: Math.min(leftNow, b.t.lo), end: Math.max(leftNow + rw, b.t.hi), kind: b.t.kind });
+        }
+      }
+      snapLinesRef.current = lines;
+      return { x, y };
+    },
+  };
+
+  // Build the layout: saved tiles keep their EXACT saved x/y (free mode —
+  // overlap is allowed and nothing is compacted). Tiles that were never
+  // dropped by the user (new sections, first render) fall below the lowest
+  // placed tile in their columns, stacked in slot order.
+  const layout: GridLayoutDef = (() => {
+    const built = tiles.map((tile) => {
+      const saved = savedOf(tile);
+      // Every tile's grid box HUGS its measured content: the intrinsic
+      // max-content width (+ the uniform card padding) IS the box width.
+      // Content whose ONE-LINE width fits the published design's max
+      // (max-w-6xl = 1152px) — titles, labels, cards, short rows — always
+      // gets exactly that width, so a title like "What I do" can never be
+      // squeezed into wrapping by a stale saved width, a re-render, or a
+      // canvas resize. Only content that genuinely needs to wrap (paragraphs,
+      // multi-card grids whose max-content exceeds the cap) keeps the old
+      // shrink-only rule inside the cap, respecting widths the user chose.
+      // Near the page edges RGL clamps x so the box stays on canvas.
+      const nat = canvasWidth > 0 ? naturalW[tile.key] : undefined;
+      // The PDF reader always occupies the full canvas width — its content is
+      // %-based (hug-measurement collapses it) and it must stay far wider than
+      // the 1152px text cap to be readable. Stale saved widths are ignored.
+      const baseW = tile.slotKey === 'pdf'
+        ? Math.min(COLS, tile.defaultW)
+        : Math.max(1, Math.min(COLS, saved?.w ?? tile.defaultW));
+      const fitsW = nat !== undefined ? colsForPx(nat + 2 * TILE_PAD[0]) : 0;
+      const wRaw = tile.slotKey === 'pdf'
+        ? baseW
+        : nat === undefined
+        ? baseW
+        : tile.autoW || nat <= SECTION_CONTENT_MAX
+          ? Math.max(2, fitsW)
+          : Math.max(2, Math.min(baseW, colsForPx(SECTION_CONTENT_MAX + 2 * TILE_PAD[0])));
+      // Headings never wrap: never let the box drop below the widest
+      // one-line title inside the tile (only if the canvas can actually
+      // hold it — near the borders / tiny canvases still wrap, as intended).
+      const headNat = headingW[tile.key];
+      const w = headNat !== undefined
+        ? Math.min(COLS, Math.max(wRaw, colsForPx(headNat + 2 * TILE_PAD[0])))
+        : wRaw;
+      const h = rowsFor(tile);
+      // Content-driven width growth (e.g. adding a 3rd CTA button) must keep
+      // the tile's CENTER where the user placed it. Pinning the left edge
+      // would expand the box only rightward and shove the button row out of
+      // alignment with the neighbouring name/title tiles. saved.w == w for
+      // everything but a resize, so placements are untouched otherwise.
+      const anchorX = saved
+        ? saved.x + Math.round((saved.w - w) / 2)
+        : Math.floor((COLS - w) / 2);
+      const x = Math.max(0, Math.min(anchorX, COLS - w));
+      return { item: { i: tile.key, x, y: 0, w, h, static: tile.static } as GridLayoutDef[number], placed: !!saved, savedY: saved?.y ?? 0 };
+    });
+    const colBottom = new Array<number>(COLS).fill(0);
+    for (const b of built) {
+      if (!b.placed) continue;
+      b.item.y = Math.max(0, Math.round(b.savedY));
+      for (let c = b.item.x; c < b.item.x + b.item.w; c++) colBottom[c] = Math.max(colBottom[c], b.item.y + b.item.h);
+    }
+    for (const b of built) {
+      if (b.placed) continue;
+      let y = 0;
+      for (let c = b.item.x; c < b.item.x + b.item.w; c++) y = Math.max(y, colBottom[c]);
+      b.item.y = y;
+      for (let c = b.item.x; c < b.item.x + b.item.w; c++) colBottom[c] = y + b.item.h;
+    }
+    return built.map((b) => b.item);
+  })();
+
+  // Hero background = absolutely-positioned backdrop BEHIND the grid (grid
+  // tiles can't overlap, so it can't be a tile itself). It spans the vertical
+  // range of the hero's content tiles (with a 60vh minimum so the hero still
+  // reads as a hero) and sits under everything, pointer-events off — content
+  // tiles are transparent, so the gradient/image shows through them.
+  const heroBackdrop = (() => {
+    const hero = visibleSections.find((s) => s.type === 'hero') as HeroSection | undefined;
+    if (!hero || (!hero.backgroundValue && hero.backgroundType !== 'color')) return null;
+    const yToPx = (y: number) => PAD + y * (ROW_H + MARGIN[1]);
+    const heroItems = layout.filter((it) => {
+      const tile = tiles.find((t) => t.key === it.i);
+      return !!tile && tile.sectionId === hero.id;
+    });
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const minHeroPx = Math.round(0.6 * vh);
+    let topPx = 16;
+    let heightPx = minHeroPx;
+    if (heroItems.length > 0) {
+      topPx = Math.min(...heroItems.map((it) => yToPx(it.y)));
+      const bottomPx = Math.max(...heroItems.map((it) => yToPx(it.y + it.h) - MARGIN[1]));
+      heightPx = Math.max(minHeroPx, bottomPx - topPx);
+    }
+    // Transparent band — geometry only, no background paint (see comment above).
+    const layerStyle: React.CSSProperties = {
+      position: 'absolute', left: 0, right: 0, top: topPx, height: heightPx,
+      pointerEvents: 'none', zIndex: 0,
+    };
+    const hasFlowExtras = (hero.galleryImages?.length ?? 0) > 0 || (hero.galleryVideos?.length ?? 0) > 0 || (hero.backgroundShapes?.length ?? 0) > 0;
+    return (
+      <div key={`hero-bg-${hero.id}`} aria-hidden data-no-drag style={layerStyle}>
+        {hasFlowExtras && (
+          <div className="relative h-full">
+            <HeroPreview
+              section={{
+                ...hero,
+                showAvatar: false, showName: false, showTitle: false,
+                showSubtitle: false, showBio: false, ctaButtons: [],
+                showPdf: false,
+                backgroundType: 'none', backgroundValue: '', backgroundOverlayOpacity: 0,
+              } as unknown as HeroSection}
+              theme={theme}
+              compact
+              decorative
+            />
+          </div>
+        )}
+      </div>
+    );
+  })();
+
+  // Persist grid geometry per section after a drop (x/w + resulting y order).
+  const persistLayout = (l: readonly GridLayoutDef[number][]) => {
+    const bySection: Record<string, Record<string, { x: number; y: number; w: number }>> = {};
+    for (const it of l) {
+      const tile = tiles.find((t) => t.key === it.i);
+      if (!tile) continue;
+      (bySection[tile.sectionId] = bySection[tile.sectionId] || {})[tile.slotKey] = { x: it.x, y: it.y, w: it.w };
+    }
+    for (const [sid, map] of Object.entries(bySection)) {
+      const section = visibleSections.find((s) => s.id === sid);
+      if (!section) continue;
+      const cur = ((section as any).pageLayout || {}) as Record<string, unknown>;
+      updateSection(sid, { pageLayout: { ...cur, ...map, v: 4 } } as any);
+    }
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', minHeight: '100vh' }}>
+      {heroBackdrop}
+      {mounted && canvasWidth > 0 && (
+        <div style={{ position: 'relative', zIndex: 1 }}>
+        <GridLayout
+          width={canvasWidth}
+          layout={layout}
+          gridConfig={{ cols: COLS, rowHeight: ROW_H, margin: MARGIN, containerPadding: [PAD, PAD] }}
+          dragConfig={{
+            enabled: !previewMode,
+            threshold: 4,
+            allowMobileScroll: true,
+            cancel: 'input, textarea, select, button, a, [data-no-drag]',
+          }}
+          resizeConfig={{ enabled: false }}
+          compactor={freePageCompactor}
+          constraints={[smartSnapConstraint]}
+          onDragStart={(_l, oldItem, newItem) => {
+            snapLinesRef.current = [];
+            collectSnapTargets(newItem?.i || oldItem?.i || '');
+            // While dragging: hide every iframe (a live PDF viewer re-rasterizes
+            // on each pixel of movement = lag, the placeholder clone runs a
+            // SECOND one, and an iframe under the released cursor swallows the
+            // mouseup so the drag never ends — its ghost stays on canvas).
+            // visibility:hidden also removes iframes from hit-testing, so the
+            // release always reaches the page and the drag closes cleanly.
+            containerRef.current?.classList.add('ff-canvas-dragging');
+            window.addEventListener('mouseup', () => containerRef.current?.classList.remove('ff-canvas-dragging'), { once: true });
+          }}
+          onDrag={() => paintGuides(snapLinesRef.current)}
+          onDragStop={(l) => { paintGuides([]); persistLayout(l); containerRef.current?.classList.remove('ff-canvas-dragging'); }}
+        >
+          {tiles.map((tile) => {
+            return (
+            <div
+              key={tile.key}
+              data-tk={tile.key}
+              data-no-select={tile.slotKey === 'pdf' ? '' : undefined}
+              className={cn('ff-tile', !previewMode && tile.slotKey !== 'pdf' && 'cursor-move')}
+              style={{ ...tile.tileBg, padding: `${TILE_PAD[1]}px ${TILE_PAD[0]}px`, borderRadius: theme.borderRadius ?? 8 }}
+              onMouseUp={() => { if (tile.slotKey !== 'pdf') selectElement(tile.sectionId, tile.slotKey); }}
+            >
+              {tile.content}
+            </div>
+            );
+          })}
+        </GridLayout>
+        </div>
+      )}
+      {/* Uniform purple card: the tile BOX paints the section background and
+          the identical padding, so every element gets the same surface and
+          the same breathing room. These rules neutralize the per-section
+          chrome INSIDE tiles — the py-16/px-6 padding, the section's own
+          background rectangle (it would inset inside the card padding and
+          show a double edge), min-heights that stretch tiles far past their
+          content (min-h-screen projects/hero), and the max-w centering
+          containers (incl. nested ones) that leave dead side space. */}
+      <style>{`
+        .ff-tile section { padding: 0 !important; min-height: 0 !important; background: transparent !important; }
+        .ff-tile section div { min-height: 0 !important; }
+        .ff-tile section > div[class*="max-w-"], .ff-tile section > div > div[class*="max-w-"] { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+        /* One line is a HARD rule inside tiles, independent of any width
+           measurement: titles never wrap and CTA rows never wrap. The
+           width engine keeps the box wide enough; only a tile the user
+           dropped with less room than its content can overflow — which is
+           exactly the "not enough space near the borders" case. */
+        .ff-tile h1, .ff-tile h2 { white-space: nowrap; }
+        .ff-tile .ff-cta-row { flex-wrap: nowrap !important; }
+        .ff-tile .ff-cta-row > a { flex-shrink: 0; }
+        /* During a tile drag every iframe (PDF viewers, embeds) disappears:
+           they re-rasterize expensively under movement and swallow the release
+           mouseup, which strands the drag placeholder on the canvas. */
+        .ff-canvas-dragging iframe { visibility: hidden; }
+      `}</style>
+      {/* Snap guide lines — hidden except while dragging (paintGuides writes
+          their style directly, no React state, so the grid never re-renders
+          mid-drag). */}
+      <div ref={guidesLayerRef} aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{ display: 'none', position: 'absolute' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============ HERO ============
-export function HeroPreview({ section, theme, useLandingBackground = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean }) {
+export function HeroPreview({ section, theme, useLandingBackground = false, compact = false, decorative = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean; compact?: boolean; decorative?: boolean }) {
   const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const sectionRef = React.useRef<HTMLElement>(null);
+  const elementRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const canvasRef = React.useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = React.useState<string | null>(null);
   const [resizing, setResizing] = React.useState<{ id: string; corner: string; startWidth: number; startHeight: number; startMouseX: number; startMouseY: number; startPosX: number; startPosY: number } | null>(null);
   const resizingRef = React.useRef(resizing);
   React.useEffect(() => { resizingRef.current = resizing; }, [resizing]);
-  const [snapLines, setSnapLines] = React.useState<{ vertical?: number; horizontal?: number }>({});
-  const [smartGuides, setSmartGuides] = React.useState<Array<{ type: string; orientation: string; position: number; value?: number; label?: string; elements?: string[]; isEdge?: boolean; isEqualSpacing?: boolean; dualLine?: boolean }>>([]);
-
-  const snapEnabled = section.snapEnabled !== false;
-  const SNAP_THRESHOLD = 1; // percentage points — only snaps when extremely close for fine control
-  const PIXEL_SNAP_THRESHOLD = 8; // pixels — Photoshop uses ~8px snap threshold
-  const SIZE_MATCH_THRESHOLD = 3; // pixels — tolerance for "same size" detection
-  const SPACING_EQUAL_THRESHOLD = 4; // pixels — tolerance for "equal spacing" detection
 
   const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? { background: section.backgroundValue }
@@ -390,12 +1292,40 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   // When no saved position exists, elements appear near top to avoid gap
   // Only use positions when user has explicitly saved them
   // Otherwise use null to indicate normal flow (no positioning)
-  const avatarPos = section.avatarPosition || null;
-  const namePos = section.namePosition || null;
-  const titlePos = section.titlePosition || null;
-  const subtitlePos = section.subtitlePosition || null;
-  const bioPos = section.bioPosition || null;
-  const ctaPos = section.ctaButtonsPosition || null;
+  // Clamped so a value saved from an old drag (up to 500%) can't put the element out of reach.
+  const avatarPos = clampCanvasPosition(section.avatarPosition) || null;
+  const namePos = clampCanvasPosition(section.namePosition) || null;
+  const titlePos = clampCanvasPosition(section.titlePosition) || null;
+  const subtitlePos = clampCanvasPosition(section.subtitlePosition) || null;
+  const bioPos = clampCanvasPosition(section.bioPosition) || null;
+  const ctaPos = clampCanvasPosition(section.ctaButtonsPosition) || null;
+
+  /**
+   * Resolve a text element's canvas % position at drag start.
+   * Elements that have never been dragged are still in normal flow and their
+   * *Position fields are null — measure their on-screen rect and convert it to
+   * a canvas % so switching to absolute positioning doesn't jump. (Previously
+   * this read `null.x` and threw, which made the element undraggable — e.g.
+   * the hero name could not be moved to the top of the page.)
+   */
+  const resolveDragStartPosition = (element: string, dragRect: DOMRect): ElementPosition | null => {
+    const savedByElement: Record<string, ElementPosition | null> = {
+      avatar: avatarPos, name: namePos, title: titlePos,
+      subtitle: subtitlePos, bio: bioPos, ctaButtons: ctaPos,
+    };
+    if (!(element in savedByElement)) return null; // gallery/shape handled by caller
+    const saved = savedByElement[element];
+    if (saved) return saved;
+    const nodeRect = elementRefs.current[element]?.getBoundingClientRect();
+    if (nodeRect && dragRect.width > 0 && dragRect.height > 0) {
+      // Positions are center-based (-translate-x-1/2 -translate-y-1/2)
+      return {
+        x: ((nodeRect.left + nodeRect.width / 2 - dragRect.left) / dragRect.width) * 100,
+        y: ((nodeRect.top + nodeRect.height / 2 - dragRect.top) / dragRect.height) * 100,
+      };
+    }
+    return { x: 50, y: 50 };
+  };
 
   React.useEffect(() => {
     const isCompactBaseline =
@@ -417,175 +1347,6 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     });
   }, [section.id, section.namePosition, section.titlePosition, section.subtitlePosition, section.bioPosition, section.ctaButtonsPosition, updateSection]);
 
-  // All element positions for snap calculation
-  const allPositions: Record<string, { x: number; y: number }> = {
-    avatar: avatarPos,
-    name: namePos,
-    title: titlePos,
-    subtitle: subtitlePos,
-    bio: bioPos,
-    ctaButtons: ctaPos,
-  };
-
-  // Compute snap for a given raw position against other elements + center lines (Photoshop-style Smart Guides)
-  const computeSnap = (element: string, rawX: number, rawY: number): { x: number; y: number; snapV?: number; snapH?: number } => {
-    if (!snapEnabled) { setSmartGuides([]); return { x: rawX, y: rawY }; }
-
-    // Get canvas dimensions for pixel-based detection
-    const canvasEl = canvasRef.current;
-    const sectionEl = sectionRef.current;
-    const canvasRect = canvasEl?.getBoundingClientRect() ?? { width: 1000, height: 800 };
-    const sectionRect = sectionEl?.getBoundingClientRect() ?? { width: 1000, height: 800 };
-    
-    // Canvas width from actual DOM, height from section's min-height
-    const canvasWidth = canvasRect.width;
-    const canvasHeight = sectionRect.height > 0 ? sectionRect.height : 800;
-
-    // Measure actual element sizes from DOM refs (Photoshop-accurate)
-    const getElementSize = (key: string): { w: number; h: number } => {
-      const node = elementRefs.current[key];
-      if (node) {
-        const rect = node.getBoundingClientRect();
-        return { w: rect.width, h: rect.height };
-      }
-      // Fallback defaults if ref not available
-      const fallback: Record<string, { w: number; h: number }> = {
-        avatar: { w: 120, h: 120 },
-        name: { w: 200, h: 40 },
-        title: { w: 250, h: 35 },
-        subtitle: { w: 200, h: 30 },
-        bio: { w: 400, h: 60 },
-        ctaButtons: { w: 300, h: 50 },
-        galleryImages: { w: 900, h: 400 },
-        galleryVideos: { w: 900, h: 400 },
-      };
-      return fallback[key] ?? { w: 100, h: 40 };
-    };
-
-    // Build element rects with actual measured sizes
-    const rects: Record<string, { left: number; top: number; right: number; bottom: number; cx: number; cy: number; w: number; h: number }> = {};
-    for (const [key, pos] of Object.entries(allPositions)) {
-      if (key === element || !pos) continue;
-      const size = getElementSize(key);
-      const cx = (pos.x / 100) * canvasWidth;
-      const cy = (pos.y / 100) * canvasHeight;
-      rects[key] = {
-        left: cx - size.w / 2, top: cy - size.h / 2,
-        right: cx + size.w / 2, bottom: cy + size.h / 2,
-        cx, cy, w: size.w, h: size.h,
-      };
-    }
-
-    const dragSize = getElementSize(element);
-    const dragCx = (rawX / 100) * canvasWidth;
-    const dragCy = (rawY / 100) * canvasHeight;
-    const dragRect = {
-      left: dragCx - dragSize.w / 2, top: dragCy - dragSize.h / 2,
-      right: dragCx + dragSize.w / 2, bottom: dragCy + dragSize.h / 2,
-      cx: dragCx, cy: dragCy, w: dragSize.w, h: dragSize.h,
-    };
-
-    const guides: typeof smartGuides = [];
-    let snappedX = rawX, snappedY = rawY;
-    let bestXDx = PIXEL_SNAP_THRESHOLD + 1, bestYDy = PIXEL_SNAP_THRESHOLD + 1;
-
-    // Canvas edges & center
-    const canvasX = [{ px: 0, label: 'Left', isEdge: true }, { px: canvasWidth / 2, label: 'Center', isEdge: false }, { px: canvasWidth, label: 'Right', isEdge: true }];
-    const canvasY = [{ px: 0, label: 'Top', isEdge: true }, { px: canvasHeight / 2, label: 'Center', isEdge: false }, { px: canvasHeight, label: 'Bottom', isEdge: true }];
-    const dragXPoints = [{ px: dragRect.left, ref: 'left' }, { px: dragRect.cx, ref: 'center' }, { px: dragRect.right, ref: 'right' }];
-    const dragYPoints = [{ px: dragRect.top, ref: 'top' }, { px: dragRect.cy, ref: 'center' }, { px: dragRect.bottom, ref: 'bottom' }];
-
-    // X alignment (vertical guides)
-    for (const dp of dragXPoints) {
-      for (const ct of canvasX) {
-        const dx = Math.abs(dp.px - ct.px);
-        if (dx < bestXDx) {
-          bestXDx = dx;
-          snappedX = ((ct.px + (dragRect.cx - dp.px)) / canvasWidth) * 100;
-          guides.length = 0;
-          guides.push({ type: 'alignment', orientation: 'vertical', position: (ct.px / canvasWidth) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
-        }
-      }
-      for (const [key, rect] of Object.entries(rects)) {
-        const otherX = [{ px: rect.left, ref: 'left' }, { px: rect.cx, ref: 'center' }, { px: rect.right, ref: 'right' }];
-        for (const op of otherX) {
-          const dx = Math.abs(dp.px - op.px);
-          if (dx < bestXDx) {
-            bestXDx = dx;
-            snappedX = ((op.px + (dragRect.cx - dp.px)) / canvasWidth) * 100;
-            guides.length = 0;
-            guides.push({ type: 'alignment', orientation: 'vertical', position: (op.px / canvasWidth) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
-          }
-        }
-      }
-    }
-
-    // Y alignment (horizontal guides)
-    for (const dp of dragYPoints) {
-      for (const ct of canvasY) {
-        const dy = Math.abs(dp.px - ct.px);
-        if (dy < bestYDy) {
-          bestYDy = dy;
-          snappedY = ((ct.px + (dragRect.cy - dp.px)) / canvasHeight) * 100;
-          guides.length = 0;
-          guides.push({ type: 'alignment', orientation: 'horizontal', position: (ct.px / canvasHeight) * 100, label: ct.label, isEdge: ct.isEdge, elements: [element] });
-        }
-      }
-      for (const [key, rect] of Object.entries(rects)) {
-        const otherY = [{ px: rect.top, ref: 'top' }, { px: rect.cy, ref: 'center' }, { px: rect.bottom, ref: 'bottom' }];
-        for (const op of otherY) {
-          const dy = Math.abs(dp.px - op.px);
-          if (dy < bestYDy) {
-            bestYDy = dy;
-            snappedY = ((op.px + (dragRect.cy - dp.px)) / canvasHeight) * 100;
-            guides.length = 0;
-            guides.push({ type: 'alignment', orientation: 'horizontal', position: (op.px / canvasHeight) * 100, label: dp.ref === op.ref ? dp.ref : undefined, isEdge: dp.ref !== 'center' && op.ref !== 'center', elements: [element, key] });
-          }
-        }
-      }
-    }
-
-    // Spacing detection (Photoshop-style: dual lines on both sides)
-    const sortedByX = Object.entries(rects).sort((a, b) => a[1].cx - b[1].cx);
-    for (let i = 0; i < sortedByX.length - 1; i++) {
-      const [, l] = sortedByX[i], [, r] = sortedByX[i + 1];
-      const gap = r.left - l.right;
-      if (gap > 0 && Math.abs(dragRect.cx - (l.right + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
-        const leftMid = l.right + gap / 4;
-        const rightMid = r.left - gap / 4;
-        guides.push({ type: 'spacing', orientation: 'vertical', position: (leftMid / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]], dualLine: true });
-        guides.push({ type: 'spacing', orientation: 'vertical', position: (rightMid / canvasWidth) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByX[i][0], sortedByX[i + 1][0]], dualLine: true });
-      }
-    }
-
-    const sortedByY = Object.entries(rects).sort((a, b) => a[1].cy - b[1].cy);
-    for (let i = 0; i < sortedByY.length - 1; i++) {
-      const [, t] = sortedByY[i], [, b] = sortedByY[i + 1];
-      const gap = b.top - t.bottom;
-      if (gap > 0 && Math.abs(dragRect.cy - (t.bottom + gap / 2)) < SPACING_EQUAL_THRESHOLD) {
-        const topMid = t.bottom + gap / 4;
-        const bottomMid = b.top - gap / 4;
-        guides.push({ type: 'spacing', orientation: 'horizontal', position: (topMid / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]], dualLine: true });
-        guides.push({ type: 'spacing', orientation: 'horizontal', position: (bottomMid / canvasHeight) * 100, value: gap, label: `${Math.round(gap)}px`, isEqualSpacing: true, elements: [element, sortedByY[i][0], sortedByY[i + 1][0]], dualLine: true });
-      }
-    }
-
-    // Size match
-    for (const [key, rect] of Object.entries(rects)) {
-      if (Math.abs(dragRect.w - rect.w) < SIZE_MATCH_THRESHOLD) {
-        guides.push({ type: 'size', orientation: 'vertical', position: (dragRect.cx / canvasWidth) * 100, label: 'W', elements: [element, key] });
-      }
-      if (Math.abs(dragRect.h - rect.h) < SIZE_MATCH_THRESHOLD) {
-        guides.push({ type: 'size', orientation: 'horizontal', position: (dragRect.cy / canvasHeight) * 100, label: 'H', elements: [element, key] });
-      }
-    }
-
-    setSmartGuides(guides);
-    const alignV = guides.find((g) => g.type === 'alignment' && g.orientation === 'vertical');
-    const alignH = guides.find((g) => g.type === 'alignment' && g.orientation === 'horizontal');
-    return { x: Math.max(0, Math.min(100, snappedX)), y: Math.max(0, Math.min(100, snappedY)), snapV: alignV?.position, snapH: alignH?.position };
-  };
-
   // Track drag offset so elements don't jump to mouse position
   const dragOffset = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
@@ -593,6 +1354,10 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   const ctrlPressed = React.useRef<boolean>(false);
 
   const handleMouseDown = (e: React.MouseEvent, element: string) => {
+    // Compact (flattened page-canvas slot): elements render in flow and the
+    // page canvas owns dragging — never start an inner hero drag here, and
+    // don't stop propagation so the page canvas receives the event.
+    if (compact || decorative) return;
     console.log('🖱️ handleMouseDown called:', { element, previewMode, hasSectionRef: !!sectionRef.current, ctrlKey: e.ctrlKey });
     if (previewMode) {
       console.log('❌ Blocked by previewMode');
@@ -624,18 +1389,14 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
     const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
     let elemX = 50, elemY = 50;
-    if (element === 'avatar') { elemX = avatarPos.x; elemY = avatarPos.y; }
-    else if (element === 'name') { elemX = namePos.x; elemY = namePos.y; }
-    else if (element === 'title') { elemX = titlePos.x; elemY = titlePos.y; }
-    else if (element === 'subtitle') { elemX = subtitlePos.x; elemY = subtitlePos.y; }
-    else if (element === 'bio') { elemX = bioPos.x; elemY = bioPos.y; }
-    else if (element === 'ctaButtons') { elemX = ctaPos.x; elemY = ctaPos.y; }
+    const textStart = resolveDragStartPosition(element, rect);
+    if (textStart) { elemX = textStart.x; elemY = textStart.y; }
     else if (element === 'galleryImages') {
       if (section.galleryImagesPosition) {
         elemX = section.galleryImagesPosition.x;
         elemY = section.galleryImagesPosition.y;
       } else {
-        // No saved position Ã¢â‚¬â€ measure current screen position and set it immediately
+        // No saved position — measure current screen position and set it immediately
         // so the gallery switches to absolute positioning without jumping
         const galleryNode = elementRefs.current.galleryImages;
         const galleryRect = galleryNode?.getBoundingClientRect();
@@ -679,9 +1440,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       if (shape) { elemX = shape.position.x; elemY = shape.position.y; }
     }
     dragOffset.current = { x: mouseX - elemX, y: mouseY - elemY };
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
     setDragging(element);
   };
   const handleTouchStart = (e: React.TouchEvent, element: string) => {
+    if (compact) return;
     if (previewMode || !sectionRef.current) return;
     e.stopPropagation();
     // Gallery images/videos live below the 60vh canvas in normal flow.
@@ -694,12 +1457,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     const touchX = ((touch.clientX - rect.left) / rect.width) * 100;
     const touchY = ((touch.clientY - rect.top) / rect.height) * 100;
     let elemX = 50, elemY = 50;
-    if (element === 'avatar') { elemX = avatarPos.x; elemY = avatarPos.y; }
-    else if (element === 'name') { elemX = namePos.x; elemY = namePos.y; }
-    else if (element === 'title') { elemX = titlePos.x; elemY = titlePos.y; }
-    else if (element === 'subtitle') { elemX = subtitlePos.x; elemY = subtitlePos.y; }
-    else if (element === 'bio') { elemX = bioPos.x; elemY = bioPos.y; }
-    else if (element === 'ctaButtons') { elemX = ctaPos.x; elemY = ctaPos.y; }
+    const textStart = resolveDragStartPosition(element, rect);
+    if (textStart) { elemX = textStart.x; elemY = textStart.y; }
     else if (element === 'galleryImages') {
       if (section.galleryImagesPosition) {
         elemX = section.galleryImagesPosition.x;
@@ -732,12 +1491,54 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       if (shape) { elemX = shape.position.x; elemY = shape.position.y; }
     }
     dragOffset.current = { x: touchX - elemX, y: touchY - elemY };
+    lastMousePos.current = { x: touch.clientX, y: touch.clientY };
     setDragging(element);
   };
 
+  /**
+   * Apply the current hero drag using viewport (client) coordinates. Shared
+   * by the mouse/touch move handlers and the edge auto-scroll loop, so the
+   * dragged element keeps following the pointer even when the page scrolls
+   * underneath a still cursor.
+   */
+  const applyHeroDragFromClient = (clientX: number, clientY: number) => {
+    if (!dragging || !sectionRef.current) return;
+    const isGalleryBlock = dragging === 'galleryImages' || dragging === 'galleryVideos';
+    const dragSurface = isGalleryBlock ? sectionRef.current : (canvasRef.current || sectionRef.current);
+    if (!dragSurface) return;
+    const rect = dragSurface.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
+    // Floor: hero text elements are center-anchored (-translate-y-1/2), so
+    // the minimum Y keeps half the element height above the canvas top edge.
+    // The element can therefore sit flush at the top of the page with just a
+    // small natural margin instead of being clipped off-screen.
+    let minY = 0;
+    if (!isGalleryBlock && !dragging.startsWith('shape-')) {
+      const nodeRect = elementRefs.current[dragging]?.getBoundingClientRect();
+      if (nodeRect && nodeRect.height > 0) minY = (nodeRect.height / 2 / rect.height) * 100;
+    }
+    const clampedY = Math.max(minY, Math.min(100, y - dragOffset.current.y));
+    // Handle background shape dragging
+    if (dragging.startsWith('shape-')) {
+      const shapeId = dragging.slice(6);
+      const updatedShapes = (section.backgroundShapes || []).map(s =>
+        s.id === shapeId ? { ...s, position: { x: clampedX, y: clampedY } } : s
+      );
+      updateSection(section.id, { backgroundShapes: updatedShapes });
+      return;
+    }
+    const positionKey = `${dragging}Position` as keyof HeroSection;
+    updateSection(section.id, { [positionKey]: { x: clampedX, y: clampedY } });
+  };
+  const applyHeroDragFromClientRef = React.useRef(applyHeroDragFromClient);
+  applyHeroDragFromClientRef.current = applyHeroDragFromClient;
+
   const handleMouseMove = React.useCallback((e: MouseEvent) => {
     lastMousePos.current = { x: e.clientX, y: e.clientY };
-    // Handle shape resizing Ã¢â‚¬â€ read from ref to always get latest value
+    // Handle shape resizing — read from ref to always get latest value
     const rz = resizingRef.current;
     if (rz) {
       const dx = e.clientX - rz.startMouseX;
@@ -750,21 +1551,21 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       const canvasW = canvasRect?.width || 1;
       const canvasH = canvasRect?.height || 1;
-      // nw corner: both decrease Ã¢â‚¬â€ keep right & bottom edges fixed
+      // nw corner: both decrease — keep right & bottom edges fixed
       if (rz.corner === 'nw') { newWidth = rz.startWidth - dx; newHeight = rz.startHeight - dy; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // ne corner: width increases, height decreases Ã¢â‚¬â€ keep left & bottom edges fixed
+      // ne corner: width increases, height decreases — keep left & bottom edges fixed
       else if (rz.corner === 'ne') { newWidth = rz.startWidth + dx; newHeight = rz.startHeight - dy; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // sw corner: width decreases, height increases Ã¢â‚¬â€ keep right & top edges fixed
+      // sw corner: width decreases, height increases — keep right & top edges fixed
       else if (rz.corner === 'sw') { newWidth = rz.startWidth - dx; newHeight = rz.startHeight + dy; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // se corner: both increase Ã¢â‚¬â€ keep left & top edges fixed
+      // se corner: both increase — keep left & top edges fixed
       else if (rz.corner === 'se') { newWidth = rz.startWidth + dx; newHeight = rz.startHeight + dy; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // n edge: only height changes Ã¢â‚¬â€ keep bottom edge fixed
+      // n edge: only height changes — keep bottom edge fixed
       else if (rz.corner === 'n') { newHeight = rz.startHeight - dy; newPosY = rz.startPosY - (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // s edge: only height changes Ã¢â‚¬â€ keep top edge fixed
+      // s edge: only height changes — keep top edge fixed
       else if (rz.corner === 's') { newHeight = rz.startHeight + dy; newPosY = rz.startPosY + (newHeight - rz.startHeight) / 2 / canvasH * 100; }
-      // e edge: only width changes Ã¢â‚¬â€ keep left edge fixed
+      // e edge: only width changes — keep left edge fixed
       else if (rz.corner === 'e') { newWidth = rz.startWidth + dx; newPosX = rz.startPosX + (newWidth - rz.startWidth) / 2 / canvasW * 100; }
-      // w edge: only width changes Ã¢â‚¬â€ keep right edge fixed
+      // w edge: only width changes — keep right edge fixed
       else if (rz.corner === 'w') { newWidth = rz.startWidth - dx; newPosX = rz.startPosX - (newWidth - rz.startWidth) / 2 / canvasW * 100; }
       // Clamp to minimum 10px
       newWidth = Math.max(10, newWidth);
@@ -775,41 +1576,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       updateSection(section.id, { backgroundShapes: updatedShapes });
       return;
     }
-    if (!dragging || !sectionRef.current) return;
-    // Gallery blocks are positioned relative to the full section, not the 60vh canvas
-    const isGalleryBlock = dragging === 'galleryImages' || dragging === 'galleryVideos';
-    const dragSurface = isGalleryBlock ? sectionRef.current : (canvasRef.current || sectionRef.current);
-    if (!dragSurface) return;
-    const rect = dragSurface.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
-    // Allow Y to go beyond 100% so elements can be dragged down freely
-    const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
-    // Hold Alt to temporarily disable snapping for fine-tuning position
-    const useSnap = snapEnabled && !e.altKey;
-    const { x: snappedX, y: snappedY, snapV, snapH } = useSnap
-      ? computeSnap(dragging, clampedX, clampedY)
-      : { x: clampedX, y: clampedY, snapV: undefined, snapH: undefined };
-    setSnapLines({ vertical: snapV, horizontal: snapH });
-
-    // Handle background shape dragging
-    if (typeof dragging === 'string' && dragging.startsWith('shape-')) {
-      const shapeId = dragging.slice(6);
-      const updatedShapes = (section.backgroundShapes || []).map(s =>
-        s.id === shapeId ? { ...s, position: { x: snappedX, y: snappedY } } : s
-      );
-      updateSection(section.id, { backgroundShapes: updatedShapes });
-    }
-    // Handle gallery image/video dragging (galleryImages, galleryVideos are block-level)
-    else if (dragging === 'galleryImages' || dragging === 'galleryVideos') {
-      const positionKey = `${dragging}Position` as keyof HeroSection;
-      updateSection(section.id, { [positionKey]: { x: snappedX, y: snappedY } });
-    } else {
-      const positionKey = `${dragging}Position` as keyof HeroSection;
-      updateSection(section.id, { [positionKey]: { x: snappedX, y: snappedY } });
-    }
-  }, [dragging, section.id, updateSection, snapEnabled, section.showAvatar, section.showName, section.showTitle, section.showSubtitle, section.showBio, section.ctaButtons, section.galleryImages, section.backgroundShapes]);
+    applyHeroDragFromClient(e.clientX, e.clientY);
+  }, [dragging, section.id, updateSection, section.showAvatar, section.showName, section.showTitle, section.showSubtitle, section.showBio, section.ctaButtons, section.galleryImages, section.backgroundShapes]);
 
   const handleTouchMove = React.useCallback((e: TouchEvent) => {
     // Handle shape resizing (touch)
@@ -840,38 +1608,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       updateSection(section.id, { backgroundShapes: updatedShapes });
       return;
     }
-    if (!dragging || !sectionRef.current) return;
     const touch = e.touches[0];
-    // Gallery blocks are positioned relative to the full section, not the 60vh canvas
-    const isGalleryBlock = dragging === 'galleryImages' || dragging === 'galleryVideos';
-    const dragSurface = isGalleryBlock ? sectionRef.current : (canvasRef.current || sectionRef.current);
-    if (!dragSurface) return;
-    const rect = dragSurface.getBoundingClientRect();
-    const x = ((touch.clientX - rect.left) / rect.width) * 100;
-    const y = ((touch.clientY - rect.top) / rect.height) * 100;
-    const clampedX = Math.max(0, Math.min(100, x - dragOffset.current.x));
-    // Allow Y to go beyond 100% so elements can be dragged down freely
-    const clampedY = Math.max(0, Math.min(500, y - dragOffset.current.y));
-    const { x: snappedX, y: snappedY, snapV, snapH } = computeSnap(dragging, clampedX, clampedY);
-    setSnapLines({ vertical: snapV, horizontal: snapH });
-
-    // Handle background shape dragging
-    if (typeof dragging === 'string' && dragging.startsWith('shape-')) {
-      const shapeId = dragging.slice(6);
-      const updatedShapes = (section.backgroundShapes || []).map(s =>
-        s.id === shapeId ? { ...s, position: { x: snappedX, y: snappedY } } : s
-      );
-      updateSection(section.id, { backgroundShapes: updatedShapes });
-    }
-    // Handle gallery image/video dragging
-    else if (dragging === 'galleryImages' || dragging === 'galleryVideos') {
-      const positionKey = `${dragging}Position` as keyof HeroSection;
-      updateSection(section.id, { [positionKey]: { x: snappedX, y: snappedY } });
-    } else {
-      const positionKey = `${dragging}Position` as keyof HeroSection;
-      updateSection(section.id, { [positionKey]: { x: snappedX, y: snappedY } });
-    }
-  }, [dragging, resizing, section.id, updateSection, snapEnabled, section.showAvatar, section.showName, section.showTitle, section.showSubtitle, section.showBio, section.ctaButtons, section.galleryImages, section.backgroundShapes]);
+    if (!touch) return;
+    lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+    applyHeroDragFromClient(touch.clientX, touch.clientY);
+  }, [dragging, resizing, section.id, updateSection, section.showAvatar, section.showName, section.showTitle, section.showSubtitle, section.showBio, section.ctaButtons, section.galleryImages, section.backgroundShapes]);
 
 
   const handleMouseUp = React.useCallback(() => {
@@ -890,8 +1631,6 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     ctrlPressed.current = false;
     setDragging(null);
     setResizing(null);
-    setSnapLines({});
-    setSmartGuides([]);
   }, [dragging, section.id, selectElement]);
 
   React.useEffect(() => {
@@ -928,6 +1667,36 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     }
   }, [dragging, resizing, handleMouseMove, handleTouchMove]);
 
+  // Edge auto-scroll while dragging hero elements (same behavior as the page
+  // canvas): when the pointer sits near the top/bottom of the window, the
+  // page scrolls underneath it and the dragged element keeps following —
+  // so the name (or any hero element) can be dragged to the true top of the
+  // page even though the cursor cannot leave the viewport.
+  React.useEffect(() => {
+    if (!dragging) return;
+    let raf = 0;
+    const EDGE = 90;      // px band that triggers auto-scroll
+    const MAX_SPEED = 16; // px per frame
+    const tick = () => {
+      const p = lastMousePos.current;
+      if (p) {
+        const vh = window.innerHeight;
+        let dy = 0;
+        if (p.y < EDGE) dy = -Math.min(MAX_SPEED, (EDGE - p.y) / 3);
+        else if (vh - p.y < EDGE) dy = Math.min(MAX_SPEED, (EDGE - (vh - p.y)) / 3);
+        if (dy !== 0) {
+          const scroller = getScrollParent(sectionRef.current);
+          const before = scroller.scrollTop;
+          scroller.scrollTop += dy;
+          if (scroller.scrollTop !== before) applyHeroDragFromClientRef.current(p.x, p.y);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [dragging]);
+
   const scrollToNext = () => {
     const el = sectionRef.current?.nextElementSibling;
     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -958,8 +1727,6 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   const [galleryFlowOffsetPx, setGalleryFlowOffsetPx] = React.useState(0);
   const [galleryFlowHeight, setGalleryFlowHeight] = React.useState(0);
   const [galleryVideosFlowHeight, setGalleryVideosFlowHeight] = React.useState(0);
-  const elementRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-  const canvasRef = React.useRef<HTMLDivElement>(null);
   const flowContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Build a stable dependency string from element positions so the effect
@@ -977,7 +1744,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     section.galleryVideos && section.galleryVideos.length > 0 ? `gvid:${galleryVidPos.x},${galleryVidPos.y}` : '',
   ].filter(Boolean).join('|');
 
-  // No dynamic height measurement needed Ã¢â‚¬â€ the section height is determined
+  // No dynamic height measurement needed — the section height is determined
   // naturally by its content (canvas + gallery in normal flow).
   // This avoids feedback loops and layout jumps when gallery column count changes.
   React.useLayoutEffect(() => {
@@ -1026,7 +1793,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
     return (
       <section ref={sectionRef} className={cn("relative flex flex-col items-center justify-center text-center px-2 pt-20 pb-2", (section.galleryImages?.length || section.galleryVideos?.length) && "min-h-[auto]", section.backgroundType === 'video' && "min-h-screen")} style={heroSurfaceStyle}>
 
-        {/* Background layer Ã¢â‚¬â€ clipped independently so gallery content can overflow freely */}
+        {/* Background layer — clipped independently so gallery content can overflow freely */}
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
           {section.backgroundType === 'video' && section.backgroundValue && (
             <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" />
@@ -1057,7 +1824,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
             <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
           )}
           {section.ctaButtons && section.ctaButtons.length > 0 && (
-            <div className="flex gap-4 mt-4">
+            <div className="ff-cta-row flex flex-wrap justify-center gap-4 mt-4">
               {section.ctaButtons.map((btn) => (
                 <a key={btn.id} href={btn.link}
                   className={cn('inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:opacity-90',
@@ -1067,20 +1834,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
                   style={btn.variant === 'primary' ? { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }
                     : btn.variant === 'outline' ? { borderColor: theme.colors.primary, color: theme.colors.primary, borderRadius: theme.borderRadius }
                     : { backgroundColor: theme.colors.secondary, borderRadius: theme.borderRadius }}
-                  onClick={(e) => { if (btn.link.startsWith('#')) { e.preventDefault();
-                    const linkId = btn.link.slice(1);
-                    // If linkId already starts with 'section-', use it directly as the element ID
-                    // (section divs have id="section-{sectionId}", e.g. "section-about-1")
-                    // Otherwise, prepend 'section-' to match the div ID format
-                    let el = document.getElementById(linkId.startsWith('section-') ? linkId : `section-${linkId}`);
-                    if (!el) {
-                      const sections = document.querySelectorAll('[data-section-type]');
-                      for (const s of sections) {
-                        if (s.getAttribute('data-section-type') === linkId) { el = s as HTMLElement; break; }
-                      }
-                    }
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  } }}>
+                  onClick={(e) => scrollToAnchor(e, btn.link)}>
                   {btn.label}
                   <ArrowRight className="w-4 h-4" />
                 </a>
@@ -1238,7 +1992,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
   // When the gallery is dragged (absolutely positioned) it no longer
   // contributes to the section's natural height.  Use the measured
   // galleryFlowHeight (tracked via ResizeObserver) to make the section
-  // tall enough so the background covers the entire gallery Ã¢â‚¬â€ especially
+  // tall enough so the background covers the entire gallery — especially
   // important for a single-column layout which can be very tall.
   const isVideoBg = section.backgroundType === 'video' && !!section.backgroundValue;
   const canvasMinHeight = isVideoBg ? 600 : 480; // taller canvas for video backgrounds
@@ -1268,8 +2022,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
 
 
   return (
-    <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: dynamicMinHeight }}>
-      {/* Background layer Ã¢â‚¬â€ parallax-enabled when section.parallaxEnabled is true */}
+    <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: compact ? 'auto' : dynamicMinHeight }}>
+      {/* Background layer — parallax-enabled when section.parallaxEnabled is true */}
       {section.backgroundType === 'video' && section.backgroundValue && (
         <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
       )}
@@ -1298,74 +2052,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       {/* Fixed-height free-form canvas for text elements (avatar, name, title, subtitle, bio, CTA) */}
       {/* Positions use % within this stable canvas, not the full expanding section */}
       {/* Canvas height is measured from the actual bottom edge of the lowest text element + 20px gap */}
-      {/* Snap guide lines - rendered at the section level so they are visible
-          across the full section height, including when dragging gallery
-          images/videos which live below the 60vh canvas. */}
-      {dragging && snapEnabled && snapLines.vertical !== undefined && (
-        <div
-          className="absolute top-0 bottom-0 pointer-events-none z-30"
-          style={{ left: `${snapLines.vertical}%`, width: '1px', backgroundColor: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.6)' }}
-        />
-      )}
-      {dragging && snapEnabled && snapLines.horizontal !== undefined && (
-        <div
-          className="absolute left-0 right-0 pointer-events-none z-30"
-          style={{ top: `${snapLines.horizontal}%`, height: '1px', backgroundColor: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.6)' }}
-        />
-      )}
-
-      {/* Photoshop-style Smart Guides (pink alignment lines, dual-line spacing) */}
-      {dragging && snapEnabled && smartGuides.map((guide, i) => {
-        const isAlignment = guide.type === 'alignment';
-        const isSpacing = guide.type === 'spacing';
-        const isSize = guide.type === 'size';
-        const isDualLine = guide.dualLine === true;
-        // Photoshop uses pink (#FF00FF) for ALL Smart Guides
-        const color = '#FF00FF';
-        const thickness = isAlignment ? '2px' : '1px';
-        
-        return (
-          <React.Fragment key={i}>
-            {guide.orientation === 'vertical' && (
-              <div
-                className="absolute top-0 bottom-0 pointer-events-none z-40"
-                style={{ left: `${guide.position}%`, width: thickness, backgroundColor: color }}
-              >
-                {guide.label && !isDualLine && (
-                  <span className="absolute top-2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
-                    {guide.label}
-                  </span>
-                )}
-                {guide.label && isDualLine && (
-                  <span className="absolute top-2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
-                    {guide.label}
-                  </span>
-                )}
-              </div>
-            )}
-            {guide.orientation === 'horizontal' && (
-              <div
-                className="absolute left-0 right-0 pointer-events-none z-40"
-                style={{ top: `${guide.position}%`, height: thickness, backgroundColor: color }}
-              >
-                {guide.label && !isDualLine && (
-                  <span className="absolute left-2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
-                    {guide.label}
-                  </span>
-                )}
-                {guide.label && isDualLine && (
-                  <span className="absolute left-2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: color, color: 'white' }}>
-                    {guide.label}
-                  </span>
-                )}
-              </div>
-            )}
-          </React.Fragment>
-        );
-      })}
-
-      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: isVideoBg ? '100vh' : '60vh', zIndex: 10 }}>
-        {/* Background Shapes Ã¢â‚¬â€ rendered behind text elements (zIndex 0-9) */}
+      <div ref={canvasRef} className="relative flex flex-col items-center gap-4 pt-20 pb-8" style={{ height: 'auto', minHeight: compact ? 0 : (isVideoBg ? '100vh' : '60vh'), ...(compact ? { paddingTop: 0, paddingBottom: 0 } : null), zIndex: 10 }}>
+        {/* Background Shapes — rendered behind text elements (zIndex 0-9) */}
         {(section.backgroundShapes || []).map((shape) => (
           <div
             key={shape.id}
@@ -1376,11 +2064,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
               width: `${shape.width}px`,
               height: `${shape.height}px`,
               zIndex: shape.zIndex,
-              pointerEvents: 'auto',
+              pointerEvents: decorative ? 'none' : 'auto',
               transform: `translate(-50%, -50%) rotate(${shape.rotation || 0}deg)`,
             }}
-            onMouseDown={(e) => handleMouseDown(e, `shape-${shape.id}` as any)}
-            onTouchStart={(e) => handleTouchStart(e, `shape-${shape.id}` as any)}
+            onMouseDown={decorative ? undefined : (e) => handleMouseDown(e, `shape-${shape.id}` as any)}
+            onTouchStart={decorative ? undefined : (e) => handleTouchStart(e, `shape-${shape.id}` as any)}
           >
             {shape.shape === 'rectangle' && (
               <div style={{ width: '100%', height: '100%', backgroundColor: shape.color, opacity: shape.opacity / 100 }} />
@@ -1396,8 +2084,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
                 <polygon points="50,0 100,100 0,100" fill={shape.color} />
               </svg>
             )}
-            {/* Corner + edge resize handles Ã¢â‚¬â€ only in edit mode */}
-            {!previewMode && (
+            {/* Corner + edge resize handles — only in edit mode */}
+            {!previewMode && !decorative && (
               <>
                 {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const).map((handle) => {
                   const positions: Record<string, React.CSSProperties> = {
@@ -1441,7 +2129,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
         {/* Avatar */}
         {section.showAvatar !== false && section.avatar && (
           <div ref={(node) => { elementRefs.current['avatar'] = node; }} className={cn(avatarPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', !previewMode && 'cursor-move', dragging === 'avatar' && 'z-20')}
-            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none', border: '2px solid red' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none', border: '2px solid red' }}
+            style={avatarPos ? { left: `${avatarPos.x}%`, top: `${avatarPos.y}%`, zIndex: 10, pointerEvents: 'auto', outline: 'none' } : { zIndex: 10, pointerEvents: 'auto', outline: 'none' }}
             onMouseDown={(e) => {
               console.log('👆 Avatar mousedown');
               e.stopPropagation();
@@ -1501,7 +2189,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
           </div>
         )}
 
-        {/* Bio Ã¢â‚¬â€ top-aligned so tall content renders below the drop point */}
+        {/* Bio — top-aligned so tall content renders below the drop point */}
         {section.showBio !== false && (
           <div ref={(node) => { elementRefs.current['bio'] = node; }} className={cn(bioPos ? 'absolute transform -translate-x-1/2' : '', 'text-center', !previewMode && 'cursor-move', dragging === 'bio' && 'z-20')}
             style={bioPos ? { left: `${bioPos.x}%`, top: `${bioPos.y}%`, zIndex: 10, pointerEvents: 'auto', maxWidth: section.textStyles?.bio?.maxWidth || 'min(500px, 80vw)' } : { zIndex: 10, pointerEvents: 'auto' }}
@@ -1515,7 +2203,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
 
         {/* CTA Buttons */}
         {section.ctaButtons && section.ctaButtons.length > 0 && (
-          <div className={cn(ctaPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'flex flex-col sm:flex-row gap-3 sm:gap-4 items-center', !previewMode && 'cursor-move', dragging === 'ctaButtons' && 'z-20')}
+          <div className={cn(ctaPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'ff-cta-row flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 items-center', !previewMode && 'cursor-move', dragging === 'ctaButtons' && 'z-20')}
             style={ctaPos ? { left: `${ctaPos.x}%`, top: `${ctaPos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'ctaButtons')}
             onTouchStart={(e) => handleTouchStart(e, 'ctaButtons')}
@@ -1530,20 +2218,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
                 style={btn.variant === 'primary' ? { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }
                   : btn.variant === 'outline' ? { borderColor: theme.colors.primary, color: theme.colors.primary, borderRadius: theme.borderRadius }
                   : { backgroundColor: theme.colors.secondary, borderRadius: theme.borderRadius }}
-                onClick={(e) => { if (btn.link.startsWith('#')) { e.preventDefault();
-                  const linkId = btn.link.slice(1);
-                  // If linkId already starts with 'section-', use it directly as the element ID
-                  // (section divs have id="section-{sectionId}", e.g. "section-about-1")
-                  // Otherwise, prepend 'section-' to match the div ID format
-                  let el = document.getElementById(linkId.startsWith('section-') ? linkId : `section-${linkId}`);
-                  if (!el) {
-                    const sections = document.querySelectorAll('[data-section-type]');
-                    for (const s of sections) {
-                      if (s.getAttribute('data-section-type') === linkId) { el = s as HTMLElement; break; }
-                    }
-                  }
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                } }}>
+                onClick={(e) => scrollToAnchor(e, btn.link)}>
                 {btn.label}
                 <ArrowRight className="w-4 h-4" />
               </a>
@@ -1552,7 +2227,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
         )}
 
         {/* Scroll indicator */}
-        {section.showScrollIndicator && (
+        {section.showScrollIndicator && !compact && (
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce cursor-pointer" onClick={scrollToNext}>
             <ChevronDown className="w-6 h-6" style={{ color: theme.colors.text }} />
           </div>
@@ -1560,7 +2235,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       </div>{/* End of fixed-height free-form canvas */}
 
       {/* PDF Reader — between canvas and gallery, clearly within the hero section */}
-      <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
+      {!(!compact && !section.showPdf) && <HeroPdfReader section={section} onMove={previewMode || compact ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} tileMoveHint={!previewMode} />}
 
       {/* Gallery and Videos flow below the canvas in normal document flow */}
       <div
@@ -1574,7 +2249,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
       >
 
 
-      {/* Gallery Images Ã¢â‚¬â€ absolutely positioned: uses autoGalleryTop (measured from bio bottom + 24px) when not dragged, or saved position when dragged */}
+      {/* Gallery Images — absolutely positioned: uses autoGalleryTop (measured from bio bottom + 24px) when not dragged, or saved position when dragged */}
       {section.galleryImages && section.galleryImages.length > 0 && (() => {
         const isDragged = !!section.galleryImagesPosition;
         return (
@@ -1671,7 +2346,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false }: { 
         <div style={{ height: `${galleryFlowHeight + 24}px` }} />
       )}
 
-      {/* Gallery Videos Ã¢â‚¬â€ inside the flow container so they naturally follow
+      {/* Gallery Videos — inside the flow container so they naturally follow
           the gallery images. When not dragged, they flow after the images.
           When dragged (absolute), they can be freely positioned. */}
       {section.galleryVideos && section.galleryVideos.length > 0 && (
@@ -1792,7 +2467,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
   const imageBorderClass = section.imageBorder ? `border-4 border-solid` : '';
   const imageShadowClass = section.imageShadow !== false ? 'shadow-lg' : '';
 
-  // Video embed Ã¢â‚¬â€ auto-detect platform from URL, then convert to embeddable URL
+  // Video embed — auto-detect platform from URL, then convert to embeddable URL
   const videoEmbedUrl = section.videoUrl ? (() => {
     const url = section.videoUrl.trim();
     // Auto-detect: check URL first, fall back to stored videoType
@@ -1963,7 +2638,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
               )
             )}
             {section.showCTA !== false && section.ctaButtonText && section.ctaButtonLink && (
-              <a href={section.ctaButtonLink} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium" style={{ border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius }}>{section.ctaButtonText}</a>
+              <a href={section.ctaButtonLink} onClick={(e) => scrollToAnchor(e, section.ctaButtonLink)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium" style={{ border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius }}>{section.ctaButtonText}</a>
             )}
           </div>
         ),
@@ -2037,7 +2712,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                 </p>
               )}
 
-              {/* Personal quote Ã¢â‚¬â€ right after bio, before images */}
+              {/* Personal quote — right after bio, before images */}
               {section.showPersonalQuote !== false && section.personalQuote && (
                 <blockquote
                   className="my-6 px-6 py-4 border-l-4 italic text-xl"
@@ -2047,7 +2722,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                 </blockquote>
               )}
 
-              {/* Portrait image Ã¢â‚¬â€ after bio */}
+              {/* Portrait image — after bio */}
               {section.showImage !== false && section.imageUrl && (
 
                 <div className="mt-8" style={{ width: `min(${section.imageWidth || 896}px, 100%)`, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -2061,7 +2736,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                 </div>
               )}
 
-              {/* Second image (optional Ã¢â‚¬â€ workspace, secondary photo, etc.) */}
+              {/* Second image (optional — workspace, secondary photo, etc.) */}
               {section.secondImageUrl && (
                 <div className="mt-8" style={{ width: `min(${section.secondImageWidth || 300}px, 100%)`, marginLeft: 'auto', marginRight: 'auto' }}>
                   <OptimizedImage
@@ -2139,6 +2814,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                 <div className="mt-6">
                   <a
                     href={section.ctaButtonLink}
+                    onClick={(e) => scrollToAnchor(e, section.ctaButtonLink)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all hover:opacity-90"
                     style={getTextStyle(section.textStyles, 'ctaButtonText', { border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius })}
                   >
@@ -2150,7 +2826,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
 
           </div>
 
-          {/* Resume Ã¢â‚¬â€ embedded PDF viewer or download button (after second image) */}
+          {/* Resume — embedded PDF viewer or download button (after second image) */}
           {section.showResume !== false && section.resumeUrl && (
             (section.resumeDisplayMode || 'embed') === 'embed' ? (
               <div className="mt-8" style={{ width: 'min(916px, 100%)', marginLeft: 'auto', marginRight: 'auto' }}>
@@ -2175,7 +2851,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             )
           )}
 
-          {/* Gallery Images (uniform grid Ã¢â‚¬â€ all tiles same size, blurred background fill + feathered border) */}
+          {/* Gallery Images (uniform grid — all tiles same size, blurred background fill + feathered border) */}
           {section.showGallery !== false && section.galleryImages && section.galleryImages.length > 0 && (() => {
             const featherMask = 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)';
             return (
@@ -2239,12 +2915,12 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
           {/* Debug: show when video URL is set but video doesn't render */}
           {section.videoUrl && !videoEmbedUrl && (
             <div className="mt-8 p-4 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
-              Ã¢Å¡Â Ã¯Â¸Â Video URL is set but could not be parsed. URL: "{section.videoUrl}"
+              ⚠️ Video URL is set but could not be parsed. URL: "{section.videoUrl}"
             </div>
           )}
           {section.videoUrl && videoEmbedUrl && section.showVideo === false && (
             <div className="mt-8 p-4 bg-orange-50 border border-orange-300 rounded-lg text-sm text-orange-800">
-              Ã¢Å¡Â Ã¯Â¸Â Video is hidden. Enable the "Show" toggle in the Video Introduction section of the editor.
+              ⚠️ Video is hidden. Enable the "Show" toggle in the Video Introduction section of the editor.
             </div>
           )}
 
@@ -2524,7 +3200,7 @@ function getSkillIcon(iconId: string | undefined): React.ElementType {
 }
 
 // ============ SKILLS ============
-function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any }) {
+function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSection; theme: any; tileMode?: boolean }) {
   const { updateSection, selectElement } = usePortfolioStore();
   const categories = [...new Set(section.skills.map((s) => s.category))];
   const displayStyle = section.displayStyle || 'bars';
@@ -2636,15 +3312,14 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
   }
 
   // Normal layout mode
-  return (
-    <AnimatedSection>
-      <section className="py-16 px-6" style={getSectionBackgroundStyle(section.sectionBackground, theme)}>
-        <div className="max-w-4xl mx-auto">
-          {section.showTitle !== false && (
-            <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
-          )}
-          {categories.map((category) => (
-            <div key={category} className="mb-8">
+  const tileBg = getSectionBackgroundStyle(section.sectionBackground, theme);
+  const body = (
+    <>
+      {section.showTitle !== false && (
+        <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
+      )}
+      {categories.map((category) => (
+        <div key={category} className={tileMode ? undefined : 'mb-8'}>
               <h3 className="text-lg font-semibold mb-4" style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.primary })}>{category}</h3>
               {displayStyle === 'bars' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2711,8 +3386,21 @@ function SkillsPreview({ section, theme }: { section: SkillsSection; theme: any 
                 </div>
               )}
             </div>
-          ))}
-        </div>
+      ))}
+    </>
+  );
+  // In a page-canvas tile the section chrome (py-16/px-6 padding,
+  // max-w-4xl container, scroll animation) would stack on top of the tile's
+  // own uniform purple card — strip it and emit just the content; the tile
+  // box paints the background + identical padding for every element. Every
+  // surface outside the canvas keeps the full section chrome below.
+  if (tileMode) {
+    return <>{body}</>;
+  }
+  return (
+    <AnimatedSection>
+      <section className="py-16 px-6" style={tileBg}>
+        <div className="max-w-4xl mx-auto">{body}</div>
       </section>
     </AnimatedSection>
   );
@@ -2766,7 +3454,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
             <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
               <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
             </div>
-            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` ÃÂ¢Ã¢â€šÂ¬Ã‚Â¢ `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
             <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
             {exp.achievements && exp.achievements.length > 0 && (
               <ul className="mt-2 space-y-1">
@@ -2824,7 +3512,7 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
                   <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
                   <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
                 </div>
-                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` ÃÂ¢Ã¢â€šÂ¬Ã‚Â¢ `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
                 <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
                 {exp.achievements && exp.achievements.length > 0 && (
                   <ul className="mt-2 space-y-1">
@@ -2983,13 +3671,13 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
             </div>
             {section.testimonials.length > 1 && (
               <div className="flex justify-center gap-4 mt-6">
-                <button onClick={prev} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>Ã¢â€ Â</button>
+                <button onClick={prev} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>←</button>
                 <div className="flex items-center gap-1">
                   {section.testimonials.map((_, i) => (
                     <button key={i} onClick={() => setCurrentIndex(i)} className={cn('w-2 h-2 rounded-full transition-all', i === currentIndex ? 'w-6' : '')} style={{ backgroundColor: i === currentIndex ? theme.colors.primary : '#d1d5db' }} />
                   ))}
                 </div>
-                <button onClick={next} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>Ã¢â€ â€™</button>
+                <button onClick={next} className="p-2 rounded-full border" style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}>→</button>
               </div>
             )}
           </div>
@@ -3234,20 +3922,7 @@ function CTABannerPreview({ section, theme }: { section: CTABannerSection; theme
             <p className="text-lg mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           )}
           {section.showButton !== false && (
-            <a href={section.buttonLink} onClick={(e) => { if (section.buttonLink.startsWith('#')) { e.preventDefault();
-              const linkId = section.buttonLink.slice(1);
-              // If linkId already starts with 'section-', use it directly as the element ID
-              // (section divs have id="section-{sectionId}", e.g. "section-about-1")
-              // Otherwise, prepend 'section-' to match the div ID format
-              let el = document.getElementById(linkId.startsWith('section-') ? linkId : `section-${linkId}`);
-              if (!el) {
-                const sections = document.querySelectorAll('[data-section-type]');
-                for (const s of sections) {
-                  if (s.getAttribute('data-section-type') === linkId) { el = s as HTMLElement; break; }
-                }
-              }
-              el?.scrollIntoView({ behavior: 'smooth' });
-            } }}
+            <a href={section.buttonLink} onClick={(e) => scrollToAnchor(e, section.buttonLink)}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all hover:opacity-90"
               style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}
             >
@@ -3323,7 +3998,7 @@ function ProcessPreview({ section, theme }: { section: ProcessSection; theme: an
               const isActive = activeStep === i;
               return (
                 <button key={step.id} type="button" onClick={() => setActiveStep(i)}
-                  className={cn('group relative z-10 w-full text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4', layout === 'horizontal' ? 'rounded-2xl p-5 md:p-6' : 'flex items-start gap-4 rounded-2xl p-4 md:gap-6 md:p-5', isActive ? 'translate-y-0' : 'md:translate-y-2 hover:translate-y-0')}
+                  className={cn('group relative z-10 w-full text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4', layout === 'horizontal' ? 'rounded-2xl p-5 md:p-6' : 'flex items-start gap-4 rounded-2xl p-4 md:gap-6 md:p-5', 'hover:-translate-y-1')}
                   style={{ backgroundColor: tileBackgroundColor, border: `1px solid ${isActive ? `${accentColor}55` : tileBorderColor}`, boxShadow: isActive ? `0 18px 45px ${accentColor}18` : '0 5px 18px rgba(15, 23, 42, 0.04)', outlineColor: accentColor }}>
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'stepTitle', { color: theme.colors.text })}>{step.title}</h3>
@@ -3540,7 +4215,7 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
               <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
             </div>
             <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
-            {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate Ã¢â€ â€™</a>}
+            {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
           </div>
         ),
       });
@@ -3586,7 +4261,7 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
                   <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
                 </div>
                 <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
-                {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate Ã¢â€ â€™</a>}
+                {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
               </div>
             ))}
           </div>
@@ -3620,7 +4295,7 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                     <h3 className="text-lg font-semibold mb-1" style={getTextStyle(section.textStyles, 'postTitle', { color: theme.colors.text })}>{post.title}</h3>
                     <div className="flex items-center gap-3 text-xs mb-2" style={{ color: theme.colors.textSecondary }}>
                       {post.date && <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
-                      {post.readTime && <span>Ã¢â‚¬Â¢ {post.readTime}</span>}
+                      {post.readTime && <span>• {post.readTime}</span>}
                     </div>
                     <p className="text-sm" style={getTextStyle(section.textStyles, 'postExcerpt', { color: theme.colors.textSecondary })}>{post.excerpt}</p>
                     {post.tags && post.tags.length > 0 && (
@@ -3650,7 +4325,7 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                     <div className="p-5 flex-1 flex flex-col">
                       <div className="flex items-center gap-3 text-xs mb-2" style={{ color: theme.colors.textSecondary }}>
                         {post.date && <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
-                        {post.readTime && <span>Ã¢â‚¬Â¢ {post.readTime}</span>}
+                        {post.readTime && <span>• {post.readTime}</span>}
                       </div>
                       <h3 className="text-lg font-semibold mb-2" style={getTextStyle(section.textStyles, 'postTitle', { color: theme.colors.text })}>{post.title}</h3>
                       <p className="text-sm flex-1" style={getTextStyle(section.textStyles, 'postExcerpt', { color: theme.colors.textSecondary })}>{post.excerpt}</p>
@@ -3777,7 +4452,7 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
             </button>
           </form>
           {status === 'success' && (
-            <p className="mt-4 text-sm text-white/90">Ã¢Å“â€œ Thanks for subscribing!</p>
+            <p className="mt-4 text-sm text-white/90">✓ Thanks for subscribing!</p>
           )}
           {status === 'error' && (
             <p className="mt-4 text-sm text-red-300">Something went wrong. Please try again.</p>
@@ -3787,5 +4462,3 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
     </AnimatedSection>
   );
 }
-
-

@@ -20,7 +20,10 @@ export function pdfHeight(value?: number): number {
 }
 
 export function pdfWidth(value?: number): number {
-  return Number.isFinite(value) ? Math.min(100, Math.max(20, value!)) : 60;
+  // Default 67% ≈ the same on-page width as the older 60% default: the PDF
+  // tile box is ~90% of the canvas (a travel band for x-snapping), and the
+  // reader width is a % of that box.
+  return Number.isFinite(value) ? Math.min(100, Math.max(20, value!)) : 67;
 }
 
 export async function uploadPdfFile(file: File): Promise<string> {

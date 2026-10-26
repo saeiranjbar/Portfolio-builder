@@ -13,11 +13,15 @@ export interface FreeFormElement {
   visible: boolean;
   defaultPosition: ElementPosition;
   zIndex?: number;
+  /** When true, this element is not a layout participant: other elements never
+   *  push it out of the way and it never pushes others (page-background slots). */
+  staticDuringPush?: boolean;
 }
 
 
 interface FreeFormSectionProps {
   sectionId: string;
+  /** When true, dragging snaps to sibling elements' edges/centers (smart guides). */
   snapEnabled: boolean;
   elements: FreeFormElement[];
   onPositionChange: (key: string, position: ElementPosition) => void;
@@ -26,6 +30,16 @@ interface FreeFormSectionProps {
   backgroundStyle?: React.CSSProperties;
   className?: string;
   minHeight?: string;
+  /** When true (default in 'push' mode), overlapping siblings are pushed out of
+   *  the way during drags. Slots flagged staticDuringPush never participate. */
+  pushOverlaps?: boolean;
+  /** How dropped overlaps are resolved: 'push' cascades siblings away (default),
+   *  'swap' exchanges the dragged element with the one it lands on and leaves
+   *  every other element untouched. */
+  overlapStrategy?: 'push' | 'swap';
+  /** Fixed container height in vh. When set, the height is not derived from the elements,
+   *  so positions (in % of this height) stay put while other elements are dragged. */
+  fixedHeightVh?: number;
   children?: React.ReactNode; // For non-draggable background content (video, overlays, etc.)
 }
 
@@ -43,55 +57,81 @@ export function FreeFormSection({
   backgroundStyle,
   className,
   minHeight = 'min-h-screen',
+  pushOverlaps = true,
+  overlapStrategy = 'push',
+  fixedHeightVh,
   children,
 }: FreeFormSectionProps) {
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const visibleElements = elements.filter((e) => e.visible);
 
-  // Build position map and visible keys for snap calculation
+  // Build position map and visible keys for snap/push calculation. Keys marked
+  // staticDuringPush stay out of push resolution and smart-guide targeting
+  // (background slots must never move or act as layout edges).
   const allPositions: Record<string, ElementPosition> = {};
   const visibleKeys: string[] = [];
   for (const el of visibleElements) {
     allPositions[el.key] = el.position || el.defaultPosition;
-    visibleKeys.push(el.key);
+    if (!el.staticDuringPush) visibleKeys.push(el.key);
   }
 
   // Measure element heights as % of section height for collision/push resolution.
   // Uses elementRefs' parentElement to access the section without needing sectionRef
   // (which is created inside useFreeFormDrag and not yet available here).
-  const getElementHeights = React.useCallback((): Record<string, number> => {
+  const getElementSizes = React.useCallback((): Record<string, { w: number; h: number }> => {
     const firstKey = visibleElements[0]?.key;
     const firstNode = firstKey ? elementRefs.current[firstKey] : null;
     const sectionEl = firstNode?.parentElement;
     if (!sectionEl) return {};
     const sectionRect = sectionEl.getBoundingClientRect();
-    if (sectionRect.height === 0) return {};
-    const heights: Record<string, number> = {};
+    if (sectionRect.height === 0 || sectionRect.width === 0) return {};
+    const sizes: Record<string, { w: number; h: number }> = {};
     for (const el of visibleElements) {
       const node = elementRefs.current[el.key];
       if (node) {
         const rect = node.getBoundingClientRect();
-        heights[el.key] = (rect.height / sectionRect.height) * 100;
+        sizes[el.key] = { w: (rect.width / sectionRect.width) * 100, h: (rect.height / sectionRect.height) * 100 };
       }
     }
-    return heights;
+    return sizes;
   }, [visibleElements]);
-
-  const { sectionRef, dragging, snapLines, handleMouseDown, handleTouchStart } = useFreeFormDrag({
-    snapEnabled,
-    getAllPositions: () => allPositions,
-    getVisibleKeys: () => visibleKeys,
-    onPositionChange,
-    getElementHeights,
-    onBatchPositionChange,
-    onElementClick,
-  });
 
   // Measure actual content height to ensure background extends to the bottom.
   // Absolutely positioned elements don't affect parent height, so we measure
   // the actual bottom edge of all children and set minHeight accordingly.
   const [measuredHeight, setMeasuredHeight] = React.useState<number | null>(null);
   const elementRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  const {
+    sectionRef,
+    dragging,
+    snapLines,
+    handleMouseDown,
+    handleTouchStart,
+  } = useFreeFormDrag({
+    getAllPositions: () => allPositions,
+    getVisibleKeys: () => visibleKeys,
+    onPositionChange,
+    // Sizes are always measured so smart/ruler snapping can use the element's
+    // edges and centers. Batch updates (push/swap) stay disabled unless enabled.
+    getElementSizes,
+    smartSnapEnabled: snapEnabled,
+    swapOnOverlap: overlapStrategy === 'swap',
+    // Keep pushed/hug gaps minimal (0.5vh) instead of 2% of canvas height —
+    // on a tall page canvas 2% would be several viewport-heights of margin.
+    pushGapPct: fixedHeightVh ? Math.min(2, (0.5 / fixedHeightVh) * 100) : undefined,
+    onBatchPositionChange: (pushOverlaps || overlapStrategy === 'swap')
+      ? (updates) => {
+          // Background slots are never moved by push/swap resolution.
+          const filtered = { ...updates };
+          for (const el of visibleElements) {
+            if (el.staticDuringPush) delete filtered[el.key];
+          }
+          onBatchPositionChange?.(filtered);
+        }
+      : undefined,
+    onElementClick,
+  });
 
   // Build a stable dependency string from element positions + content keys
   // so the effect re-runs when positions change but not on every render.
@@ -100,7 +140,7 @@ export function FreeFormSection({
     .join('|');
 
   React.useLayoutEffect(() => {
-    if (!sectionRef.current) return;
+    if (!sectionRef.current || fixedHeightVh !== undefined) return;
     const measure = () => {
       let maxBottom = 0;
       const sectionRect = sectionRef.current?.getBoundingClientRect();
@@ -141,9 +181,34 @@ export function FreeFormSection({
   }, [positionKey]);
 
 
-  const minHeightValue = measuredHeight ? `${measuredHeight}vh` : 'auto';
+  const minHeightValue = fixedHeightVh !== undefined
+    ? `${fixedHeightVh}vh`
+    : measuredHeight ? `${measuredHeight}vh` : 'auto';
 
-  return (
+  // With a fixed height, blocks dropped near the bottom overflow the section. Measure that
+  // overflow and add it as an in-flow spacer AFTER the section, so the surrounding background
+  // extends to the lowest block without changing the section's own height (which would move
+  // every percentage-positioned block).
+  const [overflowPx, setOverflowPx] = React.useState(0);
+  React.useLayoutEffect(() => {
+    if (fixedHeightVh === undefined) return;
+    const update = () => {
+      const node = sectionRef.current;
+      if (!node) return;
+      const overflow = Math.max(0, Math.ceil(node.scrollHeight - node.clientHeight));
+      setOverflowPx((current) => (current === overflow ? current : overflow));
+    };
+    update();
+    const timeout = setTimeout(update, 300);
+    window.addEventListener('resize', update);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', update);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionKey, fixedHeightVh]);
+
+  const section = (
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
       className={cn('relative', className)}
@@ -152,19 +217,12 @@ export function FreeFormSection({
     >
       {children}
 
-      {/* Snap guide lines */}
-      {dragging && snapEnabled && snapLines.vertical !== undefined && (
-        <div
-          className="absolute top-0 bottom-0 pointer-events-none z-20"
-          style={{ left: `${snapLines.vertical}%`, width: '1px', backgroundColor: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.6)' }}
-        />
-      )}
-      {dragging && snapEnabled && snapLines.horizontal !== undefined && (
-        <div
-          className="absolute left-0 right-0 pointer-events-none z-20"
-          style={{ top: `${snapLines.horizontal}%`, height: '1px', backgroundColor: '#3b82f6', boxShadow: '0 0 4px rgba(59,130,246,0.6)' }}
-        />
-      )}
+      {/* Smart-guide / ruler snap indicators (visible while dragging) */}
+      {dragging && snapLines.map((line) => line.axis === 'x' ? (
+        <div key={`snap-x-${line.pct.toFixed(2)}`} aria-hidden className="pointer-events-none absolute" style={{ left: `${line.pct}%`, top: `${line.start}%`, height: `${Math.max(0.5, line.end - line.start)}%`, width: 2, marginLeft: -1, backgroundColor: line.kind === 'element' ? '#e91e63' : '#06b6d4', zIndex: 40 }} />
+      ) : (
+        <div key={`snap-y-${line.pct.toFixed(2)}`} aria-hidden className="pointer-events-none absolute" style={{ top: `${line.pct}%`, left: `${line.start}%`, width: `${Math.max(0.5, line.end - line.start)}%`, height: 2, marginTop: -1, backgroundColor: line.kind === 'element' ? '#e91e63' : '#06b6d4', zIndex: 40 }} />
+      ))}
 
       {/* Draggable elements — top-aligned to position so tall content renders below the drop point */}
       {visibleElements.map((el) => {
@@ -188,5 +246,13 @@ export function FreeFormSection({
         );
       })}
     </section>
+  );
+
+  if (fixedHeightVh === undefined) return section;
+  return (
+    <>
+      {section}
+      {overflowPx > 0 && <div aria-hidden style={{ height: overflowPx }} />}
+    </>
   );
 }

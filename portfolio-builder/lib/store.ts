@@ -131,7 +131,14 @@ interface PortfolioState {
   isDirty: boolean;
   showRulers: boolean;
   showGuides: boolean;
-  showSmartGuides: boolean;
+  /** Ruler guides (positions in % — horizontal: % of preview scrollHeight, vertical: % of width). */
+  builderGuides: BuilderGuide[];
+  addBuilderGuide: (guide: BuilderGuide) => void;
+  moveBuilderGuide: (id: string, position: number) => void;
+  removeBuilderGuide: (id: string) => void;
+  showGrid: boolean;
+  gridColor: string;
+  setGridColor: (color: string) => void;
 
   // Multi-page site state. The current page's sections are the live
   // portfolio.sections; entries in this array are synced on switch/save.
@@ -176,7 +183,7 @@ interface PortfolioState {
   // Rulers & Guides
   toggleRulers: () => void;
   toggleGuides: () => void;
-  toggleSmartGuides: () => void;
+  toggleGrid: () => void;
 
   // Page actions (multi-page site)
   addPage: (title: string, slug?: string, options?: { sectionType?: SectionType; themeMode?: 'inherit' | 'custom'; themeOverride?: Theme }) => void;
@@ -552,7 +559,9 @@ const editorPortfolioStore = create<PortfolioState>()(
       isDirty: false,
       showRulers: false,
       showGuides: false,
-      showSmartGuides: true,
+      builderGuides: [],
+      showGrid: false,
+      gridColor: '#50648c',
       pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: defaultPortfolio.sections }],
       currentPageId: 'home',
       past: [],
@@ -845,7 +854,11 @@ const editorPortfolioStore = create<PortfolioState>()(
 
       toggleRulers: () => set((state) => ({ showRulers: !state.showRulers })),
       toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
-      toggleSmartGuides: () => set((state) => ({ showSmartGuides: !state.showSmartGuides })),
+      toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+      setGridColor: (color) => set({ gridColor: color }),
+      addBuilderGuide: (guide) => set((state) => ({ builderGuides: [...state.builderGuides, guide] })),
+      moveBuilderGuide: (id, position) => set((state) => ({ builderGuides: state.builderGuides.map((g) => (g.id === id ? { ...g, position } : g)) })),
+      removeBuilderGuide: (id) => set((state) => ({ builderGuides: state.builderGuides.filter((g) => g.id !== id) })),
 
       resetPortfolio: () =>
         set((state) => {
@@ -967,6 +980,14 @@ const editorPortfolioStore = create<PortfolioState>()(
             splashButton: { ...currentEffects.splashButton, ...(updates.splashButton || {}) },
             colorRibbon: { ...currentEffects.colorRibbon, ...(updates.colorRibbon || {}) },
           };
+          // Mouse Color Shift and Color Ribbon are mutually exclusive full-page
+          // color effects: turning one on automatically turns the other off.
+          if (updates.mouseColorShift?.enabled === true) {
+            newEffects.colorRibbon = { ...newEffects.colorRibbon, enabled: false };
+          }
+          if (updates.colorRibbon?.enabled === true) {
+            newEffects.mouseColorShift = { ...newEffects.mouseColorShift, enabled: false };
+          }
           const newPortfolio: PortfolioData = {
             ...state.portfolio,
             updatedAt: new Date().toISOString(),
@@ -1180,6 +1201,13 @@ function useScopedPortfolioStore<T = PortfolioState>(selector?: (state: Portfoli
 
 // Preserve the editor's imperative API while allowing public previews their own
 // non-persisted store. Visiting a published website never replaces a local draft.
+export interface BuilderGuide {
+  id: string;
+  type: 'horizontal' | 'vertical';
+  /** % position — horizontal: % of preview scrollHeight, vertical: % of container width. */
+  position: number;
+}
+
 export const usePortfolioStore = Object.assign(useScopedPortfolioStore, editorPortfolioStore);
 
 export function PortfolioStoreProvider({ store, children }: { store: StoreApi<PortfolioState>; children: ReactNode }) {

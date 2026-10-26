@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/lib/store';
@@ -12,9 +12,9 @@ interface Guide {
 const GUIDE_THICKNESS = 8;
 const RULER_THICKNESS = 24;
 
-export function RulersAndGuides({ containerRef }: { containerRef: React.RefObject<HTMLElement> }) {
-  const { previewMode, showRulers, showGuides, toggleRulers } = usePortfolioStore();
-  const [guides, setGuides] = useState<Guide[]>([]);
+export function RulersAndGuides({ containerRef }: { containerRef: React.RefObject<HTMLElement | null> }) {
+  const { previewMode, showRulers, showGuides, toggleRulers, builderGuides: guides, addBuilderGuide, moveBuilderGuide, removeBuilderGuide } = usePortfolioStore();
+  // guides now live in the portfolio store so the drag hooks can snap to them
   const [docHeight, setDocHeight] = useState(0);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [draggingGuide, setDraggingGuide] = useState<string | null>(null);
@@ -66,13 +66,13 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
       position = ((e.clientX - rect.left) / rect.width) * 100;
     }
     position = Math.max(0, Math.min(100, position));
-    setGuides((prev) => [...prev, { id: `guide-${Date.now()}`, type, position }]);
+    addBuilderGuide({ id: `guide-${Date.now()}`, type, position });
   };
 
   const removeGuide = (e: React.MouseEvent, guideId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setGuides((prev) => prev.filter((g) => g.id !== guideId));
+    removeBuilderGuide(guideId);
   };
 
   const startDragGuide = (e: React.PointerEvent, guideId: string, type: 'horizontal' | 'vertical') => {
@@ -92,7 +92,7 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
         pos = ((ev.clientX - rect.left) / rect.width) * 100;
       }
       pos = Math.max(0, Math.min(100, pos));
-      setGuides((prev) => prev.map((g) => (g.id === guideId ? { ...g, position: pos } : g)));
+      moveBuilderGuide(guideId, pos);
     };
 
     const up = () => {
@@ -118,12 +118,13 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
           {horizontalGuides.map((guide) => (
             <div
               key={guide.id}
-              className="absolute left-0 right-0 bg-cyan-500/70 pointer-events-auto cursor-grab hover:bg-cyan-600/90 group"
-              style={{ top: `${guide.position}%`, height: GUIDE_THICKNESS }}
+              className="absolute left-0 right-0 pointer-events-auto cursor-grab group"
+              style={{ top: `calc(${guide.position}% - ${GUIDE_THICKNESS / 2}px)`, height: GUIDE_THICKNESS }}
               onPointerDown={(e) => startDragGuide(e, guide.id, 'horizontal')}
               onContextMenu={(e) => removeGuide(e, guide.id)}
-              title="Drag to move • Right-click to remove"
+              title="Drag to move � Right-click to remove"
             >
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-cyan-500/70 group-hover:bg-cyan-600 group-hover:h-0.5 transition-all" />
               <span className="absolute right-2 -top-5 text-[9px] font-bold text-cyan-700 bg-white/90 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                 {guide.position.toFixed(0)}%
               </span>
@@ -132,12 +133,13 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
           {verticalGuides.map((guide) => (
             <div
               key={guide.id}
-              className="absolute top-0 bottom-0 bg-cyan-500/70 pointer-events-auto cursor-grab hover:bg-cyan-600/90 group"
-              style={{ left: `${guide.position}%`, width: GUIDE_THICKNESS }}
+              className="absolute top-0 bottom-0 pointer-events-auto cursor-grab group"
+              style={{ left: `calc(${guide.position}% - ${GUIDE_THICKNESS / 2}px)`, width: GUIDE_THICKNESS }}
               onPointerDown={(e) => startDragGuide(e, guide.id, 'vertical')}
               onContextMenu={(e) => removeGuide(e, guide.id)}
-              title="Drag to move • Right-click to remove"
+              title="Drag to move � Right-click to remove"
             >
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-cyan-500/70 group-hover:bg-cyan-600 group-hover:w-0.5 transition-all" />
               <span className="absolute -right-8 top-2 text-[9px] font-bold text-cyan-700 bg-white/90 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                 {guide.position.toFixed(0)}%
               </span>
@@ -146,11 +148,12 @@ export function RulersAndGuides({ containerRef }: { containerRef: React.RefObjec
         </div>
       )}
 
+
       {/* Hint when guides enabled but none created */}
       {showGuides && guides.length === 0 && (
         <div className="sticky top-0 z-[1002] pointer-events-none">
           <div className="absolute left-8 top-8 bg-yellow-100 border border-yellow-300 text-yellow-800 text-xs px-3 py-2 rounded-lg shadow-lg">
-            💡 Click on a ruler to add a guide
+            ?? Click on a ruler to add a guide
           </div>
         </div>
       )}
