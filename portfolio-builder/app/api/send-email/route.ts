@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazily create the client so the module can load at build time without the key
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 // Recipient email is stored server-side for privacy
 const RECIPIENT_EMAIL = process.env.CONTACT_EMAIL;
@@ -71,6 +77,14 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     // Note: On free tier, you can only send to your own verified email
+    const resend = getResendClient();
+    if (!resend) {
+      console.error('RESEND_API_KEY not configured in environment variables');
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 500 }
+      );
+    }
     const { data, error } = await resend.emails.send({
       from: 'Portfolio Contact <onboarding@resend.dev>',
       to: [RECIPIENT_EMAIL],
