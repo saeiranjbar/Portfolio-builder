@@ -3220,9 +3220,12 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                   <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${theme.colors.primary}15` }}>
                     <Icon className="w-4 h-4" style={{ color: theme.colors.primary }} />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span><span style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.level}%</span></div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} /></div>
+                  <div className="flex-1 min-w-[160px]">
+                    <div className="mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span></div>
+                    <div className="relative h-6 w-full bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} />
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: skill.level >= 50 ? '#ffffff' : theme.colors.text }}>{skill.level}%</span>
+                    </div>
                   </div>
                 </div>
               );
@@ -3330,9 +3333,12 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                         <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${theme.colors.primary}15` }}>
                           <Icon className="w-4 h-4" style={{ color: theme.colors.primary }} />
                         </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span><span style={getTextStyle(section.textStyles, 'skillYearsExperience', { color: theme.colors.textSecondary })}>{skill.level}%</span></div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} /></div>
+                        <div className="flex-1 min-w-[160px]">
+                          <div className="mb-1"><span style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span></div>
+                          <div className="relative h-6 w-full bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${skill.level}%`, backgroundColor: theme.colors.primary }} />
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold" style={{ color: skill.level >= 50 ? '#ffffff' : theme.colors.text }}>{skill.level}%</span>
+                          </div>
                         </div>
                       </div>
                     );

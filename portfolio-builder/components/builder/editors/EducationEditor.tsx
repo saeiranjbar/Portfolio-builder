@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Type, GraduationCap } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { MonthPicker } from '@/components/ui/month-picker';
 
@@ -155,12 +154,7 @@ export function EducationEditor({ section, onUpdate }: EducationEditorProps) {
         )}
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[{ key: 'title', label: 'Section Title' }]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

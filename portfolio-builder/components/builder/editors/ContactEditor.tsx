@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { Type, Mail, Phone, MapPin, FormInput, Calendar, Plus, Trash2, Link as LinkIcon, Check } from 'lucide-react';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { generateId } from '@/lib/utils';
 
 interface ContactEditorProps {
@@ -212,17 +211,7 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
         </p>
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[
-          { key: 'title', label: 'Section Title' },
-          { key: 'email', label: 'Email' },
-          { key: 'phone', label: 'Phone' },
-          { key: 'location', label: 'Location' },
-        ]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

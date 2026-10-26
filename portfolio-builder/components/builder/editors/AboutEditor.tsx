@@ -11,7 +11,6 @@ import { GalleryUploader } from '../GalleryUploader';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, MapPin, Download, Video, Languages, Quote, Sparkles, Tag, FileText, Image as ImageIcon, Type, Images, Upload } from 'lucide-react';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { imageToBase64 } from '@/lib/utils';
 
 
@@ -607,15 +606,7 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
         </label>
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[
-          { key: 'title', label: 'Section Title' },
-          { key: 'content', label: 'Main Bio' },
-        ]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

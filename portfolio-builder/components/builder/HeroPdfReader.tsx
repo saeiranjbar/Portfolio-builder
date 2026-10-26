@@ -34,7 +34,7 @@ export function HeroPdfReader({ section, onMove, tileMoveHint }: { section: Hero
     <div ref={card} className="relative" style={{ marginTop: `${offset.y}px`, transform: `translateX(${offset.x}%)` }}>
       <div className={cn('flex flex-wrap items-center justify-between gap-3 py-2', tileMoveHint && !onMove && 'cursor-move select-none')}
         title={tileMoveHint && !onMove ? 'Drag this bar to move the PDF • scroll inside the document to read it' : undefined}>
-        {onMove && <button type="button" aria-label="Move PDF" title="Drag to move" className="touch-none cursor-move rounded border px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200"
+        {onMove && <button type="button" aria-label="Move PDF reader" title="Drag to move" className="touch-none cursor-move rounded border px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200"
           onPointerDown={event => {
             if (event.button !== 0 || !card.current) return;
             event.preventDefault(); event.stopPropagation();

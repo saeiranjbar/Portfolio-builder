@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Type, FolderOpen, Layout } from 'lucide-react';
 import { CategoryEditorModal } from '../CategoryEditorModal';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 

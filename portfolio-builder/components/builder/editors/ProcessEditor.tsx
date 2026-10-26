@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Type, FileText, ListOrdered, Palette } from 'lucide-react';
 import { generateId } from '@/lib/section-helpers';
 import { CollapsibleSection } from '../CollapsibleSection';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 
 interface ProcessEditorProps {
   section: ProcessSection;
@@ -100,15 +99,6 @@ export function ProcessEditor({ section, onUpdate }: ProcessEditorProps) {
         ))}
         {section.steps.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No steps yet. Click &quot;Add&quot; to create one.</p>}
       </CollapsibleSection>
-
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[
-          { key: 'title', label: 'Section Title' },
-          { key: 'stepTitle', label: 'Tile Title' },
-          { key: 'stepDescription', label: 'Tile Description' },
-        ]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />    </div>
+    </div>
   );
 }

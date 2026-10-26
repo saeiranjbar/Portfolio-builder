@@ -12,7 +12,6 @@ import { Plus, Trash2, Type, Star, Check, X,
   ShoppingBag, PenTool, Pencil, FileText, MessageSquare, KanbanSquare, List, 
   Layout, Zap, Mail, BarChart } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 // Common tool/software icon options with their components
@@ -268,12 +267,7 @@ export function SkillsEditor({ section, onUpdate }: SkillsEditorProps) {
         )}
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[{ key: 'title', label: 'Section Title' }]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

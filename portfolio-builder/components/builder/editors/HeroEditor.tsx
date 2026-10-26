@@ -14,7 +14,6 @@ import { CollapsibleSection } from '../CollapsibleSection';
 import { AnchorLinkInput } from '../AnchorLinkInput';
 import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images, Type, MousePointerClick, Plus, Trash2, Video as VideoIcon } from 'lucide-react';
 
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { cn } from '@/lib/utils';
 import { HeroPdfEditor } from './HeroPdfEditor';
 
@@ -407,17 +406,7 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         </div>
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[
-          { key: 'name', label: 'Name' },
-          { key: 'title', label: 'Title' },
-          { key: 'subtitle', label: 'Subtitle' },
-          { key: 'bio', label: 'Bio' },
-        ]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

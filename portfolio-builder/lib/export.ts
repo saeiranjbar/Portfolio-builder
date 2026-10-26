@@ -522,12 +522,10 @@ function generateSkillsSection(section: any, theme: any): string {
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
             ${section.skills.filter((s: any) => s.category === category).map((skill: any) => `
               <div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                  <span>${skill.name}</span>
-                  <span style="color: ${theme.colors.textSecondary};">${skill.level}%</span>
-                </div>
-                <div style="height: 8px; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden;">
+                <div style="margin-bottom: 4px;"><span>${skill.name}</span></div>
+                <div style="position: relative; height: 24px; min-width: 160px; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden;">
                   <div style="height: 100%; width: ${skill.level}%; background-color: ${theme.colors.primary}; border-radius: 9999px;"></div>
+                  <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: ${skill.level >= 50 ? '#ffffff' : theme.colors.text};">${skill.level}%</span>
                 </div>
               </div>
             `).join('')}

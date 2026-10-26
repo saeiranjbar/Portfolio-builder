@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Linkedin, Github, Twitter, Instagram, Facebook, Globe, Type, Link2 } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 
@@ -142,12 +141,7 @@ export function SocialEditor({ section, onUpdate }: SocialEditorProps) {
         )}
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[{ key: 'title', label: 'Section Title' }]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }

@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ImageUploader } from '../ImageUploader';
 import { Plus, Trash2, Type, MessageSquare } from 'lucide-react';
 import { generateId } from '@/lib/utils';
-import { SectionTextStyleEditor } from '../SectionTextStyleEditor';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 
@@ -148,12 +147,7 @@ export function TestimonialsEditor({ section, onUpdate }: TestimonialsEditorProp
         )}
       </CollapsibleSection>
 
-      {/* Unified Text Styles for all text elements */}
-      <SectionTextStyleEditor
-        textStyles={section.textStyles}
-        fields={[{ key: 'title', label: 'Section Title' }]}
-        onUpdate={(textStyles) => onUpdate({ textStyles })}
-      />
+
     </div>
   );
 }
