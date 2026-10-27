@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Video as VideoIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { videoToBase64 } from '@/lib/utils';
+import { uploadVideoFile } from '@/lib/utils';
 
 interface VideoFileUploaderProps {
   value: string;
@@ -20,10 +20,11 @@ export function VideoFileUploader({ value, onChange, className }: VideoFileUploa
     if (file) {
       setLoading(true);
       try {
-        const base64 = await videoToBase64(file);
-        onChange(base64);
+        const url = await uploadVideoFile(file);
+        onChange(url);
       } catch (err) {
         console.error('Video upload error:', err);
+        window.alert(err instanceof Error ? err.message : 'Unable to upload video.');
       } finally {
         setLoading(false);
       }

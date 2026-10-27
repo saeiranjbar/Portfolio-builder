@@ -64,6 +64,20 @@ export function videoToBase64(file: File): Promise<string> {
   return Promise.resolve(URL.createObjectURL(file));
 }
 
+// Uploads a background video to the server so it survives reloads and is
+// reachable by visitors. Returns the public /uploads/... URL.
+export async function uploadVideoFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch('/api/upload', { method: 'POST', body: formData });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Unable to upload video. Please try again.');
+  }
+  const { url } = await response.json();
+  return url;
+}
+
 /**
  * Triggers a download of the given content.
  * @param content - File content as a string.

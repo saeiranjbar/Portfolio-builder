@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Video as VideoIcon, Plus, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { videoToBase64 } from '@/lib/utils';
+import { uploadVideoFile } from '@/lib/utils';
 import { GalleryVideo } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,8 +75,13 @@ export function VideoUploader({ videos, onChange, className, maxVideos = 10 }: V
     const newVideos: GalleryVideo[] = [];
     for (const file of acceptedFiles) {
       if (videos.length + newVideos.length >= maxVideos) break;
-      const base64 = await videoToBase64(file);
-      newVideos.push({ id: generateId(), url: base64, type: 'uploaded', caption: '' });
+      try {
+        const url = await uploadVideoFile(file);
+        newVideos.push({ id: generateId(), url, type: 'uploaded', caption: '' });
+      } catch (err) {
+        console.error('Video upload error:', err);
+        window.alert(err instanceof Error ? err.message : 'Unable to upload video.');
+      }
     }
     onChange([...videos, ...newVideos]);
   }, [videos, onChange, maxVideos]);
@@ -84,7 +89,7 @@ export function VideoUploader({ videos, onChange, className, maxVideos = 10 }: V
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'video/*': ['.mp4', '.webm', '.mov', '.avi'],
+      'video/*': ['.mp4', '.webm', '.ogv', '.mov'],
     },
     maxFiles: maxVideos,
   });
@@ -197,7 +202,7 @@ export function VideoUploader({ videos, onChange, className, maxVideos = 10 }: V
                 <p className="text-xs text-gray-700">
                   {isDragActive ? 'Drop video here...' : 'Drag & drop video or click'}
                 </p>
-                <p className="text-xs text-gray-500">MP4, WebM, MOV, AVI</p>
+                <p className="text-xs text-gray-500">MP4, WebM, OGG, MOV</p>
               </div>
             </div>
           </div>
