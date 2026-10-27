@@ -163,6 +163,7 @@ interface PortfolioState {
   selectElement: (sectionId: string | null, elementKey: string | null) => void;
   setTheme: (theme: Theme) => void;
   updateMetadata: (updates: Partial<PortfolioData['metadata']>) => void;
+  renameWebsite: (name: string) => void;
   updateNavbar: (updates: Partial<NavbarConfig>) => void;
   updateAvailability: (updates: Partial<AvailabilityConfig>) => void;
   updateDarkMode: (updates: Partial<DarkModeConfig>) => void;
@@ -745,6 +746,27 @@ const editorPortfolioStore = create<PortfolioState>()(
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
             portfolio: newPortfolio,
+            future: [],
+            isDirty: true,
+          };
+        }),
+
+      // Renames the website without detaching it from its saved copy, so the
+      // next save updates the same record instead of creating a new one.
+      renameWebsite: (name) =>
+        set((state) => {
+          const trimmed = name.trim();
+          if (!trimmed) return {};
+          const newPortfolio: PortfolioData = {
+            ...state.portfolio,
+            name: trimmed,
+            updatedAt: new Date().toISOString(),
+            metadata: { ...state.portfolio.metadata, title: trimmed },
+          };
+          return {
+            past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+            portfolio: newPortfolio,
+            draftVersion: state.draftVersion + 1,
             future: [],
             isDirty: true,
           };

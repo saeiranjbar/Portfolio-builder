@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FolderOpen, Loader2, Trash2 } from 'lucide-react';
-import { deleteSavedWebsite, listSavedWebsites, parseSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
+import { FolderOpen, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { deleteSavedWebsite, listSavedWebsites, parseSavedWebsite, renameSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
 import { usePortfolioStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -80,6 +80,22 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
     }
   }
 
+  async function rename(record: SavedWebsite) {
+    const next = window.prompt('Rename this website', record.title)?.trim();
+    if (!next || next === record.title) return;
+    setError('');
+    try {
+      await renameSavedWebsite(record, next);
+      // If this website is open, keep the draft's name in step with the saved one.
+      const current = usePortfolioStore.getState();
+      if (current.cloudPortfolio?.id === record.id) current.renameWebsite(next);
+      startLoading();
+      setRetry(value => value + 1);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to rename this website. Please try again.');
+    }
+  }
+
   return <>
     <Button variant="outline" disabled={disabled} onClick={() => { startLoading(); setOpen(true); }}
       className={dark ? 'border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white' : undefined}>
@@ -110,6 +126,11 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
                 <button onClick={() => load(website)} className="min-w-0 flex-1 rounded-l-lg p-3 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-blue-500">
                   <span className="block font-medium text-gray-900">{website.title}</span>
                   <span className="text-xs text-gray-500">Saved {new Date(website.updatedAt).toLocaleString()}</span>
+                </button>
+                <button aria-label={`Rename ${website.title}`} title="Rename this website"
+                  onClick={() => rename(website)}
+                  className="px-3 text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <Pencil className="h-4 w-4" />
                 </button>
                 <button aria-label={`Delete ${website.title}`} title="Delete this website" disabled={deletingId === website.id}
                   onClick={() => setConfirming(website)}
