@@ -22,15 +22,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
+    const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
+    const videoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const isVideo = videoTypes.includes(file.type);
+    if (!isVideo && !imageTypes.includes(file.type)) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024;
+    // Validate file size: 10MB for images/PDFs, 200MB for background videos
+    const maxSize = (isVideo ? 200 : 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+      return NextResponse.json({ error: `File too large (max ${isVideo ? 200 : 10}MB)` }, { status: 400 });
     }
 
     // Generate unique filename
