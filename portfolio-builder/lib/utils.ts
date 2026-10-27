@@ -68,10 +68,20 @@ export function videoToBase64(file: File): Promise<string> {
 // Uploads a video straight to Vercel Blob so it survives reloads and is
 // reachable by visitors. Returns the public blob URL.
 export async function uploadVideoFile(file: File): Promise<string> {
+  // Some browsers and file pickers leave file.type empty, which Blob rejects,
+  // so fall back to the extension.
+  const videoTypes: Record<string, string> = {
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    ogv: 'video/ogg',
+    mov: 'video/quicktime',
+  };
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const contentType = file.type || videoTypes[ext] || 'application/octet-stream';
   const { url } = await upload(`uploads/${file.name}`, file, {
     access: 'public',
     handleUploadUrl: '/api/upload/video',
-    contentType: file.type,
+    contentType,
   });
   return url;
 }
