@@ -261,6 +261,14 @@ function AuthenticatedBuilder() {
       return;
     }
 
+    // A website that has never been saved needs a name before it gets one.
+    if (!usePortfolioStore.getState().cloudPortfolio) {
+      const current = usePortfolioStore.getState().portfolio;
+      const name = window.prompt('Name this website', current.metadata.title || current.name)?.trim();
+      if (!name) return;
+      usePortfolioStore.getState().renameWebsite(name);
+    }
+
     const snapshot = usePortfolioStore.getState();
     saveInFlightRef.current = true;
     setIsSaving(true);

@@ -73,3 +73,23 @@ export function parseSavedWebsite(record: SavedWebsite, ownerEmail: string): Loa
     reference: { id: record.id, ownerEmail },
   };
 }
+
+// Renames a saved website by re-saving its record with the new name.
+export async function renameSavedWebsite(record: SavedWebsite, name: string, fetcher: typeof fetch = fetch): Promise<void> {
+  const data = JSON.parse(record.data) as Record<string, unknown>;
+  const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+  const response = await fetcher('/api/portfolio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      id: record.id,
+      title: name,
+      description: typeof metadata.description === 'string' ? metadata.description : null,
+      data: { ...data, name, metadata: { ...metadata, title: name } },
+    }),
+  });
+  if (!response.ok) {
+    throw new CloudSaveError('Unable to rename this website. Please try again.', response.status);
+  }
+}
