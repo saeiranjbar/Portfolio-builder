@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
+// Images and PDFs go through this endpoint. Vercel limits request bodies to
+// about 4.5MB, so large files (background videos) use /api/upload/video.
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,35 +25,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
-    const videoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
-    const isVideo = videoTypes.includes(file.type);
-    if (!isVideo && !imageTypes.includes(file.type)) {
+    if (!IMAGE_TYPES.includes(file.type)) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
-    // Validate file size: 10MB for images/PDFs, 200MB for background videos
-    const maxSize = (isVideo ? 200 : 10) * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json({ error: `File too large (max ${isVideo ? 200 : 10}MB)` }, { status: 400 });
+    if (file.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
     }
 
-    // Generate unique filename
+    // Store in Vercel Blob so the file is available after deploy and to visitors
     const ext = file.name.split('.').pop() || 'jpg';
-    const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-
-    // Save to public/uploads directory
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-
-    const filepath = path.join(uploadDir, filename);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
-
-    // Return the public URL
-    const url = `/uploads/${filename}`;
+    const { url } = await put(`uploads/${Date.now()}-${Math.random().toString(36).substring(2, 11)}.${ext}`, file, {
+      access: 'public',
+      contentType: file.type,
+    });
 
     return NextResponse.json({ url });
   } catch (error) {
