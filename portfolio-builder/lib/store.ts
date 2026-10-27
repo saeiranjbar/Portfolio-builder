@@ -175,6 +175,7 @@ interface PortfolioState {
   markClean: () => void;
   completeCloudSave: (snapshot: PortfolioSaveSnapshot, reference: CloudPortfolioReference) => void;
   loadCloudPortfolio: (website: LoadedWebsite) => void;
+  detachCloudPortfolio: () => void;
   // Layout mode actions
   setLayoutMode: (mode: LayoutMode) => void;
   updateSimpleLayout: (updates: Partial<SimpleLayoutConfig>) => void;
@@ -935,6 +936,9 @@ const editorPortfolioStore = create<PortfolioState>()(
               : state.isDirty,
           };
         }),
+
+      // The saved record was deleted; keep the draft but make the next Save create a new one.
+      detachCloudPortfolio: () => set({ cloudPortfolio: null, isDirty: true }),
 
       // Layout mode actions
       setLayoutMode: (mode: LayoutMode) =>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FolderOpen, Loader2 } from 'lucide-react';
-import { listSavedWebsites, parseSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
+import { FolderOpen, Loader2, Trash2 } from 'lucide-react';
+import { deleteSavedWebsite, listSavedWebsites, parseSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
 import { usePortfolioStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -25,6 +25,8 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [pending, setPending] = useState<SavedWebsite | null>(null);
+  const [confirming, setConfirming] = useState<SavedWebsite | null>(null);
+  const [deletingId, setDeletingId] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +44,7 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
     setLoading(true);
     setError('');
     setPending(null);
+    setConfirming(null);
   }
 
   function load(record: SavedWebsite, discard = false) {
@@ -57,6 +60,23 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
     } catch {
       setPending(null);
       setError('This website could not be opened because its saved content is invalid. Your current draft is unchanged.');
+    }
+  }
+
+  async function remove(record: SavedWebsite) {
+    setDeletingId(record.id);
+    setError('');
+    try {
+      await deleteSavedWebsite(record.id);
+      setWebsites(items => items.filter(item => item.id !== record.id));
+      setConfirming(null);
+      const current = usePortfolioStore.getState().cloudPortfolio;
+      if (current && current.id === record.id) usePortfolioStore.getState().detachCloudPortfolio();
+    } catch (cause) {
+      setConfirming(null);
+      setError(cause instanceof Error ? cause.message : 'Unable to delete this website. Please try again.');
+    } finally {
+      setDeletingId('');
     }
   }
 
@@ -77,11 +97,26 @@ function AccountWebsites({ ownerEmail, onOpened, dark, disabled }: Props & { own
               <Button onClick={() => load(pending, true)}>Discard changes and open</Button></div>
           </div>
           : websites.length === 0 ? <p className="text-sm text-gray-600">No saved websites yet. Create a website and click Save to see it here.</p>
-          : <ul className="space-y-2">{websites.map(website => <li key={website.id}>
-            <button onClick={() => load(website)} className="w-full rounded-lg border p-3 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-blue-500">
-              <span className="block font-medium text-gray-900">{website.title}</span>
-              <span className="text-xs text-gray-500">Saved {new Date(website.updatedAt).toLocaleString()}</span>
-            </button>
+          : <ul className="space-y-2">{websites.map(website => <li key={website.id}
+              className={confirming && confirming.id === website.id ? 'rounded-lg border border-red-300 bg-red-50 p-3' : 'rounded-lg border'}>
+            {confirming && confirming.id === website.id
+              ? <div>
+                <p className="mb-2 text-sm">Delete “{website.title}” permanently? This cannot be undone. If it is published, its live website goes offline too.</p>
+                <div className="flex gap-2"><Button variant="outline" disabled={deletingId === website.id} onClick={() => setConfirming(null)}>Cancel</Button>
+                  <Button disabled={deletingId === website.id} onClick={() => remove(website)}
+                    className="bg-red-600 hover:bg-red-700">{deletingId === website.id ? 'Deleting…' : 'Delete website'}</Button></div>
+              </div>
+              : <div className="flex items-center">
+                <button onClick={() => load(website)} className="min-w-0 flex-1 rounded-l-lg p-3 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <span className="block font-medium text-gray-900">{website.title}</span>
+                  <span className="text-xs text-gray-500">Saved {new Date(website.updatedAt).toLocaleString()}</span>
+                </button>
+                <button aria-label={`Delete ${website.title}`} title="Delete this website" disabled={deletingId === website.id}
+                  onClick={() => setConfirming(website)}
+                  className="self-stretch rounded-r-lg px-3 text-gray-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-red-500">
+                  {deletingId === website.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                </button>
+              </div>}
           </li>)}</ul>}
       </DialogContent>
     </Dialog>

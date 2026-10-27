@@ -29,6 +29,10 @@ function loadRoute(route = 'app/api/portfolio/route.ts', options = {}) {
     { id: ownPortfolioId, userId: ownerId, title: 'Mine', data: '{}' },
     { id: otherPortfolioId, userId: otherId, title: 'Other user', data: '{}' },
   ];
+  const sites = [
+    { id: ownPortfolioId, userId: ownerId, slug: 'mine-1' },
+    { id: otherPortfolioId, userId: otherId, slug: 'other-2' },
+  ];
   const calls = [];
   const session = 'session' in options
     ? options.session
@@ -71,6 +75,30 @@ function loadRoute(route = 'app/api/portfolio/route.ts', options = {}) {
         if (index < 0) throw missingRecord();
         return records.splice(index, 1)[0];
       },
+      async findFirst(args) {
+        calls.push(['find', args]);
+        const index = findIndex(args.where);
+        return index < 0 ? null : records[index];
+      },
+    },
+    site: {
+      async deleteMany(args) {
+        calls.push(['deleteSite', args]);
+        const owned = records.some(
+          (record) => record.id === args.where.id && record.userId === args.where.userId
+        );
+        if (!owned) return { count: 0 };
+        const index = sites.findIndex(
+          (site) => site.id === args.where.id && site.userId === args.where.userId
+        );
+        if (index < 0) return { count: 0 };
+        sites.splice(index, 1);
+        return { count: 1 };
+      },
+    },
+    async $transaction(callback) {
+      calls.push(['transaction']);
+      return callback(prisma);
     },
   };
   const testModule = { exports: {} };
@@ -88,7 +116,7 @@ function loadRoute(route = 'app/api/portfolio/route.ts', options = {}) {
       return loadDependency(name);
     },
   }, { filename: route });
-  return { handlers: testModule.exports, records, calls };
+  return { handlers: testModule.exports, records, sites, calls };
 }
 
 function request(body, id) {
@@ -169,27 +197,32 @@ test('invalid save payloads and malformed JSON return 400 without writing', asyn
   assert.equal(calls.filter(([operation]) => ['create', 'update'].includes(operation)).length, 0);
 });
 
-test('DELETE removes an owned portfolio', async () => {
-  const { handlers, records } = loadRoute();
+test('DELETE removes an owned portfolio and its published site', async () => {
+  const { handlers, records, sites } = loadRoute();
   const response = await handlers.DELETE(request(null, ownPortfolioId));
   assert.equal(response.status, 200);
   assert.equal(records.some((record) => record.id === ownPortfolioId), false);
   assert.equal(records.some((record) => record.id === otherPortfolioId), true);
+  assert.equal(sites.some((site) => site.id === ownPortfolioId), false);
+  assert.equal(sites.some((site) => site.id === otherPortfolioId), true);
 });
 
 test('DELETE cannot remove another user\'s portfolio', async () => {
-  const { handlers, records } = loadRoute();
+  const { handlers, records, sites } = loadRoute();
   const before = JSON.stringify(records);
+  const beforeSites = JSON.stringify(sites);
   assert.equal((await handlers.DELETE(request(null, otherPortfolioId))).status, 404);
   assert.equal(JSON.stringify(records), before);
+  assert.equal(JSON.stringify(sites), beforeSites);
 });
 
 test('DELETE rejects missing or invalid IDs', async () => {
-  const { handlers, calls } = loadRoute();
+  const { handlers, calls, sites } = loadRoute();
   for (const id of [undefined, '', 'invalid']) {
     assert.equal((await handlers.DELETE(request(null, id))).status, 400);
   }
-  assert.equal(calls.filter(([operation]) => operation === 'delete').length, 0);
+  assert.equal(calls.filter(([operation]) => ['delete', 'deleteSite'].includes(operation)).length, 0);
+  assert.equal(sites.length, 2);
 });
 
 test('database failures return a generic error without exposing connection details', async () => {

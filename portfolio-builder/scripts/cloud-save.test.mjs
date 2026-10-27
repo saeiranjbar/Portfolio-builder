@@ -36,8 +36,8 @@ function setup() {
   }
   const { usePortfolioStore: store } = loadFile(path.join(projectRoot, 'lib/store.ts'));
   const { savePortfolioToCloud, CloudSaveError } = loadFile(path.join(projectRoot, 'lib/cloud-save.ts'));
-  const { listSavedWebsites, parseSavedWebsite } = loadFile(path.join(projectRoot, 'lib/cloud-load.ts'));
-  return { store, savePortfolioToCloud, CloudSaveError, listSavedWebsites, parseSavedWebsite };
+  const { listSavedWebsites, deleteSavedWebsite, parseSavedWebsite } = loadFile(path.join(projectRoot, 'lib/cloud-load.ts'));
+  return { store, savePortfolioToCloud, CloudSaveError, listSavedWebsites, deleteSavedWebsite, parseSavedWebsite };
 }
 
 const confirmed = () => Response.json({ portfolio: { id: savedId } }, { status: 201 });
@@ -277,4 +277,33 @@ test('unsaved edits and the cloud record ID are both persisted for refresh', () 
   const persisted = store.persist.getOptions().partialize(store.getState());
   assert.equal(persisted.cloudPortfolio.id, savedId);
   assert.equal(persisted.isDirty, true);
+});
+
+test('a saved website is deleted with session cookies and its record ID', async () => {
+  const { deleteSavedWebsite } = setup();
+  const calls = [];
+  await deleteSavedWebsite(savedId, async (url, options) => {
+    calls.push([url, options]);
+    return Response.json({ success: true });
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], `/api/portfolio?id=${savedId}`);
+  assert.equal(calls[0][1].method, 'DELETE');
+  assert.equal(calls[0][1].credentials, 'same-origin');
+  assert.equal(calls[0][1].cache, 'no-store');
+});
+
+test('delete failures report signed-out and generic cases without exposing details', async () => {
+  const { deleteSavedWebsite, CloudSaveError } = setup();
+  const cases = [[401, 'Please sign in to manage your websites.'],
+    [404, 'Unable to delete this website. Please try again.'],
+    [500, 'Unable to delete this website. Please try again.']];
+  for (const [status, message] of cases) {
+    const error = await deleteSavedWebsite(savedId, async () => new Response(
+      JSON.stringify({ error: 'Internal connection details' }),
+      { status, headers: { 'Content-Type': 'application/json' } })).catch(cause => cause);
+    assert.ok(error instanceof CloudSaveError);
+    assert.equal(error.message, message);
+    assert.equal(error.status, status);
+  }
 });

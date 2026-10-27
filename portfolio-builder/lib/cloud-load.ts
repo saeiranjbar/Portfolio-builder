@@ -30,6 +30,17 @@ export async function listSavedWebsites(signal?: AbortSignal, fetcher: typeof fe
   return result.data.portfolios;
 }
 
+export async function deleteSavedWebsite(id: string, fetcher: typeof fetch = fetch): Promise<void> {
+  const response = await fetcher(`/api/portfolio?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE', credentials: 'same-origin', cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new CloudSaveError(response.status === 401
+      ? 'Please sign in to manage your websites.'
+      : 'Unable to delete this website. Please try again.', response.status);
+  }
+}
+
 export function parseSavedWebsite(record: SavedWebsite, ownerEmail: string): LoadedWebsite {
   recordSchema.parse(record);
   const raw: unknown = JSON.parse(record.data);

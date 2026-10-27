@@ -131,8 +131,23 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await prisma.portfolio.delete({
+    const owned = await prisma.portfolio.findFirst({
       where: { id: result.data, userId },
+      select: { id: true },
+    });
+
+    if (!owned) {
+      return NextResponse.json(
+        { error: 'Portfolio not found or not owned by you' },
+        { status: 404 }
+      );
+    }
+
+    // Removing a saved website also removes its published site (same ID);
+    // its pages, revisions and AI brief cascade with it.
+    await prisma.$transaction(async (tx) => {
+      await tx.site.deleteMany({ where: { id: result.data, userId } });
+      await tx.portfolio.delete({ where: { id: result.data, userId } });
     });
 
     return NextResponse.json({ success: true });
