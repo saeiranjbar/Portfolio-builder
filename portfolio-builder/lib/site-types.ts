@@ -73,6 +73,8 @@ export const GalleryImageSchema = z.object({
   id: z.string(),
   url: z.string(),
   caption: z.string().optional(),
+  naturalWidth: z.number().nonnegative().optional(),
+  naturalHeight: z.number().nonnegative().optional(),
   position: ElementPositionSchema.optional(),
   size: z.enum(['small', 'medium', 'large']).optional(),
 });
@@ -332,6 +334,20 @@ export const FAQItemSchema = z.object({
 // Defaults are chosen so AI generation only needs to supply content fields;
 // layout and visibility fields fill in automatically on parse.
 
+export const PageBackgroundSceneSchema = z.object({
+  id: z.string(),
+  type: z.enum(['image', 'video']).default('video'),
+  value: z.string().default(''),
+  label: z.string().optional(),
+  visible: z.boolean().optional(),
+  overlayOpacity: z.number().min(0).max(100).optional(),
+  // Page-scroll point (0-99) where this scene takes over in scroll mode.
+  startPercent: z.number().min(0).max(99).optional(),
+  // Absolute switch point: pixels from the top of the page.
+  startY: z.number().min(0).max(50000).optional(),
+  startAnchorLabel: z.string().optional(),
+});
+
 export const HeroSectionSchema = z.object({
   ...baseSectionFields,
   type: z.literal('hero'),
@@ -345,6 +361,11 @@ export const HeroSectionSchema = z.object({
   backgroundType: z.enum(['color', 'gradient', 'image', 'video']).default('color'),
   backgroundValue: z.string().default(''),
   backgroundOverlayOpacity: z.number().min(0).max(100).optional(),
+  backgroundMode: z.enum(['single', 'sequence']).default('single'),
+  backgroundScenes: z.array(PageBackgroundSceneSchema).default([]),
+  backgroundAdvance: z.enum(['scroll', 'timer']).default('scroll'),
+  backgroundInterval: z.number().min(1).max(120).default(6),
+  backgroundTransition: z.number().min(0).max(4000).default(900),
   avatarPosition: ElementPositionSchema.default(centered),
   namePosition: ElementPositionSchema.default(centered),
   titlePosition: ElementPositionSchema.default(centered),

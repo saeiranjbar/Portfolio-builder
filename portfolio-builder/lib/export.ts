@@ -1,4 +1,5 @@
 import { PortfolioData, PortfolioSection, HeroSection, AboutSection } from './types';
+import { getPageBackgroundScenes, getPageBackgroundMode, getPageBackgroundTransition, getPageBackgroundInterval, getSceneStartPcts } from './page-background';
 import { getFlowBlocks, sectionForFlowBlock, type FlowBlock } from './flow-layout';
 import { availableFonts } from './templates';
 import { pdfHeight, pdfSource, pdfWidth } from './hero-pdf';
@@ -11,8 +12,88 @@ function buildGoogleFontsUrl(): string {
   return `https://fonts.googleapis.com/css2?${fontFamilies.join('&')}&display=swap`;
 }
 
-export function generateHTML(portfolio: PortfolioData): string {
+// A "switching" page background (the background reel): several full-page clips
+// stacked in a fixed backdrop that cross-fade into each other — either as the
+// visitor scrolls (a clip with data-pb-start-px takes over when the viewport top
+// reaches that Y; the rest split the page into bands starting at data-pb-start)
+// or on a timer. Rendered at z-index:-1 so it sits above the body colour and
+// below the <main> content, exactly like the preview backdrop does.
+function generatePageBackgroundHTML(heroSection: HeroSection | undefined): string {
+  const scenes = getPageBackgroundScenes(heroSection);
+  if (scenes.length < 2) return '';
+  const transition = getPageBackgroundTransition(heroSection);
+  const interval = getPageBackgroundInterval(heroSection);
+  const advance = heroSection?.backgroundAdvance === 'timer' ? 'timer' : 'scroll';
+  const starts = getSceneStartPcts(scenes);
+  const layers = scenes.map((scene, index) => {
+    const media = scene.type === 'video'
+      ? `<video src="${scene.value}" muted loop playsinline preload="metadata"${index === 0 ? ' autoplay' : ''} style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;"></video>`
+      : '';
+    const image = scene.type === 'image' ? `background-image:url('${scene.value}');` : '';
+    const overlay = scene.overlayOpacity
+      ? `<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,${scene.overlayOpacity / 100});"></div>`
+      : '';
+    // A pinned switch point is an absolute Y in page pixels — the clip takes over
+    // once the top of the viewport reaches it. Unpinned clips use their band.
+    const pinnedY = typeof scene.startY === 'number' && Number.isFinite(scene.startY)
+      ? ` data-pb-start-px="${Math.max(0, Math.round(scene.startY))}"`
+      : '';
+    return `<div class="pb-scene${index === 0 ? ' pb-active' : ''}" data-pb-start="${starts[index]}"${pinnedY} style="${image}">${media}${overlay}</div>`;
+  }).join('\n    ');
 
+  return `<style>
+    .pb-reel { position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; pointer-events: none; background: #000; }
+    .pb-scene { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; transition: opacity ${transition}ms ease-in-out; background-color: #000; background-size: cover; background-position: center; background-repeat: no-repeat; }
+    .pb-scene.pb-active { opacity: 1; }
+  </style>
+  <div class="pb-reel" aria-hidden="true">
+    ${layers}
+  </div>
+  <script>
+    (function () {
+      var reel = document.querySelector('.pb-reel');
+      if (!reel) return;
+      var scenes = Array.prototype.slice.call(reel.querySelectorAll('.pb-scene'));
+      if (scenes.length < 2) return;
+      function apply(index) {
+        for (var position = 0; position < scenes.length; position++) {
+          var scene = scenes[position];
+          var on = position === index;
+          if (scene.className.indexOf('pb-active') >= 0 !== on) {
+            scene.className = on ? scene.className + ' pb-active' : scene.className.replace(' pb-active', '');
+          }
+          var video = scene.querySelector('video');
+          if (!video) continue;
+          if (on) { if (video.play) { var playing = video.play(); if (playing && playing.catch) playing.catch(function () {}); } }
+          else if (video.pause) { video.pause(); }
+        }
+      }
+      if ('${advance}' === 'timer') {
+        var index = 0;
+        apply(0);
+        setInterval(function () { index = (index + 1) % scenes.length; apply(index); }, ${interval * 1000});
+        return;
+      }
+      function update() {
+        var range = document.documentElement.scrollHeight - window.innerHeight;
+        var y = window.scrollY || document.documentElement.scrollTop || 0;
+        var progress = range > 4 ? (y / range) * 100 : 0;
+        var active = 0;
+        for (var i = 0; i < scenes.length; i++) {
+          var pinnedY = scenes[i].getAttribute('data-pb-start-px');
+          var reached = pinnedY !== null ? y >= parseFloat(pinnedY) : progress >= parseFloat(scenes[i].getAttribute('data-pb-start') || '0');
+          if (reached) { active = i; } else { break; }
+        }
+        apply(active);
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+    })();
+  </script>`;
+}
+
+export function generateHTML(portfolio: PortfolioData): string {
   const { theme } = portfolio;
   
   const renderSectionHTML = (section: PortfolioSection): string => {
@@ -80,18 +161,24 @@ export function generateHTML(portfolio: PortfolioData): string {
   // whole document from top to bottom — and the hero blocks themselves stay
   // transparent so there is no second, differently-cropped copy to seam.
   const heroSection = portfolio.sections.find((s) => s.type === 'hero') as HeroSection | undefined;
+  // A switching page background ("background reel") paints the page itself, so
+  // the single background is skipped entirely and the body keeps a plain backdrop.
+  const isSequenceBackground = getPageBackgroundMode(heroSection) === 'sequence';
+  const pageBackgroundHTML = isSequenceBackground ? generatePageBackgroundHTML(heroSection) : '';
   let landingCSS = '';
-  if (heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color') {
+  if (isSequenceBackground) {
+    landingCSS = 'background: #000;';
+  } else if (heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color') {
     landingCSS = `background: ${heroSection.backgroundValue};`;
   } else if (heroSection?.backgroundType === 'image' && heroSection.backgroundValue) {
     landingCSS = `background-image: url('${heroSection.backgroundValue}'); background-size: cover; background-position: center top; background-repeat: no-repeat;`;
   } else if (heroSection?.backgroundType === 'video') {
     landingCSS = 'background: #000;';
   }
-  if (heroSection && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') && heroSection.backgroundOverlayOpacity) {
+  if (!isSequenceBackground && heroSection && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') && heroSection.backgroundOverlayOpacity) {
     landingCSS += ` box-shadow: inset 0 0 0 100000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100});`;
   }
-  const landingVideoHTML = heroSection?.backgroundType === 'video' && heroSection.backgroundValue
+  const landingVideoHTML = !isSequenceBackground && heroSection?.backgroundType === 'video' && heroSection.backgroundValue
     ? `<div style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;z-index:0;"><video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><source src="${heroSection.backgroundValue}"></video></div>`
     : '';
   const landingBodyCSS = landingCSS + (landingVideoHTML ? ' position: relative;' : '');
@@ -161,7 +248,7 @@ export function generateHTML(portfolio: PortfolioData): string {
   </style>
 </head>
 <body>
-${landingVideoHTML}<main class="flow-layout" style="position:relative;z-index:1;">${sectionsHTML}</main>
+${landingVideoHTML}${pageBackgroundHTML}<main class="flow-layout" style="position:relative;z-index:1;">${sectionsHTML}</main>
 ${effectsHTML}
 </body>
 </html>`;

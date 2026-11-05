@@ -338,6 +338,24 @@ export interface CTAButton {
   variant: 'primary' | 'secondary' | 'outline';
 }
 
+// One clip in a "switching" page background. Scenes are full-page layers that
+// cross-fade into each other — either as the visitor scrolls (each scene owns a
+// band of the page, starting at `startPercent`) or on a timer.
+export interface PageBackgroundScene {
+  id: string;
+  type: 'image' | 'video';
+  value: string; // image URL or video URL
+  label?: string; // shown in the editor list only
+  visible?: boolean; // hidden scenes are skipped everywhere
+  overlayOpacity?: number; // 0-100 dark wash over this scene, for text legibility
+  startPercent?: number; // 0-99 page-scroll point where this scene takes over
+  // Where this clip takes over, in pixels from the top of the page: the switch
+  // happens once the top of the viewport reaches that Y. Wins over startPercent.
+  startY?: number;
+  // Section the Y was snapped to, remembered for the editor label only.
+  startAnchorLabel?: string;
+}
+
 export interface HeroSection {
   id: string;
   visible?: boolean;
@@ -350,6 +368,14 @@ export interface HeroSection {
   backgroundType: 'color' | 'gradient' | 'image' | 'video';
   backgroundValue: string;
   backgroundOverlayOpacity?: number; // 0-100, for image/video backgrounds
+  // How the page background is painted: one fixed background for the whole page
+  // ('single', the classic behaviour) or a sequence of full-page scenes that
+  // cross-fade into each other ('sequence', like a video reel).
+  backgroundMode?: 'single' | 'sequence';
+  backgroundScenes?: PageBackgroundScene[]; // used when backgroundMode === 'sequence'
+  backgroundAdvance?: 'scroll' | 'timer'; // what moves the sequence forward
+  backgroundInterval?: number; // seconds per scene when backgroundAdvance === 'timer'
+  backgroundTransition?: number; // cross-fade duration in ms
   // Individual element positions (percentage based)
   avatarPosition: ElementPosition;
   namePosition: ElementPosition;

@@ -72,6 +72,9 @@ The existing hero section has draggable elements, background customization, and 
 | **Video background support** | ✅ | `backgroundType: 'video'` with `<video>` element. |
 | **Full-screen / viewport-height toggle** | ✅ | Uses `min-h-screen`. |
 | **Overlay/darkening on background image** for text readability | ✅ | `backgroundOverlayOpacity` (0-100). |
+| **Switching page background (video reel)** | ✅ | `backgroundMode: 'single' \| 'sequence'` + `backgroundScenes: PageBackgroundScene[]` on the hero — several full-page video/image clips that cross-fade into each other. Editor: "Background Mode → Switching" in Project Background Settings (`BackgroundScenesEditor.tsx`). |
+| **Scroll-linked or timed background switching** | ✅ | `backgroundAdvance: 'scroll' \| 'timer'`: in scroll mode every clip takes over at its own switch point on the page's Y axis (`startY` in px, or an evenly spread band by default); in timer mode clips rotate every `backgroundInterval` seconds. `backgroundTransition` sets the cross-fade in ms. |
+| **Choose the exact Y where the background switches** | ✅ | `startY` (px from the top of the page) per clip, plus `startAnchorLabel` when snapped. `BackgroundSwitchMarkers.tsx` paints a draggable line per clip in the canvas at its switch Y, with dashed guides at every section top to snap against (hold Shift to free-place) and a live "viewport top · Y" marker; the settings panel takes numeric Y input, ±100 steppers and a "Use current scroll" grab. Exported HTML carries `data-pb-start-px`. |
 | **Hero layout presets** (centered, left-aligned, split-screen with image) | ✅ | `layout: 'free' \| 'centered' \| 'left' \| 'split'`. |
 | **Touch support** for hero drag | ✅ | Touch event handlers added. |
 

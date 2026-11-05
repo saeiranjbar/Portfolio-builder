@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ImageUploader } from './ImageUploader';
 import { VideoFileUploader } from './VideoFileUploader';
 import { BackgroundShapesEditor } from './BackgroundShapesEditor';
+import { BackgroundScenesEditor } from './BackgroundScenesEditor';
 import { CollapsibleSection } from './CollapsibleSection';
 import { Palette, Sparkles } from 'lucide-react';
 
@@ -25,6 +26,8 @@ export function ProjectBackgroundSettings() {
 
   const section = heroSection;
   const isSimpleMode = portfolio.layoutMode === 'simple';
+  const backgroundMode = section.backgroundMode === 'sequence' ? 'sequence' : 'single';
+  const sceneCount = (section.backgroundScenes || []).filter((scene) => scene.visible !== false && !!scene.value).length;
 
   return (
     <div className="border-b border-gray-200">
@@ -34,6 +37,40 @@ export function ProjectBackgroundSettings() {
         description="Applies to the entire landing page"
       >
       <div className="space-y-4">
+        {/* Whole-page background: one fixed background, or a reel that switches */}
+        <div>
+          <Label>Background Mode</Label>
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant={backgroundMode === 'single' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onUpdate({ backgroundMode: 'single' })}
+            >
+              Single
+            </Button>
+            <Button
+              variant={backgroundMode === 'sequence' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onUpdate({ backgroundMode: 'sequence' })}
+            >
+              Switching{sceneCount > 0 ? ` (${sceneCount})` : ''}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {backgroundMode === 'single'
+              ? 'One background painted across the whole landing page.'
+              : 'The background switches between several clips while the visitor scrolls, each clip fading into the next.'}
+          </p>
+        </div>
+
+        {backgroundMode === 'sequence' && (
+          <div className="pt-2 border-t">
+            <BackgroundScenesEditor section={section} onUpdate={onUpdate} />
+          </div>
+        )}
+
+        {backgroundMode === 'single' && (
+        <>
         {/* Background Type */}
         <div>
           <Label>Background Type</Label>
@@ -231,6 +268,9 @@ export function ProjectBackgroundSettings() {
             Adds a subtle parallax scrolling effect to the hero background for depth.
           </p>
         </div>
+
+        </>
+        )}
 
         {/* Background Shapes — nested inside background settings (free-form only) */}
         {!isSimpleMode && (

@@ -1,5 +1,8 @@
 'use client';
 
+import { placePageGridRows, reorderPageGridDrop } from '@/lib/page-grid-rows';
+import { useGalleryOrder } from './useGalleryOrder';
+
 import React from 'react';
 import { usePortfolioStore } from '@/lib/store';
 import { getScrollParent } from '@/lib/useFreeFormDrag';
@@ -11,7 +14,7 @@ import {
   ContactSection, SocialSection, FooterSection, CTABannerSection,
   ServicesSection, ProcessSection, StatsSection, AwardsSection,
   PressSection, CertificationsSection, PortfolioSection,
-  TextStyleSettings, TextStyles, Project, GalleryVideo, BackgroundShape
+  TextStyleSettings, TextStyles, Project, GalleryVideo, BackgroundShape, PageBackgroundScene
 } from '@/lib/types';
 import { Mail, Phone, MapPin, ExternalLink, ChevronDown, ArrowRight,
   Star, ArrowUp, Download, Calendar, Trophy, Award as AwardIcon,
@@ -37,6 +40,10 @@ import { ProjectCardSkeleton } from './Skeleton';
 import { FreeFormSection, FreeFormElement } from './FreeFormSection';
 import { ElementPosition } from '@/lib/types';
 import { BehanceLayout } from './BehanceLayout';
+import { PageBackgroundBackdrop } from './PageBackgroundBackdrop';
+import { BackgroundSwitchMarkers } from './BackgroundSwitchMarkers';
+import { getPageBackgroundMode, getPageBackgroundScenes, getPageBackgroundTransition, getPageBackgroundInterval } from '@/lib/page-background';
+import { setBuilderPageCanvas } from '@/lib/page-canvas';
 import { MouseColorShift } from './effects/MouseColorShift';
 import { SplashButton } from './effects/SplashButton';
 import { resolveAnchorTarget } from '@/lib/anchor-scroll';
@@ -103,6 +110,14 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
       }
     }
   }, [activeSection]);
+
+  // The canvas is the element that actually scrolls, so it is also the origin of
+  // the page's Y axis — the background reel and its switch markers read it here.
+  const previewMode = usePortfolioStore((s) => s.previewMode);
+  React.useEffect(() => {
+    setBuilderPageCanvas(containerRef.current);
+    return () => setBuilderPageCanvas(null);
+  }, [layoutMode]);
 
   // Create a wrapper function for adding projects - creates a projects section if needed
   // This is defined outside the conditional to avoid hook ordering issues
@@ -181,6 +196,22 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
   // The Hero controls one shared landing-page canvas. Categories remain separate
   // editor items but stay visually embedded in that same page background.
   const heroSection = portfolio.sections.find((section) => section.type === 'hero') as HeroSection | undefined;
+  // Switching page background ("background reel"): several full-page video /
+  // image scenes that cross-fade as the page scrolls, or on a timer. When it is
+  // on, the single page background below is skipped so nothing doubles up.
+  const pageBgScenes = getPageBackgroundScenes(heroSection);
+  const isSequenceBackground = getPageBackgroundMode(heroSection) === 'sequence';
+  const pageBgTransition = getPageBackgroundTransition(heroSection);
+  const pageBgInterval = getPageBackgroundInterval(heroSection);
+  const pageBgAdvance = heroSection?.backgroundAdvance === 'timer' ? 'timer' as const : 'scroll' as const;
+  // Dragging a switch line in the canvas writes the clip's Y switch point back.
+  const updateSceneStart = (sceneId: string, updates: Partial<PageBackgroundScene>) => {
+    if (!heroSection) return;
+    const next = (heroSection.backgroundScenes || []).map((scene) => (
+      scene.id === sceneId ? { ...scene, ...updates } : scene
+    ));
+    updateSection(heroSection.id, { backgroundScenes: next });
+  };
   // The page background is painted ONCE, by the page-height wrapper div in the
   // return below (image: cover + no-repeat across the full document height).
   // Painting it on the scroll container too would stack a second, viewport-
@@ -256,12 +287,37 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
       <div style={{ 
         minHeight: '100vh',
         position: 'relative',
-        ...(heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color' ? { background: heroSection.backgroundValue } : {}),
-        ...(heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
-        ...(heroSection?.backgroundOverlayOpacity && (heroSection.backgroundType === 'image' || heroSection.backgroundType === 'video') ? { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` } : {})
+        // Keeps the switching-background reel (zIndex: -1) inside this wrapper's
+        // stacking context: it paints above the wrapper's own background but
+        // below every section that scrolls over it.
+        isolation: 'isolate' as const,
+        ...(isSequenceBackground ? {} : heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color' ? { background: heroSection.backgroundValue } : {}),
+        ...(isSequenceBackground || heroSection?.backgroundType === 'video' ? {} : heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
+        ...(isSequenceBackground || !heroSection?.backgroundOverlayOpacity || (heroSection.backgroundType !== 'image' && heroSection.backgroundType !== 'video') ? {} : { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` })
       }}>
-        {heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
+        {isSequenceBackground && (
+          <PageBackgroundBackdrop
+            scenes={pageBgScenes}
+            transition={pageBgTransition}
+            advance={pageBgAdvance}
+            interval={pageBgInterval}
+            containerRef={containerRef}
+          />
+        )}
+        {!isSequenceBackground && heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
         <PageFreeFormCanvas sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
+        {isSequenceBackground && pageBgAdvance === 'scroll' && !previewMode && (
+          <BackgroundSwitchMarkers
+            scenes={pageBgScenes}
+            sectionLabels={sectionsToShow.map((section) => ({
+              id: section.id,
+              label: (section as { title?: string; name?: string }).title
+                || (section as { name?: string }).name
+                || section.type,
+            }))}
+            onChange={updateSceneStart}
+          />
+        )}
       </div>
 
     </div>
@@ -385,7 +441,7 @@ function defaultTileCols(sectionType: string, slotKey: string): number {
   // by far the widest tile while leaving a horizontal travel band, so its
   // left/center/right edges can reach the x-magnets (full-width tiles are
   // x-locked and would never paint a vertical snap guide).
-  if (sectionType === 'hero') return slotKey === 'avatar' ? 480 : slotKey === 'pdf' ? 1728 : 960;
+  if (sectionType === 'hero') return slotKey === 'avatar' ? 480 : ['pdf', 'galleryImages', 'galleryVideos'].includes(slotKey) ? 1728 : 960;
   if (sectionType === 'skills') return slotKey === 'title' ? 1280 : 960;
   if (slotKey === 'title') return 1280;
   const flat = (FLATTENABLE_SECTIONS as Record<string, { width: string }>)[sectionType];
@@ -512,6 +568,8 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
       if (hero.showSubtitle !== false && hero.subtitle) slots.push({ section, key: 'subtitle', estVh: 4, defaultTopVh: 37 });
       if (hero.showBio !== false && hero.bio) slots.push({ section, key: 'bio', estVh: 10, defaultTopVh: 42 });
       if (hero.ctaButtons && hero.ctaButtons.length > 0) slots.push({ section, key: 'ctaButtons', estVh: 8, defaultTopVh: 52 });
+      if (hero.galleryImages?.length) slots.push({ section, key: 'galleryImages', estVh: 45 });
+      if (hero.galleryVideos?.length) slots.push({ section, key: 'galleryVideos', estVh: 45 });
       // PDF reader: its own draggable slot. The compact hero tiles never paint
       // it, so without a dedicated slot an uploaded PDF would never show.
       if (hero.showPdf && pdfSource(hero.pdf?.url)) slots.push({ section, key: 'pdf', estVh: Math.min(70, Math.max(25, Math.round(pdfHeight(hero.pdf?.height) / 12))), defaultTopVh: 62 });
@@ -595,7 +653,10 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
         avatarPosition: undefined, namePosition: undefined, titlePosition: undefined,
         subtitlePosition: undefined, bioPosition: undefined, ctaButtonsPosition: undefined,
         backgroundType: 'none', backgroundValue: '', backgroundOverlayOpacity: 0,
-        galleryImages: [], galleryVideos: [],
+        galleryImages: slot.key === 'galleryImages' ? hero.galleryImages : [],
+        galleryVideos: slot.key === 'galleryVideos' ? hero.galleryVideos : [],
+        galleryImagesPosition: undefined, galleryVideosPosition: undefined,
+        pdf: hero.pdf ? { ...hero.pdf, offset: undefined } : hero.pdf,
         // Shapes live ONLY in the backdrop layer — rendered inside a tile they
         // would overflow the small fit-content box (huge translucent rect over
         // the whole page) and steal mouse events with their own drag handles.
@@ -607,7 +668,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
         position: position(slot.key),
         defaultPosition,
         content: (
-          <div style={{ width: slot.key === 'pdf' ? '100%' : 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
+          <div style={{ width: ['pdf', 'galleryImages', 'galleryVideos'].includes(slot.key) ? '100%' : 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
             <HeroPreview section={isolated} theme={theme} compact />
           </div>
         ),
@@ -775,7 +836,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     estVh: slot.estVh,
     defaultW: defaultTileCols(slot.section.type, slot.key),
     tileBg: tileBackgroundFor(slot.section, theme),
-    autoW: (slot.section.type === 'hero' && slot.key !== 'pdf') || slot.key === 'title',
+    autoW: (slot.section.type === 'hero' && !['pdf', 'galleryImages', 'galleryVideos'].includes(slot.key)) || slot.key === 'title',
     static: slot.key === 'pageHero',
     // The hero background is NOT a grid tile: grid tiles can never overlap, so
     // a full-width static background tile (min 60vh tall) would push every
@@ -1023,10 +1084,8 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     },
   };
 
-  // Build the layout: saved tiles keep their EXACT saved x/y (free mode —
-  // overlap is allowed and nothing is compacted). Tiles that were never
-  // dropped by the user (new sections, first render) fall below the lowest
-  // placed tile in their columns, stacked in slot order.
+  // Build the layout from saved positions and measured tile heights. Colliding
+  // tiles move down, and new tiles start below the saved layout.
   const layout: GridLayoutDef = (() => {
     const built = tiles.map((tile) => {
       const saved = savedOf(tile);
@@ -1044,11 +1103,12 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
       // The PDF reader always occupies the full canvas width — its content is
       // %-based (hug-measurement collapses it) and it must stay far wider than
       // the 1152px text cap to be readable. Stale saved widths are ignored.
-      const baseW = tile.slotKey === 'pdf'
+      const isMedia = ['pdf', 'galleryImages', 'galleryVideos'].includes(tile.slotKey);
+      const baseW = isMedia
         ? Math.min(COLS, tile.defaultW)
         : Math.max(1, Math.min(COLS, saved?.w ?? tile.defaultW));
       const fitsW = nat !== undefined ? colsForPx(nat + 2 * TILE_PAD[0]) : 0;
-      const wRaw = tile.slotKey === 'pdf'
+      const wRaw = isMedia
         ? baseW
         : nat === undefined
         ? baseW
@@ -1074,20 +1134,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
       const x = Math.max(0, Math.min(anchorX, COLS - w));
       return { item: { i: tile.key, x, y: 0, w, h, static: tile.static } as GridLayoutDef[number], placed: !!saved, savedY: saved?.y ?? 0 };
     });
-    const colBottom = new Array<number>(COLS).fill(0);
-    for (const b of built) {
-      if (!b.placed) continue;
-      b.item.y = Math.max(0, Math.round(b.savedY));
-      for (let c = b.item.x; c < b.item.x + b.item.w; c++) colBottom[c] = Math.max(colBottom[c], b.item.y + b.item.h);
-    }
-    for (const b of built) {
-      if (b.placed) continue;
-      let y = 0;
-      for (let c = b.item.x; c < b.item.x + b.item.w; c++) y = Math.max(y, colBottom[c]);
-      b.item.y = y;
-      for (let c = b.item.x; c < b.item.x + b.item.w; c++) colBottom[c] = y + b.item.h;
-    }
-    return built.map((b) => b.item);
+    return placePageGridRows(built);
   })();
 
   // Hero background = absolutely-positioned backdrop BEHIND the grid (grid
@@ -1117,7 +1164,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
       position: 'absolute', left: 0, right: 0, top: topPx, height: heightPx,
       pointerEvents: 'none', zIndex: 0,
     };
-    const hasFlowExtras = (hero.galleryImages?.length ?? 0) > 0 || (hero.galleryVideos?.length ?? 0) > 0 || (hero.backgroundShapes?.length ?? 0) > 0;
+    const hasFlowExtras = (hero.backgroundShapes?.length ?? 0) > 0;
     return (
       <div key={`hero-bg-${hero.id}`} aria-hidden data-no-drag style={layerStyle}>
         {hasFlowExtras && (
@@ -1128,6 +1175,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
                 showAvatar: false, showName: false, showTitle: false,
                 showSubtitle: false, showBio: false, ctaButtons: [],
                 showPdf: false,
+                galleryImages: [], galleryVideos: [],
                 backgroundType: 'none', backgroundValue: '', backgroundOverlayOpacity: 0,
               } as unknown as HeroSection}
               theme={theme}
@@ -1141,6 +1189,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
   })();
 
   // Persist grid geometry per section after a drop (x/w + resulting y order).
+  const dragStartLayout = React.useRef<readonly GridLayoutDef[number][]>([]);
   const persistLayout = (l: readonly GridLayoutDef[number][]) => {
     const bySection: Record<string, Record<string, { x: number; y: number; w: number }>> = {};
     for (const it of l) {
@@ -1175,6 +1224,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
           compactor={freePageCompactor}
           constraints={[smartSnapConstraint]}
           onDragStart={(_l, oldItem, newItem) => {
+            dragStartLayout.current = layout.map(item => ({ ...item }));
             snapLinesRef.current = [];
             collectSnapTargets(newItem?.i || oldItem?.i || '');
             // While dragging: hide every iframe (a live PDF viewer re-rasterizes
@@ -1187,7 +1237,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
             window.addEventListener('mouseup', () => containerRef.current?.classList.remove('ff-canvas-dragging'), { once: true });
           }}
           onDrag={() => paintGuides(snapLinesRef.current)}
-          onDragStop={(l) => { paintGuides([]); persistLayout(l); containerRef.current?.classList.remove('ff-canvas-dragging'); }}
+          onDragStop={(l, oldItem, newItem) => { paintGuides([]); const dropped = newItem || oldItem; persistLayout(dropped ? reorderPageGridDrop(dragStartLayout.current, dropped) : l); containerRef.current?.classList.remove('ff-canvas-dragging'); }}
         >
           {tiles.map((tile) => {
             return (
@@ -1245,6 +1295,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
 
 // ============ HERO ============
 export function HeroPreview({ section, theme, useLandingBackground = false, compact = false, decorative = false }: { section: HeroSection; theme: any; useLandingBackground?: boolean; compact?: boolean; decorative?: boolean }) {
+  const orderedGalleryImages = useGalleryOrder(section.galleryImages, section.galleryGridCols || 2);
   const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const sectionRef = React.useRef<HTMLElement>(null);
@@ -1255,7 +1306,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
   const resizingRef = React.useRef(resizing);
   React.useEffect(() => { resizingRef.current = resizing; }, [resizing]);
 
-  const bgStyle = section.backgroundType === 'gradient' || section.backgroundType === 'color'
+  // With a switching page background the reel paints the whole page behind every
+  // section, so the hero surface itself has to stay clear of its own background.
+  const pageReelActive = getPageBackgroundMode(section) === 'sequence';
+
+  const bgStyle = pageReelActive ? {} : section.backgroundType === 'gradient' || section.backgroundType === 'color'
     ? { background: section.backgroundValue }
     : section.backgroundType === 'image'
     ? { backgroundImage: `url(${section.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
@@ -1267,7 +1322,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
   const useParallax = section.parallaxEnabled && section.backgroundType === 'image' && section.backgroundValue;
   const heroSurfaceStyle = { backgroundColor: 'transparent' }; // Always transparent - wrapper has background
 
-  const overlayStyle = (section.backgroundType === 'image' || section.backgroundType === 'video') && section.backgroundOverlayOpacity
+  const overlayStyle = !pageReelActive && (section.backgroundType === 'image' || section.backgroundType === 'video') && section.backgroundOverlayOpacity
     ? { position: 'absolute' as const, inset: 0, backgroundColor: `rgba(0,0,0,${section.backgroundOverlayOpacity / 100})`, pointerEvents: 'none' as const }
     : {};
 
@@ -1795,7 +1850,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
 
         {/* Background layer — clipped independently so gallery content can overflow freely */}
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-          {section.backgroundType === 'video' && section.backgroundValue && (
+          {!pageReelActive && section.backgroundType === 'video' && section.backgroundValue && (
             <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" />
           )}
           {overlayStyle && Object.keys(overlayStyle).length > 0 && <div style={overlayStyle} />}
@@ -1854,45 +1909,17 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                 }}
               >
  
-                {section.galleryImages.map((img) => {
-                  const cols = section.galleryGridCols || 2;
-                  const tileWidth = 1136 / cols;
-                  // Uniform tile height based on a 4:3 aspect ratio
-                  const tileHeight = (tileWidth * 3) / 4;
-                  // CSS mask for blurred/feathered border effect
-                  const featherMask = 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)';
+                {orderedGalleryImages.map((img) => {
                   return (
                     <div
                       key={img.id}
-                      className="relative group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
-                      style={{ aspectRatio: '4 / 3' }}
+                      className="relative self-start group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
                       onClick={() => setFullscreenImage(img.url)}
                     >
-                      {/* Blurred background fill using the image's own pixels */}
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url(${img.url})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          filter: 'blur(20px)',
-                          transform: 'scale(1.1)',
-                        }}
-                      />
-                      {/* Full image on top with feathered/blurred border */}
                       <OptimizedImage
                         src={img.url}
                         alt={img.caption || 'Gallery'}
-                        className="w-full h-full object-cover relative z-10"
-                        style={{
-                          objectPosition: 'center',
-                          WebkitMaskImage: featherMask,
-                          maskImage: featherMask,
-                          WebkitMaskComposite: 'intersect',
-                          maskComposite: 'intersect',
-                        }}
-                        width={Math.round(tileWidth)}
-                        height={Math.round(tileHeight)}
+                        className="block w-full h-auto"
                       />
                       {img.caption && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
@@ -2018,16 +2045,16 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
   const contentBottom = Math.max(400, galleryImgBottom, galleryVidBottom);
   const dynamicMinHeight = anyGalleryDragged && contentBottom > 400
     ? `${contentBottom + 20}px`
-    : isVideoBg ? '100vh' : '60vh'; // Always ensure minimum canvas height
+    : (isVideoBg || pageReelActive) ? '100vh' : '60vh'; // A video or a reel background fills the first screen
 
 
   return (
     <section ref={sectionRef} className="relative w-full" style={{ ...heroSurfaceStyle, minHeight: compact ? 'auto' : dynamicMinHeight }}>
       {/* Background layer — parallax-enabled when section.parallaxEnabled is true */}
-      {section.backgroundType === 'video' && section.backgroundValue && (
+      {!pageReelActive && section.backgroundType === 'video' && section.backgroundValue && (
         <video key={section.backgroundValue} src={section.backgroundValue} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
       )}
-      {section.backgroundType === 'image' && section.backgroundValue && section.parallaxEnabled && (
+      {!pageReelActive && section.backgroundType === 'image' && section.backgroundValue && section.parallaxEnabled && (
         <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
           <Parallax speed={0.3} className="absolute inset-0">
             <div
@@ -2289,41 +2316,17 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
               gridTemplateColumns: `repeat(${section.galleryGridCols || 2}, minmax(0, 1fr))`,
             }}
           >
-            {section.galleryImages.map((img) => {
-              const cols = section.galleryGridCols || 2;
-              const tileWidth = 1136 / cols;
-              const tileHeight = (tileWidth * 3) / 4;
-              const featherMask = 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)';
+            {orderedGalleryImages.map((img) => {
               return (
                 <div
                   key={img.id}
-                  className="relative group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
-                  style={{ aspectRatio: '4 / 3' }}
+                  className="relative self-start group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
                   onClick={(e) => { e.stopPropagation(); setFullscreenImage(img.url); }}
                 >
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: `url(${img.url})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      filter: 'blur(20px)',
-                      transform: 'scale(1.1)',
-                    }}
-                  />
                   <OptimizedImage
                     src={img.url}
                     alt={img.caption || 'Gallery'}
-                    className="w-full h-full object-cover relative z-10"
-                    style={{
-                      objectPosition: 'center',
-                      WebkitMaskImage: featherMask,
-                      maskImage: featherMask,
-                      WebkitMaskComposite: 'intersect',
-                      maskComposite: 'intersect',
-                    }}
-                    width={Math.round(tileWidth)}
-                    height={Math.round(tileHeight)}
+                    className="block w-full h-auto"
                   />
                   {img.caption && (
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
@@ -2458,6 +2461,15 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
 
 // ============ ABOUT ============
 function AboutPreview({ section, theme }: { section: AboutSection; theme: any }) {
+  const [galleryColumns, setGalleryColumns] = React.useState(2);
+  React.useEffect(() => {
+    const query = window.matchMedia('(min-width: 768px)');
+    const update = () => setGalleryColumns(query.matches ? 3 : 2);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  const orderedGalleryImages = useGalleryOrder(section.galleryImages, galleryColumns);
   const { updateSection, selectElement } = usePortfolioStore();
   const previewMode = usePortfolioStore((s) => s.previewMode);
   const imageShapeClass = section.imageShape === 'circle' ? 'rounded-full' : section.imageShape === 'square' ? 'rounded-none' : 'rounded-lg';
@@ -2851,38 +2863,17 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             )
           )}
 
-          {/* Gallery Images (uniform grid — all tiles same size, blurred background fill + feathered border) */}
+          {/* Gallery Images */}
           {section.showGallery !== false && section.galleryImages && section.galleryImages.length > 0 && (() => {
-            const featherMask = 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)';
             return (
               <div className="mt-8">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  {section.galleryImages.map((img) => (
-                    <div key={img.id} className="relative group overflow-hidden rounded-lg shadow-md border border-gray-200" style={{ aspectRatio: '4 / 3' }}>
-                      {/* Blurred background fill using the image's own pixels */}
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url(${img.url})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          filter: 'blur(20px)',
-                          transform: 'scale(1.1)',
-                        }}
-                      />
-                      {/* Full image on top with feathered/blurred border */}
+                  {orderedGalleryImages.map((img) => (
+                    <div key={img.id} className="relative self-start group overflow-hidden rounded-lg shadow-md border border-gray-200">
                       <OptimizedImage
                         src={img.url}
                         alt={img.caption || 'Gallery'}
-                        className="w-full h-full object-cover relative z-10"
-                        style={{
-                          objectPosition: 'center',
-                          WebkitMaskImage: featherMask,
-                          maskImage: featherMask,
-                          WebkitMaskComposite: 'intersect',
-                          maskComposite: 'intersect',
-                        }}
-                        width={300} height={225}
+                        className="block w-full h-auto"
                       />
                       {img.caption && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-3 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
