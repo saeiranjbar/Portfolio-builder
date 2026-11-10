@@ -15,6 +15,16 @@ export function pdfSource(value: unknown): string | null {
   } catch { return null; }
 }
 
+// True when the URL came from /api/upload: a local /uploads path, an embedded
+// data URL, or a file in the Vercel Blob store under /uploads/.
+export function isUploadedPdfUrl(value: string): boolean {
+  if (value.startsWith('data:') || value.startsWith('/uploads/')) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.endsWith('.blob.vercel-storage.com') && url.pathname.startsWith('/uploads/');
+  } catch { return false; }
+}
+
 export function pdfHeight(value?: number): number {
   return Number.isFinite(value) ? Math.min(1600, Math.max(240, value!)) : 600;
 }
