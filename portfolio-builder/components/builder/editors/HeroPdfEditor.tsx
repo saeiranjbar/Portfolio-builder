@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { HeroSection } from '@/lib/types';
-import { pdfHeight, pdfWidth, pdfSource, uploadPdfFile } from '@/lib/hero-pdf';
+import { isUploadedPdfUrl, pdfHeight, pdfWidth, pdfSource, uploadPdfFile } from '@/lib/hero-pdf';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ export function HeroPdfEditor({ section, onUpdate }: { section: HeroSection; onU
   const [reading, setReading] = useState(false);
   const [error, setError] = useState('');
   const pdf = section.pdf ?? { url: '', title: 'PDF document', height: 600 };
-  const uploaded = pdf.url.startsWith('data:') || pdf.url.startsWith('/uploads/');
+  const uploaded = isUploadedPdfUrl(pdf.url);
   return <div className="space-y-3">
     <div className="space-y-1">
       <Label htmlFor={`hero-pdf-url-${section.id}`}>Public PDF link</Label>

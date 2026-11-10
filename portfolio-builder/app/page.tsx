@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { usePortfolioStore } from '@/lib/store';
 import { SectionEditor } from '@/components/builder/SectionEditor';
 import { ElementInspector } from '@/components/builder/ElementInspector';
@@ -22,8 +22,7 @@ import { AccountControls } from '@/components/AccountControls';
 import { SavedWebsites } from '@/components/builder/SavedWebsites';
 import { PublishWebsite } from '@/components/builder/PublishWebsite';
 import { requestPublication } from '@/lib/cloud-publish';
-import { LoginForm } from '@/components/LoginForm';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { SignInScreen } from '@/components/SignInScreen';
 import {
   Monitor,
   Tablet,
@@ -63,18 +62,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BuilderPage() {
   const { status } = useSession();
-  // Allow guest access for local testing
-  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  // Allow guest access for local testing. Read the hostname after mount so the
+  // server render and the first client render match (avoids a hydration mismatch).
+  const isLocal = useSyncExternalStore(
+    () => () => undefined,
+    () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+    () => false,
+  );
   if (status === 'authenticated' || isLocal) return <AuthenticatedBuilder />;
-  return <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
-    {status === 'loading' ? <p role="status" className="p-8 text-center text-white">Checking sign-in…</p>
-      : <Dialog open onOpenChange={() => undefined}>
-        <DialogContent showClose={false} aria-label="Sign in or create an account"
-          className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-3xl p-8">
-          <LoginForm embedded />
-        </DialogContent>
-      </Dialog>}
+  if (status === 'loading') return <div className="min-h-screen" style={{ background: '#E8EAED' }}>
+    <p role="status" className="p-8 text-center" style={{ color: '#4A515C' }}>Checking sign-in…</p>
   </div>;
+  return <SignInScreen />;
 }
 
 function AuthenticatedBuilder() {
@@ -257,6 +256,7 @@ function AuthenticatedBuilder() {
 
     const ownerEmail = session?.user?.email;
     if (status !== 'authenticated' || !ownerEmail) {
+      toast('Sign in to save your website.');
       await signIn().catch(() => toast.error('Unable to open sign-in. Please try again.'));
       return;
     }
@@ -555,14 +555,16 @@ function AuthenticatedBuilder() {
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 flex-shrink-0"
+        className="relative z-30 bg-[#E8EAED]/95 backdrop-blur-md border-b border-[#B9BFC8] px-4 py-2 flex flex-wrap items-center justify-between gap-3 flex-shrink-0"
+        style={{ color: '#121417' }}
       >
 
         <div className="flex flex-wrap items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900">Portfolio Builder</h1>
+          <h1 className="text-2xl leading-none" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Portfolio Builder</h1>
           <button
             onClick={() => setShowAIChat(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            style={{ background: '#2446D6' }}
           >
             <Wand2 className="w-4 h-4" />
             <span className="hidden md:inline">AI Website Builder</span>
@@ -716,7 +718,8 @@ function AuthenticatedBuilder() {
             variant={isDirty || !savedToCurrentAccount ? 'default' : 'outline'}
             onClick={() => void handleSave()}
             disabled={isSaving || status === 'loading' || (!isDirty && savedToCurrentAccount)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:opacity-90"
+            style={{ background: '#2446D6' }}
             title="Save (Ctrl+S)"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -738,7 +741,8 @@ function AuthenticatedBuilder() {
           {/* Export Dropdown */}
           <div className="relative">
             <Button
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 hover:opacity-90"
+              style={{ background: '#2446D6' }}
               onClick={() => setShowExportMenu(!showExportMenu)}
             >
               <Download className="w-4 h-4" />
