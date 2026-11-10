@@ -37,11 +37,15 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
   };
   db.$transaction = async fn => fn(db);
   const cache = new Map();
+  // Resolve a module path, falling back to .tsx when the .ts file does not exist.
+  const sourceFor = base => fs.existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx`;
   function load(filename) {
     if (cache.has(filename)) return cache.get(filename).exports;
     const module = { exports: {} };
     cache.set(filename, module);
-    const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    // import.meta is valid only in ES modules; this CommonJS sandbox needs a placeholder (used only in client effects).
+    const source = fs.readFileSync(filename, 'utf8').replace(/import\.meta\.url/g, '"file:///test/"');
+    const compiled = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     }).outputText;
     vm.runInNewContext(compiled, {
@@ -51,8 +55,8 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
         if (name === '@/lib/auth') return { authOptions: {} };
         if (name === 'next-auth') return { getServerSession: async () => session };
         if (name === 'next/server') return require(name);
-        if (name.startsWith('@/')) return load(path.join(root, `${name.slice(2)}.ts`));
-        if (name.startsWith('.')) return load(path.resolve(path.dirname(filename), `${name}.ts`));
+        if (name.startsWith('@/')) return load(sourceFor(path.join(root, name.slice(2))));
+        if (name.startsWith('.')) return load(sourceFor(path.resolve(path.dirname(filename), name)));
         return require(name);
       },
     }, { filename });

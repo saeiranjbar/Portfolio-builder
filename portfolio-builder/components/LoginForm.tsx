@@ -52,31 +52,33 @@ export function LoginForm({ embedded = false }: { embedded?: boolean }) {
     finally { setLoading(false); }
   };
 
+  const field = embedded ? 'rounded-none' : undefined;
   const title = mode === 'signin' ? 'Welcome back' : mode === 'register' ? 'Create an account' : 'Set or reset your password';
   return <div className={embedded ? '' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8'}>
     <div className={embedded ? 'w-full' : 'w-full max-w-md p-8 bg-white rounded-3xl shadow-xl'}>
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="text-sm text-gray-500 mt-2">{mode === 'signin' ? 'Sign in or create an account to build your website.' : 'Verify your email to secure your account.'}</p>
+      <div className={embedded ? 'mb-8' : 'text-center mb-6'}>
+        <h1 className={embedded ? 'text-4xl' : 'text-2xl font-bold text-gray-900'}
+          style={embedded ? { fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, color: '#121417' } : undefined}>{title}</h1>
+        <p className={embedded ? 'text-base mt-2' : 'text-sm text-gray-500 mt-2'} style={embedded ? { color: '#4A515C' } : undefined}>{mode === 'signin' ? 'Sign in or create an account to build your website.' : 'Verify your email to secure your account.'}</p>
       </div>
       {error && <p role="alert" className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-xl">{error}</p>}
       {message && <p role="status" className="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-xl">{message}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div><Label htmlFor="email">Email</Label><Input id="email" type="email" autoComplete="email" autoFocus={embedded} value={email}
+        <div><Label htmlFor="email">Email</Label><Input className={field} id="email" type="email" autoComplete="email" autoFocus={embedded} value={email}
           onChange={event => setEmail(event.target.value)} required maxLength={254} readOnly={codeSent} /></div>
-        {mode === 'register' && codeSent && <div><Label htmlFor="name">Name</Label><Input id="name" autoComplete="name"
+        {mode === 'register' && codeSent && <div><Label htmlFor="name">Name</Label><Input className={field} id="name" autoComplete="name"
           value={name} onChange={event => setName(event.target.value)} maxLength={100} required /></div>}
-        {codeSent && <div><Label htmlFor="code">Email verification code</Label><Input id="code" autoComplete="one-time-code"
+        {codeSent && <div><Label htmlFor="code">Email verification code</Label><Input className={field} id="code" autoComplete="one-time-code"
           inputMode="numeric" pattern="[0-9]{8}" minLength={8} maxLength={8} value={code}
           onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))} required />
           <p className="mt-1 text-xs text-gray-500">Enter the eight-digit code from your email. It expires in 15 minutes.</p></div>}
         {(mode === 'signin' || codeSent) && <div><Label htmlFor="password">{mode === 'signin' ? 'Password' : 'New password'}</Label>
-          <Input id="password" type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+          <Input className={field} id="password" type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
             value={password} onChange={event => setPassword(event.target.value)} required maxLength={128} minLength={mode === 'signin' ? undefined : 12} />
           {mode !== 'signin' && <p className="mt-1 text-xs text-gray-500">Use at least 12 characters.</p>}</div>}
-        {codeSent && <div><Label htmlFor="confirmation">Confirm password</Label><Input id="confirmation" type="password"
+        {codeSent && <div><Label htmlFor="confirmation">Confirm password</Label><Input className={field} id="confirmation" type="password"
           autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} required maxLength={128} /></div>}
-        <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Please wait...'
+        <Button type="submit" className={embedded ? 'w-full rounded-none text-white hover:opacity-90' : 'w-full'} style={embedded ? { background: '#2446D6' } : undefined} disabled={loading}>{loading ? 'Please wait...'
           : mode === 'signin' ? 'Sign in' : codeSent ? 'Set password' : 'Send verification code'}</Button>
       </form>
       <div className="mt-5 flex flex-wrap justify-center gap-4 text-sm text-blue-700">
