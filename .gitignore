@@ -5,3 +5,7 @@ certificates/
 # Local databases
 *.db
 *.db-journal
+
+# Separate cloned git repos kept on disk but out of this repo
+/registry/
+/anthropic-skills/
