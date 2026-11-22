@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { imageToBase64 } from '@/lib/utils';
+import { uploadMediaFile } from '@/lib/utils';
 import { OptimizedImage } from './OptimizedImage';
 import { GalleryImage } from '@/lib/types';
 
@@ -18,21 +18,30 @@ interface GalleryUploaderProps {
 }
 
 export function GalleryUploader({ images, onChange, className, maxImages = 20 }: GalleryUploaderProps) {
+  const [uploadError, setUploadError] = useState('');
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newImages: GalleryImage[] = [];
+    setUploadError('');
     for (const file of acceptedFiles) {
       if (images.length + newImages.length >= maxImages) break;
-      const base64 = await imageToBase64(file);
+      let url: string;
+      try {
+        // F12: gallery images are stored as uploaded URLs, not base64 copies
+        url = await uploadMediaFile(file);
+      } catch (error) {
+        setUploadError(`${file.name}: ${error instanceof Error ? error.message : 'upload failed'}`);
+        continue;
+      }
       // Capture natural image dimensions for aspect-ratio calculations
       const dims = await new Promise<{ width: number; height: number }>((resolve) => {
         const img = new window.Image();
         img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
         img.onerror = () => resolve({ width: 0, height: 0 });
-        img.src = base64;
+        img.src = url;
       });
-      newImages.push({ id: generateId(), url: base64, caption: '', naturalWidth: dims.width, naturalHeight: dims.height });
+      newImages.push({ id: generateId(), url, caption: '', naturalWidth: dims.width, naturalHeight: dims.height });
     }
-    onChange([...images, ...newImages]);
+    onChange([...newImages, ...images]);
   }, [images, onChange, maxImages]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -116,6 +125,7 @@ export function GalleryUploader({ images, onChange, className, maxImages = 20 }:
             <p className="text-xs text-gray-500">
               {images.length}/{maxImages} images • Supports: JPG, PNG, GIF, WebP
             </p>
+            {uploadError && <p role="alert" className="text-xs text-red-600">{uploadError}</p>}
           </div>
         </div>
       )}

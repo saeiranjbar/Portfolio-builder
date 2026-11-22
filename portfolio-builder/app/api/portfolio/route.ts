@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { parseSavedWebsite } from '@/lib/cloud-load';
 
 // Basic validation of the request and portfolio structure.
 const saveSchema = z.object({
@@ -93,6 +94,19 @@ export async function POST(req: NextRequest) {
     }
 
     const { id, title, description, data } = result.data;
+
+    // Reject drafts that the shared loader and publisher cannot understand.
+    // Validate without replacing the original JSON, preserving editor fields.
+    try {
+      parseSavedWebsite({
+        id: id ?? '00000000-0000-4000-8000-000000000000',
+        title,
+        updatedAt: new Date().toISOString(),
+        data: JSON.stringify(data),
+      }, '');
+    } catch {
+      return NextResponse.json({ error: 'Invalid website content. Please review your site and try again.' }, { status: 400 });
+    }
 
     const values = {
       title,

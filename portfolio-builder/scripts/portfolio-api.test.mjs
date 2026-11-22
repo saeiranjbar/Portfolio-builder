@@ -113,11 +113,19 @@ function loadRoute(route = 'app/api/portfolio/route.ts', options = {}) {
       if (name === 'next-auth') return { getServerSession: async () => session };
       if (name === '@/lib/auth') return { authOptions: {} };
       if (name === '@/lib/prisma') return { prisma };
+      if (name === '@/lib/cloud-load') return { parseSavedWebsite: options.parseSavedWebsite ?? (() => ({})) };
       return loadDependency(name);
     },
   }, { filename: route });
   return { handlers: testModule.exports, records, sites, calls };
 }
+
+test('POST rejects a draft that fails document validation before writing', async () => {
+  const { handlers, calls } = loadRoute(undefined, { parseSavedWebsite() { throw new Error('Invalid content'); } });
+  const response = await handlers.POST(request({ title: 'Invalid', data: draft }));
+  assert.equal(response.status, 400);
+  assert.equal(calls.some(([operation]) => operation === 'create' || operation === 'update'), false);
+});
 
 function request(body, id) {
   const nextUrl = new URL('http://localhost:3000/api/portfolio');

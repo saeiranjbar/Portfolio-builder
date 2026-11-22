@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { sanitizePublishedContent } from '@/lib/public-content';
 import { ProjectMediaBlock, TextBlockContent, PhotoGridContent, VideoContent, EmbedContent, MediaType, PdfContent } from '@/lib/types';
 
 import { OptimizedImage } from './OptimizedImage';
@@ -444,7 +445,7 @@ const TextBlock: React.FC<{ block: ProjectMediaBlock; themeColors: any }> = ({ b
           fontFamily: content.fontFamily || 'Arial, sans-serif',
           whiteSpace: 'pre-wrap'
         }}
-        dangerouslySetInnerHTML={{ __html: content.text }}
+        dangerouslySetInnerHTML={{ __html: sanitizePublishedContent({ text: content.text }).text }}
       />
     </div>
   );
@@ -665,7 +666,7 @@ const EmbedBlock: React.FC<{ block: ProjectMediaBlock; themeColors: any }> = ({ 
         <div className="w-full max-w-4xl mx-auto" style={{ position: 'relative', paddingBottom }}>
           <div 
             className="absolute inset-0"
-            dangerouslySetInnerHTML={{ __html: embed.embedCode }}
+            dangerouslySetInnerHTML={{ __html: sanitizePublishedContent({ embedCode: embed.embedCode }).embedCode }}
             style={{ width: '100%', height: '100%' }}
           />
         </div>

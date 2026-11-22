@@ -1,4 +1,6 @@
 import { PortfolioData, PortfolioSection, HeroSection, AboutSection } from './types';
+import { safeHref, safeEmbedUrl } from './safe-url';
+import { resolveTheme } from './dark-theme';
 import { getPageBackgroundScenes, getPageBackgroundMode, getPageBackgroundTransition, getPageBackgroundInterval, getSceneStartPcts } from './page-background';
 import { getFlowBlocks, sectionForFlowBlock, type FlowBlock } from './flow-layout';
 import { availableFonts } from './templates';
@@ -27,7 +29,7 @@ function generatePageBackgroundHTML(heroSection: HeroSection | undefined): strin
   const starts = getSceneStartPcts(scenes);
   const layers = scenes.map((scene, index) => {
     const media = scene.type === 'video'
-      ? `<video src="${scene.value}" muted loop playsinline preload="metadata"${index === 0 ? ' autoplay' : ''} style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;"></video>`
+      ? `<video src="${scene.value}" muted loop playsinline disablepictureinpicture preload="metadata"${index === 0 ? ' autoplay' : ''} style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;"></video>`
       : '';
     const image = scene.type === 'image' ? `background-image:url('${scene.value}');` : '';
     const overlay = scene.overlayOpacity
@@ -94,7 +96,8 @@ function generatePageBackgroundHTML(heroSection: HeroSection | undefined): strin
 }
 
 export function generateHTML(portfolio: PortfolioData): string {
-  const { theme } = portfolio;
+  // Dark mode is applied here as well, so the exported page matches the preview.
+  const theme = resolveTheme(portfolio.theme, portfolio.darkMode);
   
   const renderSectionHTML = (section: PortfolioSection): string => {
     switch (section.type) {
@@ -219,6 +222,12 @@ export function generateHTML(portfolio: PortfolioData): string {
     section { padding: 16px 0; }
     .flow-layout { display:flex; flex-direction:column; gap:24px; max-width:1440px; margin:0 auto; padding:32px 16px; }
     .flow-component { width:100%; min-width:0; position:relative; overflow-wrap:anywhere; }
+    @media (max-width: 599px) {
+      .flow-layout { padding: 16px; }
+      .flow-component h1 { font-size: min(2.5rem, 8vw); line-height: 1.2; }
+      .flow-component h2 { font-size: min(2rem, 7vw); line-height: 1.25; }
+      .flow-component [data-hero-pdf] { width: 100% !important; }
+    }
     img {
       max-width: 100%;
       height: auto;
@@ -382,8 +391,8 @@ function generateHeroSection(section: any, theme: any): string {
   const offsetY = Number.isFinite(section.pdf?.offset?.y) ? section.pdf.offset.y : 0;
   const embeddedSource = source ? `${source.split('#')[0]}#toolbar=0&navpanes=0&view=FitH` : '';
   const pdfHtml = source ? `<div style="width:100%;margin-top:16px;transform:translate(${offsetX}%, ${offsetY}%);text-align:left;">
-    <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
-    <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;"><iframe src="${escape(embeddedSource)}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>
+    <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;"><strong>${title}</strong><a href="${escape(safeHref(source))}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>${source.startsWith('data:') ? 'Download PDF' : 'Open PDF'}</a></div>
+    <div style="width:${pdfWidth(section.pdf?.width)}%;margin:0 auto;"><iframe src="${escape(safeEmbedUrl(embeddedSource))}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>
   </div>` : '';
   // The hero no longer paints its own background band here: the page <body>
   // carries the single landing background top to bottom (see the page
@@ -473,17 +482,17 @@ function generateAboutSection(section: any, theme: any): string {
     resumeHtml = `<div style="margin-top: 24px; width: 100%;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <h4 style="font-size: 0.875rem; font-weight: 600; color: ${theme.colors.text};">Resume</h4>
-        <a href="${section.resumeUrl}" download style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 6px 12px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none;">⬇ Download</a>
+        <a href="${escapeFlow(safeHref(section.resumeUrl))}" download style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 6px 12px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none;">⬇ Download</a>
       </div>
       <div style="width: 100%; border-radius: ${theme.borderRadius}px; overflow: hidden; border: 1px solid ${theme.colors.textSecondary}33;">
-        <iframe src="${section.resumeUrl}" title="Resume" style="width: 100%; height: ${resumeHeight}px; border: 0;"></iframe>
+        <iframe src="${escapeFlow(safeEmbedUrl(section.resumeUrl))}" title="Resume" style="width: 100%; height: ${resumeHeight}px; border: 0;"></iframe>
       </div>
     </div>`;
   } else if (section.resumeUrl && resumeDisplayMode === 'download') {
-    resumeHtml = `<a href="${section.resumeUrl}" download style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none; margin-right: 12px;">⬇ Download Resume</a>`;
+    resumeHtml = `<a href="${escapeFlow(safeHref(section.resumeUrl))}" download style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; background-color: ${theme.colors.primary}; color: white; font-weight: 500; text-decoration: none; margin-right: 12px;">⬇ Download Resume</a>`;
   }
   const ctaBtnHtml = section.ctaButtonText && section.ctaButtonLink
-    ? `<a href="${section.ctaButtonLink}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; border: 2px solid ${theme.colors.primary}; color: ${theme.colors.primary}; font-weight: 500; text-decoration: none;">${section.ctaButtonText}</a>`
+    ? `<a href="${escapeFlow(safeHref(section.ctaButtonLink))}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: ${theme.borderRadius}px; border: 2px solid ${theme.colors.primary}; color: ${theme.colors.primary}; font-weight: 500; text-decoration: none;">${section.ctaButtonText}</a>`
     : '';
   const buttonsHtml = (resumeDisplayMode === 'download' && (resumeHtml || ctaBtnHtml)) ? `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">${resumeHtml}${ctaBtnHtml}</div>` : (ctaBtnHtml ? `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">${ctaBtnHtml}</div>` : '');
 
@@ -518,7 +527,7 @@ function generateAboutSection(section: any, theme: any): string {
       }
     }
     videoHtml = `<div style="margin-top: 32px; border-radius: ${theme.borderRadius}px; overflow: hidden; position: relative; padding-bottom: 56.25%; height: 0;">
-      <iframe src="${embedUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <iframe src="${escapeFlow(safeEmbedUrl(embedUrl))}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>`;
   }
 
@@ -582,7 +591,7 @@ function generateProjectsSection(section: any, theme: any): string {
             <div style="padding: 16px;">
               <h3 style="font-size: 1.25rem; margin-bottom: 8px; color: ${theme.colors.text};">
                 ${project.title}
-                ${project.link ? `<a href="${project.link}" target="_blank" rel="noopener" style="margin-left: 8px;">↗</a>` : ''}
+                ${project.link ? `<a href="${escapeFlow(safeHref(project.link))}" target="_blank" rel="noopener" style="margin-left: 8px;">↗</a>` : ''}
               </h3>
               <p style="font-size: 0.875rem; margin-bottom: 12px; color: ${theme.colors.textSecondary};">${project.description}</p>
               <div style="display: flex; flex-wrap: wrap; gap: 8px;">
@@ -731,7 +740,7 @@ function generateSocialSection(section: any, theme: any): string {
       <h2 style="font-size: 2rem; margin-bottom: 32px; color: ${theme.colors.text};">${section.title}</h2>
       <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 16px;">
         ${section.links.map((link: any) => `
-          <a href="${link.url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background-color: ${theme.colors.primary}; color: white; border-radius: 50%; transition: transform 0.2s;">
+          <a href="${escapeFlow(safeHref(link.url))}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background-color: ${theme.colors.primary}; color: white; border-radius: 50%; transition: transform 0.2s;">
             ${socialIcons[link.platform] || link.platform}
           </a>
         `).join('')}
@@ -762,7 +771,7 @@ function generateCTABannerSection(section: any, theme: any): string {
     <div style="max-width: 600px; margin: 0 auto;">
       <h2 style="font-size: 2.5rem; color: white; margin-bottom: 16px;">${section.title}</h2>
       <p style="font-size: 1.25rem; color: rgba(255,255,255,0.9); margin-bottom: 32px;">${section.subtitle}</p>
-      <a href="${section.buttonLink}" class="btn" style="background-color: ${theme.colors.primary};">${section.buttonText} →</a>
+      <a href="${escapeFlow(safeHref(section.buttonLink))}" class="btn" style="background-color: ${theme.colors.primary};">${section.buttonText} →</a>
     </div>
   </section>`;
 }
@@ -852,7 +861,7 @@ function generatePressSection(section: any, theme: any): string {
       ${section.subtitle ? `<p style="margin-bottom: 40px; color: ${theme.colors.textSecondary};">${section.subtitle}</p>` : ''}
       <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; align-items: center;">
         ${section.items.map((item: any) => `
-          ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener noreferrer" style="opacity: 0.6;">` : '<div style="opacity: 0.6;">'}
+          ${item.link ? `<a href="${escapeFlow(safeHref(item.link))}" target="_blank" rel="noopener noreferrer" style="opacity: 0.6;">` : '<div style="opacity: 0.6;">'}
             ${item.logo ? `<img src="${item.logo}" alt="${item.name}" style="height: 48px;">` : `<span style="font-size: 1.25rem; font-weight: bold; color: ${theme.colors.text};">${item.name}</span>`}
           ${item.link ? '</a>' : '</div>'}
         `).join('')}
@@ -874,7 +883,7 @@ function generateCertificationsSection(section: any, theme: any): string {
               <p style="font-size: 0.875rem; color: ${theme.colors.primary};">${cert.issuer}</p>
               <p style="font-size: 0.75rem; color: ${theme.colors.textSecondary};">${cert.date}</p>
             </div>
-            ${cert.url ? `<a href="${cert.url}" target="_blank" rel="noopener noreferrer">↗</a>` : ''}
+            ${cert.url ? `<a href="${escapeFlow(safeHref(cert.url))}" target="_blank" rel="noopener noreferrer">↗</a>` : ''}
           </div>
         `).join('')}
       </div>
@@ -888,7 +897,7 @@ function generateBlogSection(section: any, theme: any): string {
     const dateStr = post.date ? new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
     const meta = [dateStr, post.readTime].filter(Boolean).join(' • ');
     const tagsHtml = (post.tags || []).map((tag: string) => `<span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background-color: ${theme.colors.primary}15; color: ${theme.colors.primary};">${tag}</span>`).join(' ');
-    const linkHtml = post.link ? `<a href="${post.link}" target="_blank" rel="noopener noreferrer" style="color: ${theme.colors.primary}; font-size: 0.875rem;">Read more →</a>` : '';
+    const linkHtml = post.link ? `<a href="${escapeFlow(safeHref(post.link))}" target="_blank" rel="noopener noreferrer" style="color: ${theme.colors.primary}; font-size: 0.875rem;">Read more →</a>` : '';
 
     if (layout === 'list') {
       return `<div style="display: flex; gap: 24px; padding: 16px; border: 1px solid ${theme.colors.primary}20; border-radius: ${theme.borderRadius}px; margin-bottom: 16px;">
@@ -1012,16 +1021,16 @@ function generateFlowHero(block: FlowBlock): string {
     case 'subtitle': return text('p', section.subtitle);
     case 'bio': return text('p', section.bio);
     case 'avatar': return `<img src="${escapeFlow(section.avatar)}" alt="${escapeFlow(section.name)}" style="display:block;margin:auto;width:${section.avatarWidth ?? 120}px;height:${section.avatarHeight ?? 120}px;object-fit:cover;border-radius:${section.avatarShape === 'square' ? '0' : section.avatarShape === 'rounded' ? '12px' : '50%'};">`;
-    case 'ctaButtons': return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">${section.ctaButtons.map(button => `<a class="btn" href="${escapeFlow(button.link)}">${escapeFlow(button.label)}</a>`).join('')}</div>`;
+    case 'ctaButtons': return `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">${section.ctaButtons.map(button => `<a class="btn" href="${escapeFlow(safeHref(button.link))}">${escapeFlow(button.label)}</a>`).join('')}</div>`;
     case 'pdf': {
       const source = pdfSource(section.pdf?.url);
       if (!source) return '';
       const title = escapeFlow(section.pdf?.title || 'PDF document');
-      const embedded = escapeFlow(source.split('#')[0] + '#toolbar=0&navpanes=0&view=FitH');
-      return `<div style="width:${pdfWidth(section.pdf?.width)}%;margin:auto;"><div style="display:flex;gap:12px;justify-content:space-between;padding:8px 0;"><strong>${title}</strong><a href="${escapeFlow(source)}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>Open PDF</a></div><iframe src="${embedded}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>`;
+      const embedded = escapeFlow(safeEmbedUrl(source.split('#')[0] + '#toolbar=0&navpanes=0&view=FitH'));
+      return `<div data-hero-pdf style="width:${pdfWidth(section.pdf?.width)}%;margin:auto;"><div style="display:flex;gap:12px;justify-content:space-between;padding:8px 0;"><strong>${title}</strong><a href="${escapeFlow(safeHref(source))}" ${source.startsWith('data:') ? 'download="document.pdf"' : 'target="_blank" rel="noopener noreferrer"'}>Open PDF</a></div><iframe src="${embedded}" title="${title}" style="display:block;width:100%;height:${pdfHeight(section.pdf?.height)}px;border:0;"></iframe></div>`;
     }
     case 'galleryImages': return `<div style="display:grid;gap:16px;grid-template-columns:repeat(${section.galleryGridCols ?? 2},minmax(0,1fr));">${section.galleryImages?.map(image => `<figure><img src="${escapeFlow(image.url)}" alt="${escapeFlow(image.caption ?? 'Gallery image')}" style="display:block;width:100%;height:auto;">${image.caption ? `<figcaption>${escapeFlow(image.caption)}</figcaption>` : ''}</figure>`).join('') ?? ''}</div>`;
-    case 'galleryVideos': return `<div style="display:grid;gap:16px;grid-template-columns:repeat(${section.galleryVideoGridCols ?? 1},minmax(0,1fr));">${section.galleryVideos?.map(video => video.type === 'uploaded' ? `<video src="${escapeFlow(video.url)}" controls style="width:100%;aspect-ratio:16/9;"></video>` : `<iframe src="${escapeFlow(video.url)}" title="${escapeFlow(video.caption ?? 'Video')}" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;"></iframe>`).join('') ?? ''}</div>`;
+    case 'galleryVideos': return `<div style="display:grid;gap:16px;grid-template-columns:repeat(${section.galleryVideoGridCols ?? 1},minmax(0,1fr));">${section.galleryVideos?.map(video => video.type === 'uploaded' ? `<video src="${escapeFlow(video.url)}" controls style="width:100%;aspect-ratio:16/9;"></video>` : `<iframe src="${escapeFlow(safeEmbedUrl(video.url))}" title="${escapeFlow(video.caption ?? 'Video')}" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;"></iframe>`).join('') ?? ''}</div>`;
     default: return '';
   }
 }
@@ -1039,9 +1048,9 @@ function generateFlowAbout(block: FlowBlock): string {
     case 'toolTags': return paragraph(section.toolTags?.join(' ? ') ?? '');
     case 'location': return paragraph([section.location, section.availabilityStatus].filter(Boolean).join(' ? '));
     case 'languages': return paragraph(section.languages?.map(language => `${language.language} (${language.proficiency})`).join(' ? ') ?? '');
-    case 'cta': return `<a class="btn" href="${escapeFlow(section.ctaButtonLink ?? '#')}">${escapeFlow(section.ctaButtonText ?? '')}</a>`;
-    case 'resume': return section.resumeDisplayMode === 'download' ? `<a href="${escapeFlow(section.resumeUrl ?? '')}" download>Download resume</a>` : `<iframe src="${escapeFlow(section.resumeUrl ?? '')}" title="Resume" style="display:block;width:100%;height:${section.resumeHeight ?? 600}px;border:0;"></iframe>`;
-    case 'video': return `<iframe src="${escapeFlow(section.videoUrl ?? '')}" title="About video" allowfullscreen style="display:block;width:100%;aspect-ratio:16/9;border:0;"></iframe>`;
+    case 'cta': return `<a class="btn" href="${escapeFlow(safeHref(section.ctaButtonLink ?? '#'))}">${escapeFlow(section.ctaButtonText ?? '')}</a>`;
+    case 'resume': return section.resumeDisplayMode === 'download' ? `<a href="${escapeFlow(safeHref(section.resumeUrl ?? ''))}" download>Download resume</a>` : `<iframe src="${escapeFlow(safeEmbedUrl(section.resumeUrl))}" title="Resume" style="display:block;width:100%;height:${section.resumeHeight ?? 600}px;border:0;"></iframe>`;
+    case 'video': return `<iframe src="${escapeFlow(safeEmbedUrl(section.videoUrl))}" title="About video" allowfullscreen style="display:block;width:100%;aspect-ratio:16/9;border:0;"></iframe>`;
     case 'gallery': return `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">${section.galleryImages?.map(image => `<img src="${escapeFlow(image.url)}" alt="${escapeFlow(image.caption ?? 'Gallery image')}" style="width:100%;height:auto;">`).join('') ?? ''}</div>`;
     default: return '';
   }

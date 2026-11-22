@@ -15,12 +15,13 @@ import {
   PdfContent,
 } from '@/lib/types';
 import { ImageUploader } from './ImageUploader';
+import { CommaListInput } from './CommaListInput';
 import {
   X, Plus, Trash2, MoveUp, MoveDown,
   Image as ImageIcon, Type, Grid3X3, Video, Code, Box,
   Link as LinkIcon, FileText, Palette
 } from 'lucide-react';
-import { generateId } from '@/lib/utils';
+import { generateId, uploadMediaFile, uploadVideoFile } from '@/lib/utils';
 
 interface ProjectEditorModalProps {
   project: Project | null;
@@ -56,7 +57,7 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
       url: '',
       caption: '',
     };
-    updateField('images', [...(formData.images || []), newImage]);
+    updateField('images', [newImage, ...(formData.images || [])]);
   };
 
   const updateImage = (imageId: string, updates: { url?: string; caption?: string }) => {
@@ -165,14 +166,13 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
     ));
   };
 
+  // F12: images, videos and PDFs are uploaded and stored as URLs, not base64 copies
+  const reportUploadError = (error: unknown) => window.alert(error instanceof Error ? error.message : 'Upload failed');
+
   const handleImageUpload = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        updateMediaBlock(blockId, { imageUrl: ev.target?.result as string });
-      };
-      reader.readAsDataURL(file);
+      uploadMediaFile(file).then((url) => updateMediaBlock(blockId, { imageUrl: url })).catch(reportUploadError);
     }
   };
 
@@ -224,20 +224,17 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
     if (!files || files.length === 0) return;
 
     // First file goes to the existing item
-    const firstReader = new FileReader();
-    firstReader.onload = (ev) => {
-      updatePhotoGridItem(blockId, itemId, { url: ev.target?.result as string });
-    };
-    firstReader.readAsDataURL(files[0]);
+    uploadMediaFile(files[0]).then((url) => {
+      updatePhotoGridItem(blockId, itemId, { url });
+    }).catch(reportUploadError);
 
     // Additional files create new items — use functional state update to avoid stale closure
     for (let i = 1; i < files.length; i++) {
       const file = files[i];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
+      uploadMediaFile(file).then((url) => {
         const newItem: PhotoGridItem = {
           id: generateId(),
-          url: ev.target?.result as string,
+          url,
           caption: '',
         };
         setMediaBlocks(prev => prev.map(b => {
@@ -250,8 +247,7 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
             } as PhotoGridContent,
           };
         }));
-      };
-      reader.readAsDataURL(file);
+      }).catch(reportUploadError);
     }
 
     // Reset the input so the same files can be selected again
@@ -261,36 +257,32 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
   const handleVideoUpload = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
+      uploadVideoFile(file).then((url) => {
         const block = mediaBlocks.find(b => b.id === blockId);
         updateMediaBlock(blockId, {
           videoContent: {
             ...block?.videoContent,
-            url: ev.target?.result as string,
+            url,
             type: 'mp4',
           } as VideoContent,
         });
-      };
-      reader.readAsDataURL(file);
+      }).catch(reportUploadError);
     }
   };
 
   const handlePdfUpload = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
+      uploadMediaFile(file).then((url) => {
         const block = mediaBlocks.find(b => b.id === blockId);
         updateMediaBlock(blockId, {
           pdfContent: {
             ...block?.pdfContent,
-            url: ev.target?.result as string,
+            url,
             fileName: file.name,
           } as PdfContent,
         });
-      };
-      reader.readAsDataURL(file);
+      }).catch(reportUploadError);
     }
   };
 
@@ -505,11 +497,10 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
                       // Create a new item for each file using functional state update
                       // to avoid stale closure issues with async FileReader
                       Array.from(files).forEach((file) => {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
+                        uploadMediaFile(file).then((url) => {
                           const newItem: PhotoGridItem = {
                             id: generateId(),
-                            url: ev.target?.result as string,
+                            url,
                             caption: '',
                           };
                           // Use functional update to always get the latest state
@@ -523,8 +514,7 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
                               } as PhotoGridContent,
                             };
                           }));
-                        };
-                        reader.readAsDataURL(file);
+                        }).catch(reportUploadError);
                       });
                       e.target.value = '';
                     }}
@@ -740,9 +730,9 @@ export function ProjectEditorModal({ project, isOpen, onClose, onSave, categoryN
             {/* Tags */}
             <div>
               <Label>Tags (comma-separated)</Label>
-              <Input
-                value={(formData.tags || []).join(', ')}
-                onChange={(e) => updateField('tags', e.target.value.split(',').map((t) => t.trim()).filter(Boolean))}
+              <CommaListInput
+                values={formData.tags || []}
+                onChange={(tags) => updateField('tags', tags)}
                 placeholder="Design, Branding, UI/UX"
               />
             </div>

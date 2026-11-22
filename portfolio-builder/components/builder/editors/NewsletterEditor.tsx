@@ -74,7 +74,7 @@ export function NewsletterEditor({ section, onUpdate }: NewsletterEditorProps) {
           <select
             value={section.provider || 'none'}
             onChange={(e) => onUpdate({ provider: e.target.value as any })}
-            className="w-full px-3 py-2 border rounded-xl text-sm"
+            className="w-full px-3 py-2 border rounded-xl text-sm text-gray-900 bg-white"
           >
             <option value="none">None (simple form)</option>
             <option value="mailchimp">Mailchimp</option>

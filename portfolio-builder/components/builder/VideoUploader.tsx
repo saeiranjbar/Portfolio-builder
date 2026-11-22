@@ -83,7 +83,7 @@ export function VideoUploader({ videos, onChange, className, maxVideos = 10 }: V
         window.alert(err instanceof Error ? err.message : 'Unable to upload video.');
       }
     }
-    onChange([...videos, ...newVideos]);
+    onChange([...newVideos, ...videos]);
   }, [videos, onChange, maxVideos]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

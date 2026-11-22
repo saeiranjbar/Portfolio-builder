@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/lib/store';
 import { Project, ProjectMediaBlock } from '@/lib/types';
 import { MediaBlockRenderer } from '@/components/builder/MediaBlocks';
 import { OptimizedImage } from '@/components/builder/OptimizedImage';
+import { sanitizePublishedContent } from '@/lib/public-content';
 import { ArrowLeft, ExternalLink, Calendar, User, Tag, FolderTree } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -275,7 +276,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           <div 
             className="mb-12 max-w-3xl mx-auto text-center"
             style={{ fontFamily: theme.typography.bodyFont, fontSize: '17px', lineHeight: '1.8', color: '#696969' }}
-            dangerouslySetInnerHTML={{ __html: project.fullDescription }}
+            dangerouslySetInnerHTML={{ __html: sanitizePublishedContent({ text: project.fullDescription }).text }}
           />
         )}
 

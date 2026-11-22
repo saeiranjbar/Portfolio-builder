@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { z } from 'zod';
+import { AccountError, enforceRateLimit } from '@/lib/account-security';
+
+const submissionSchema = z.object({
+  from: z.string().trim().email().max(254),
+  name: z.string().trim().min(1).max(100),
+  subject: z.string().trim().min(1).max(200).refine(value => !/[\r\n]/.test(value)),
+  message: z.string().trim().min(1).max(5000),
+  recaptchaToken: z.string().max(4096).optional(),
+}).strict();
 
 // Lazily create the client so the module can load at build time without the key
 function getResendClient(): Resend | null {
@@ -44,19 +54,19 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { from, name, subject, message, recaptchaToken } = body;
+    const parsed = submissionSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ error: 'Please check the form fields and try again.' }, { status: 400 });
+    const { from, name, subject, message, recaptchaToken } = parsed.data;
 
-    // Validate required fields
-    if (!from || !subject || !message) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    await enforceRateLimit('contact-ip', ip, 20);
+    await enforceRateLimit('contact-email', from.toLowerCase(), 10);
 
     // Verify reCAPTCHA
-    if (recaptchaToken) {
+    if (RECAPTCHA_SECRET_KEY && !recaptchaToken) {
+      return NextResponse.json({ error: 'Please complete the spam check and try again.' }, { status: 400 });
+    }
+    if (recaptchaToken && RECAPTCHA_SECRET_KEY) {
       const isValidCaptcha = await verifyRecaptcha(recaptchaToken);
       if (!isValidCaptcha) {
         return NextResponse.json(
@@ -89,26 +99,7 @@ export async function POST(request: NextRequest) {
       from: 'Portfolio Contact <onboarding@resend.dev>',
       to: [RECIPIENT_EMAIL],
       subject: subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
-            New Contact Form Submission
-          </h2>
-          <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 10px 0;"><strong>Name:</strong> ${name}</p>
-            <p style="margin: 10px 0;"><strong>Email:</strong> ${from}</p>
-            <p style="margin: 10px 0;"><strong>Subject:</strong> ${subject}</p>
-          </div>
-          <div style="background: #fff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-            <h3 style="color: #333; margin-top: 0;">Message:</h3>
-            <p style="white-space: pre-wrap; color: #4b5563;">${message}</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-          <p style="color: #6b7280; font-size: 12px;">
-            This email was sent from your portfolio contact form.
-          </p>
-        </div>
-      `,
+      text: `Name: ${name}\nEmail: ${from}\nSubject: ${subject}\n\n${message}`,
       replyTo: from,
     });
 
@@ -122,6 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    if (error instanceof AccountError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('Error sending email:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

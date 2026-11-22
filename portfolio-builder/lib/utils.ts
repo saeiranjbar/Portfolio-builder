@@ -53,6 +53,21 @@ export function imageToBase64(file: File): Promise<string> {
 }
 
 /**
+ * Uploads an image (JPEG, PNG, WebP or GIF) through /api/upload and returns its URL (F12).
+ * Images used to be kept as base64 in the editor state, which bloats the saved site.
+ * @param file - Image file to upload.
+ * @returns The stored URL (a /uploads/ path in development, a Blob URL in production).
+ */
+export async function uploadMediaFile(file: File): Promise<string> {
+  const body = new FormData();
+  body.append('file', file);
+  const response = await fetch('/api/upload', { method: 'POST', body });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.url) throw new Error(data.error || 'Image upload failed');
+  return data.url as string;
+}
+
+/**
  * Converts a video File to a URL that can be used as a video source.
  * Uses URL.createObjectURL() instead of base64 to avoid memory issues
  * with large video files. Base64 encoding a video creates a massive string
@@ -78,6 +93,17 @@ export async function uploadVideoFile(file: File): Promise<string> {
   };
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   const contentType = file.type || videoTypes[ext] || 'application/octet-stream';
+
+  // Development: store the video on disk through the local route (no Blob network call)
+  if (process.env.NODE_ENV !== 'production') {
+    const body = new FormData();
+    body.append('file', new File([file], file.name, { type: contentType }));
+    const response = await fetch('/api/upload/local-video', { method: 'POST', body });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.url) throw new Error(data.error || 'Video upload failed');
+    return data.url as string;
+  }
+
   const { url } = await upload(`uploads/${file.name}`, file, {
     access: 'public',
     handleUploadUrl: '/api/upload/video',

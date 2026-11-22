@@ -4,9 +4,11 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react';
 import { templates } from '@/lib/templates';
+import { makeTemplatePortfolio } from '@/lib/template-portfolio';
 import { cn } from '@/lib/utils';
-import { usePortfolioStore } from '@/lib/store';
-import { PortfolioData, NavbarConfig, AvailabilityConfig, DarkModeConfig, SimpleLayoutConfig } from '@/lib/types';
+import { usePortfolioStore, type EditorPage } from '@/lib/store';
+import { SiteRenderer } from '@/components/site/SiteRenderer';
+import type { Template } from '@/lib/types';
 import { Confetti } from './effects/Confetti';
 
 interface TemplateGalleryProps {
@@ -14,81 +16,39 @@ interface TemplateGalleryProps {
   onSelect: () => void;
 }
 
+function FullTemplatePreview({ template, onBack, onUse }: { template: Template; onBack: () => void; onUse: () => void }) {
+  const [device, setDevice] = React.useState<'desktop' | 'mobile'>('desktop');
+  const site = React.useMemo(() => {
+    const portfolio = makeTemplatePortfolio(template);
+    const pages: EditorPage[] = [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: portfolio.sections }];
+    return { portfolio, pages };
+  }, [template]);
+  return <div className="fixed inset-0 z-[110] flex flex-col bg-gray-200" role="dialog" aria-modal="true" aria-label={`Preview ${template.name}`}>
+    <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-3 text-white">
+      <button type="button" onClick={onBack} className="rounded-lg px-3 py-2 hover:bg-slate-800">← Back to templates</button>
+      <strong className="mr-auto">{template.name}</strong>
+      <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')} className="rounded-lg px-3 py-2 aria-pressed:bg-slate-700">Desktop</button>
+      <button type="button" aria-pressed={device === 'mobile'} onClick={() => setDevice('mobile')} className="rounded-lg px-3 py-2 aria-pressed:bg-slate-700">Mobile</button>
+      <button type="button" onClick={onUse} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-700">Use this template</button>
+    </div>
+    <div className="min-h-0 flex-1 overflow-hidden p-2 sm:p-4"><SiteRenderer key={template.id} portfolio={site.portfolio} pages={site.pages} pageId="home" viewMode={device} /></div>
+  </div>;
+}
+
 export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
-  const { setPortfolio } = usePortfolioStore();
+  const { setNewPortfolio, isDirty } = usePortfolioStore();
   const [selectedTemplate, setSelectedTemplate] = React.useState<string | null>(null);
+  const [previewTemplate, setPreviewTemplate] = React.useState<Template | null>(null);
   const [showConfetti, setShowConfetti] = React.useState(false);
 
-  const handleSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    const template = templates.find((t) => t.id === templateId);
-    if (!template) return;
-
-    const generateId = () => Math.random().toString(36).substr(2, 9);
-
-    const navbar: NavbarConfig = {
-      enabled: true,
-      logo: template.name,
-      logoType: 'text',
-      showCTAButton: true,
-      ctaButtonText: 'Get In Touch',
-      ctaButtonLink: '#contact',
-      sticky: true,
-      transparentOnTop: true,
-      style: 'transparent',
-    };
-
-    const availability: AvailabilityConfig = {
-      enabled: false,
-      text: 'Available for work',
-      color: '#10b981',
-    };
-
-    const darkMode: DarkModeConfig = {
-      enabled: false,
-      active: false,
-    };
-
-    const simpleLayout: SimpleLayoutConfig = {
-      showSidebar: true,
-      sidebarPosition: 'left',
-      profileImage: '',
-      profileName: template.name,
-      profileTitle: 'Creative Professional',
-      profileLocation: '',
-      availableForWork: true,
-      availabilityText: 'Available for work',
-      showStats: true,
-      projectViews: 0,
-      appreciations: 0,
-      followers: 0,
-      following: 0,
-      sidebarSocialLinks: [],
-      sidebarExperiences: [],
-      sidebarAbout: '',
-    };
-
-    const newPortfolio: PortfolioData = {
-      id: generateId(),
-      name: template.name,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      sections: (template.defaultSections as any).map((s: any) => ({ ...s, freeFormEnabled: true, snapEnabled: s.snapEnabled !== false })),
-      theme: template.theme,
-      metadata: {
-        title: template.name,
-        description: template.description,
-      },
-      navbar,
-      availability,
-      darkMode,
-      customCSS: '',
-      layoutMode: 'flexible',
-      simpleLayout,
-    };
+  const handleSelect = (template: Template) => {
+    if (isDirty && !window.confirm('Start a new site from this template? Unsaved changes in the current site will be replaced. Save them first if you want to keep them.')) return;
+    setSelectedTemplate(template.id);
+    const newPortfolio = makeTemplatePortfolio(template);
+    setPreviewTemplate(null);
 
     setTimeout(() => {
-      setPortfolio(newPortfolio);
+      setNewPortfolio(newPortfolio);
       setShowConfetti(true);
       setTimeout(() => {
         onSelect();
@@ -115,10 +75,12 @@ export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
         </div>
 
         {/* Template Grid */}
-        <div className="flex-1 overflow-y-auto">
+        {/* overflow-x-hidden stops hovered tiles (scaled 1.02) from adding a horizontal scrollbar; the padding leaves them room inside the scroll area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden -m-2 p-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
             {templates.map((template, i) => (
-              <motion.div
+              <motion.button
+                type="button"
                 key={template.id}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -127,7 +89,8 @@ export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
                   'group relative bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transition-all hover:shadow-2xl hover:scale-[1.02]',
                   selectedTemplate === template.id && 'ring-2 ring-indigo-500 ring-offset-2'
                 )}
-                onClick={() => selectedTemplate === null && handleSelect(template.id)}
+                onClick={() => selectedTemplate === null && setPreviewTemplate(template)}
+                aria-label={`Preview ${template.name}`}
               >
                 {/* Preview area */}
                 <div
@@ -258,7 +221,7 @@ export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
                     </span>
                   </div>
                 </div>
-              </motion.div>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -287,6 +250,7 @@ export function TemplateGallery({ onClose, onSelect }: TemplateGalleryProps) {
       </div>
 
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+      {previewTemplate && <FullTemplatePreview template={previewTemplate} onBack={() => setPreviewTemplate(null)} onUse={() => handleSelect(previewTemplate)} />}
     </div>
   );
 }

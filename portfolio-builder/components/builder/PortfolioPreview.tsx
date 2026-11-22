@@ -1,7 +1,11 @@
 'use client';
 
 import { placePageGridRows, reorderPageGridDrop } from '@/lib/page-grid-rows';
+import { safeHref, safeEmbedUrl } from '@/lib/safe-url';
+import { resolveTheme } from '@/lib/dark-theme';
 import { useGalleryOrder } from './useGalleryOrder';
+import { GalleryLightbox } from './GalleryLightbox';
+import { orderMobileTiles } from '@/lib/mobile-page-layout';
 
 import React from 'react';
 import { usePortfolioStore } from '@/lib/store';
@@ -22,14 +26,15 @@ import { Mail, Phone, MapPin, ExternalLink, ChevronDown, ArrowRight,
   ChevronLeft, Plus, Minus, Send, FileText, Newspaper, HelpCircle,
   Figma, Atom, Leaf, Shield, Triangle, Server, Code, Code2, Palette, Wind,
   GitBranch, Github, Gitlab, Box, Cloud, Flame, Database, Globe,
-  ShoppingBag, Pencil, MessageSquare, KanbanSquare, List, Layout, Zap, BarChart, X, GripVertical } from 'lucide-react';
+  Clock, Briefcase, Users, Sparkles, Award, ShoppingBag, Pencil, MessageSquare, KanbanSquare, List, Layout, Zap, BarChart, X, GripVertical, Hourglass, Heart, Coffee, Camera, Video, Music, BookOpen, GraduationCap, Languages, Plane, TrendingUp, Wrench } from 'lucide-react';
 import { downloadVCard } from '@/lib/vcard';
 import { BlogSection, FAQSection, NewsletterSection } from '@/lib/types';
 
 import { cn } from '@/lib/utils';
 import { validateMessage } from '@/lib/profanity-filter';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
-import { ProjectDetailModal } from './ProjectDetailModal';
+import { ProjectLightbox } from './ProjectLightbox';
+import { iconMaskStyle } from './IconPicker';
 import { Navbar } from './Navbar';
 import { AnimatedSection, AnimatedStagger, AnimatedItem, AnimatedCounter } from './AnimatedSection';
 import { OptimizedImage } from './OptimizedImage';
@@ -63,7 +68,10 @@ function getTextStyle(textStyles: TextStyles | undefined, fieldKey: string, fall
   const style: React.CSSProperties = { ...fallback };
   if (s.color) style.color = s.color;
   if (s.fontFamily) style.fontFamily = s.fontFamily;
-  if (s.fontSize) style.fontSize = s.fontSize;
+  if (s.fontSize) {
+    style.fontSize = s.fontSize;
+    (style as React.CSSProperties & { '--desktop-text-size'?: string })['--desktop-text-size'] = s.fontSize;
+  }
   if (s.fontWeight) style.fontWeight = s.fontWeight;
   if (s.textAlign) style.textAlign = s.textAlign;
   if (s.fontStyle) style.fontStyle = s.fontStyle;
@@ -86,18 +94,37 @@ interface PreviewProps {
   onEditProject?: (project: Project) => void;
 }
 
+// Colors and shape of a call-to-action button, from the theme's button style.
+function buttonShapeStyle(theme: { colors: any; borderRadius: number; buttonStyle?: string }, variant: string): React.CSSProperties {
+  if (theme.buttonStyle === 'underline') {
+    return { backgroundColor: 'transparent', color: theme.colors.text, borderRadius: 0, borderBottom: `2px solid ${theme.colors.primary}` };
+  }
+  const radius = theme.buttonStyle === 'square' ? 0 : theme.borderRadius;
+  if (variant === 'primary') return { backgroundColor: theme.colors.primary, borderRadius: radius };
+  if (variant === 'outline') return { borderColor: theme.colors.primary, color: theme.colors.primary, borderRadius: radius };
+  return { backgroundColor: theme.colors.secondary, borderRadius: radius };
+}
+
 export function PortfolioPreview({ viewMode, activeSection, onEditProject }: PreviewProps) {
   const store = usePortfolioStore();
   const { portfolio, selectElement } = store;
-  const { theme, layoutMode } = portfolio;
+  const { theme: storedTheme, layoutMode } = portfolio;
+  // Dark mode swaps the page colours here, so every section below picks them up. Default text
+  // is black on light backgrounds and white on dark ones; explicit text colours still win.
+  const theme = withDefaultInk(resolveTheme(storedTheme, portfolio.darkMode));
   const { addSection, updateSection } = store;
   const [activeCategory, setActiveCategory] = React.useState<{ sectionId: string; categoryName: string } | null>(null);
 
+  // Mobile view is a 375px phone frame. Desktop-sized type (fixed text-5xl, md: breakpoints
+  // that read the browser window, saved px sizes) and shapes would overflow it, so the whole
+  // frame is zoomed down. The frame is widened by the same factor so it still shows at 375px.
+  const MOBILE_PREVIEW_SCALE = 0.8;
   const viewModeClasses = {
     desktop: 'w-full',
     tablet: 'w-[768px] mx-auto',
-    mobile: 'w-[375px] mx-auto',
+    mobile: 'w-full max-w-[469px] mx-auto',
   };
+  const deviceZoom: React.CSSProperties = viewMode === 'mobile' ? { zoom: MOBILE_PREVIEW_SCALE } : {};
 
   // Scroll to active section when it changes
   // Moved before early return to satisfy React hooks rules
@@ -175,7 +202,7 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
         featured: false,
       };
       updateSection(projectsSection.id, {
-        projects: [...projectsSection.projects, newProject],
+        projects: [newProject, ...projectsSection.projects],
       });
       // Open the editor for the new project
       setTimeout(() => {
@@ -204,6 +231,8 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
   const pageBgTransition = getPageBackgroundTransition(heroSection);
   const pageBgInterval = getPageBackgroundInterval(heroSection);
   const pageBgAdvance = heroSection?.backgroundAdvance === 'timer' ? 'timer' as const : 'scroll' as const;
+  // A single hero background paints the whole page unless the user limits it to the hero.
+  const heroBgOnPage = heroSection?.backgroundScope !== 'section';
   // Dragging a switch line in the canvas writes the clip's Y switch point back.
   const updateSceneStart = (sceneId: string, updates: Partial<PageBackgroundScene>) => {
     if (!heroSection) return;
@@ -225,8 +254,8 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
       return (
         <div
           ref={containerRef}
-          className={cn('h-full overflow-y-auto transition-all duration-300', viewModeClasses[viewMode])}
-          style={{ backgroundColor: theme.colors.background, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth' }}
+          className={cn('h-full overflow-y-auto transition-all duration-300 @container', viewModeClasses[viewMode])}
+          style={{ backgroundColor: theme.colors.background, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', ...deviceZoom }}
         >
           <div style={{ minHeight: '100vh' }}>
             <ProjectsPreview
@@ -248,17 +277,20 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
     }
   }
 
+  const renderPageSection = (section: PortfolioSection) => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />;
   const effects = portfolio.effects;
   const isPreview = !onEditProject; // Preview mode when no edit callback
 
   return (
     <div
       ref={containerRef}
-      className={cn('h-full overflow-y-auto transition-all duration-300', viewModeClasses[viewMode])}
-      style={{ backgroundColor: theme.colors.background, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative' }}
+      className={cn('h-full overflow-y-auto transition-all duration-300 @container', viewModeClasses[viewMode])}
+      style={{ backgroundColor: theme.colors.background, fontFamily: theme.typography.bodyFont, fontSize: theme.typography.baseSize, scrollBehavior: 'smooth', position: 'relative', ...deviceZoom }}
     >
       {/* Document-level rulers and guides */}
       <RulersAndGuides containerRef={containerRef} />
+      {/* Site navbar — rendered only when the site has a navbar variant set */}
+      <Navbar theme={theme} sections={sectionsToShow} />
       {/* Interactive Effects — only in preview mode */}
       {isPreview && effects?.mouseColorShift?.enabled && (
         <MouseColorShift
@@ -291,9 +323,9 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
         // stacking context: it paints above the wrapper's own background but
         // below every section that scrolls over it.
         isolation: 'isolate' as const,
-        ...(isSequenceBackground ? {} : heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color' ? { background: heroSection.backgroundValue } : {}),
-        ...(isSequenceBackground || heroSection?.backgroundType === 'video' ? {} : heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
-        ...(isSequenceBackground || !heroSection?.backgroundOverlayOpacity || (heroSection.backgroundType !== 'image' && heroSection.backgroundType !== 'video') ? {} : { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` })
+        ...(isSequenceBackground || !heroBgOnPage ? {} : heroSection?.backgroundType === 'gradient' || heroSection?.backgroundType === 'color' ? { background: heroSection.backgroundValue } : {}),
+        ...(isSequenceBackground || !heroBgOnPage || heroSection?.backgroundType === 'video' ? {} : heroSection?.backgroundType === 'image' && !heroSection.parallaxEnabled ? { backgroundImage: `url(${heroSection.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {}),
+        ...(isSequenceBackground || !heroBgOnPage || !heroSection?.backgroundOverlayOpacity || (heroSection.backgroundType !== 'image' && heroSection.backgroundType !== 'video') ? {} : { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${heroSection.backgroundOverlayOpacity / 100})` })
       }}>
         {isSequenceBackground && (
           <PageBackgroundBackdrop
@@ -304,8 +336,10 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
             containerRef={containerRef}
           />
         )}
-        {!isSequenceBackground && heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
-        <PageFreeFormCanvas sections={sectionsToShow} theme={theme} renderSection={section => <SectionRenderer section={section} theme={theme} onEditProject={onEditProject} onSelectCategory={(sectionId: string, categoryName: string) => setActiveCategory({ sectionId, categoryName })} />} />
+        {!isSequenceBackground && heroBgOnPage && heroSection?.backgroundType === 'video' && heroSection.backgroundValue && <video src={heroSection.backgroundValue} autoPlay muted loop playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ zIndex: 0 }} />}
+        {previewMode
+          ? <StaticPageCanvas sections={sectionsToShow} theme={theme} renderSection={renderPageSection} />
+          : <PageFreeFormCanvas sections={sectionsToShow} theme={theme} renderSection={renderPageSection} />}
         {isSequenceBackground && pageBgAdvance === 'scroll' && !previewMode && (
           <BackgroundSwitchMarkers
             scenes={pageBgScenes}
@@ -324,7 +358,30 @@ export function PortfolioPreview({ viewMode, activeSection, onEditProject }: Pre
   );
 }
 
+// F11/F19: a placeholder FAQ item is one still showing the default question with no answer.
+function isPlaceholderFaqItem(item: { question?: string; answer?: string }): boolean {
+  return (item.question ?? '').trim() === 'New Question' && !(item.answer ?? '').trim();
+}
+
+// F11: visitors never see an empty category (or one whose items are all placeholders).
+// The editor still shows these sections with their empty-state hints.
+function hasVisitorContent(section: any): boolean {
+  switch (section.type) {
+    case 'services': return (section.services ?? []).length > 0;
+    case 'process': return (section.steps ?? []).length > 0;
+    case 'stats': return (section.stats ?? []).length > 0;
+    case 'awards': return (section.awards ?? []).length > 0;
+    case 'press': return (section.items ?? []).length > 0;
+    case 'certifications': return (section.certifications ?? []).length > 0;
+    case 'blog': return (section.posts ?? []).length > 0;
+    case 'faq': return (section.items ?? []).some((item: any) => !isPlaceholderFaqItem(item));
+    default: return true;
+  }
+}
+
 export function SectionRenderer({ section, theme, onEditProject, useLandingBackground = false, onSelectCategory }: any) {
+  const visitorView = usePortfolioStore((s) => s.previewMode);
+  if (visitorView && !hasVisitorContent(section)) return null;
   // Hero, About, Experience, Education, Awards, Certifications, and Skills expose their individual fields in free-form mode.
   // Other categories use the same snap canvas for their complete category block.
   if (section.freeFormEnabled && section.type !== 'hero' && section.type !== 'about' && section.type !== 'experience' && section.type !== 'education' && section.type !== 'awards' && section.type !== 'certifications' && section.type !== 'skills') {
@@ -388,7 +445,7 @@ function GenericFreeFormCategory({ section, theme, onEditProject }: { section: P
       } as Partial<PortfolioSection>)}
       onBatchPositionChange={(updates) => {
         const newPositions = { ...positions };
-        for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+        for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
         updateSection(section.id, { elementPositions: newPositions } as Partial<PortfolioSection>);
       }}
       backgroundStyle={{ backgroundColor: 'transparent' }}
@@ -456,6 +513,18 @@ function defaultTileCols(sectionType: string, slotKey: string): number {
  * the scoped .ff-tile CSS, so this function is the single source of truth
  * for the card color — every element keeps ITS OWN color, with identical
  * card shape + padding. */
+/** The hero's own background, painted only behind the hero (backgroundScope === 'section'). */
+function heroOwnBackground(hero: HeroSection): React.CSSProperties {
+  if (hero.backgroundType === 'gradient' || hero.backgroundType === 'color') return { background: hero.backgroundValue };
+  if (hero.backgroundType === 'image' && hero.backgroundValue) {
+    return {
+      backgroundImage: `url(${hero.backgroundValue})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+      ...(hero.backgroundOverlayOpacity ? { boxShadow: `inset 0 0 0 10000px rgba(0,0,0,${hero.backgroundOverlayOpacity / 100})` } : {}),
+    };
+  }
+  return {};
+}
+
 function tileBackgroundFor(section: PortfolioSection, theme: any): React.CSSProperties {
   const own = getSectionBackgroundStyle((section as any).sectionBackground, theme);
   if (own && Object.keys(own).length > 0) return own;
@@ -537,6 +606,8 @@ interface PageTile {
    * the element can be dragged. */
   autoW?: boolean;
   static?: boolean;
+  /** Timeline entries share one left edge when they have no saved position. */
+  alignGroup?: 'experience' | 'education';
 }
 
 // Snap-guide helpers for PageFreeFormCanvas: targets are pixel positions
@@ -544,14 +615,22 @@ interface PageTile {
 type SnapTarget = { v: number; lo: number; hi: number; kind: 'element' | 'canvas' | 'guide' };
 type SnapLineHit = { axis: 'x' | 'y'; pos: number; start: number; end: number; kind: SnapTarget['kind'] };
 
-export function PageFreeFormCanvas({ sections, theme, renderSection }: {
-  sections: PortfolioSection[];
-  theme: any;
-  renderSection: (section: PortfolioSection) => React.ReactNode;
-}) {
-  const { updateSection, selectElement } = usePortfolioStore();
-  const visibleSections = sections.filter((s) => s.visible !== false);
+// ============ SHARED PAGE TILES ============
+// The per-section tiles of the page canvas are built here once, and used by both
+// the editor's drag grid (PageFreeFormCanvas) and the read-only renderer
+// (StaticPageCanvas) used for published sites and template previews. Both show the
+// same content at the same saved positions.
 
+/** Width of the page canvas in grid columns (about one CSS pixel at a 1920px canvas). */
+export const PAGE_COLS = 1920;
+/** Viewport height assumed before a tile is measured (server render and first paint). */
+const PAGE_FALLBACK_VIEWPORT_H = 800;
+const PAGE_PAD = 16;
+const PAGE_TILE_PAD: readonly [number, number] = [20, 16];
+const PAGE_SECTION_CONTENT_MAX = 1152;
+
+/** Builds every page tile (content plus default geometry) for the visible sections. */
+export function buildPageTiles(visibleSections: PortfolioSection[], theme: any, renderSection: (section: PortfolioSection) => React.ReactNode): PageTile[] {
   // Flatten sections into draggable slots with estimated natural heights (vh),
   // used for the default top-to-bottom stacking.
   type Slot = { section: PortfolioSection; key: string; estVh: number; defaultTopVh?: number };
@@ -765,69 +844,6 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     };
   });
 
-  // ===== Grid engine (react-grid-layout, FREE mode) =====
-  // Tiles live on a 1920-column × 1px-row grid: one column ≈ one CSS pixel
-  // (~0.98px at a 1920px canvas), so dragging moves elements in 1px steps on
-  // BOTH axes instead of jumping whole fat columns. Layouts are stored in
-  // column units (pageLayout v4) and scale proportionally with canvas width,
-  // exactly like the old 48-col grid (v3) did. Compaction is off and overlap
-  // is allowed (freePageCompactor), so a tile lands EXACTLY where you drop it
-  // — anywhere on the page, including on top of other tiles. Nothing else
-  // moves.
-  const COLS = 1920;
-  const ROW_H = 1;                                   // 1px per row → pixel-free vertical placement
-  const MARGIN: readonly [number, number] = [0, 0];  // no gaps: the user controls spacing by placing tiles
-  const PAD = 16;
-  // Uniform purple-card padding painted on every tile box [horizontal,
-  // vertical]. The grid box = content + this padding, so every element on the
-  // canvas gets the identical breathing room regardless of section type.
-  const TILE_PAD: readonly [number, number] = [20, 16];
-  // Growth cap for whole-section tiles: the published design never lets
-  // section content get wider than max-w-6xl (1152px). Without this cap the
-  // max-content probe would stretch a 3-card grid into one giant line.
-  const SECTION_CONTENT_MAX = 1152;
-
-  const previewMode = usePortfolioStore((s) => s.previewMode);
-  const { width: canvasWidth, mounted, containerRef } = useContainerWidth();
-
-  // Click-to-select: react-grid-layout v2's drag engine retargets the mouseup
-  // away from the tile element, so a per-tile React onMouseUp never fires for
-  // plain clicks (dragging still works). Catch the click at the document level
-  // instead: mousedown records the real tile under the cursor, mouseup selects
-  // it only when the cursor barely moved — movement means it was a drag, which
-  // the grid already handles.
-  const clickSelSectionsRef = React.useRef(visibleSections);
-  clickSelSectionsRef.current = visibleSections;
-  React.useEffect(() => {
-    if (previewMode) return;
-    let hitTile: HTMLElement | null = null;
-    let downX = 0;
-    let downY = 0;
-    const onDown = (e: MouseEvent) => {
-      const el = e.target as Element | null;
-      hitTile = el && el.closest ? (el.closest('[data-tk]') as HTMLElement | null) : null;
-      if (hitTile && hitTile.hasAttribute('data-no-select')) hitTile = null;
-      downX = e.clientX;
-      downY = e.clientY;
-    };
-    const onUp = (e: MouseEvent) => {
-      const tile = hitTile;
-      hitTile = null;
-      if (!tile || Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
-      const tk = tile.getAttribute('data-tk') || '';
-      const sep = tk.indexOf('||');
-      if (sep < 0) return;
-      const section = clickSelSectionsRef.current.find((s) => String(s.id) === tk.slice(0, sep));
-      if (section) selectElement(section.id, tk.slice(sep + 2));
-    };
-    document.addEventListener('mousedown', onDown, true);
-    document.addEventListener('mouseup', onUp, true);
-    return () => {
-      document.removeEventListener('mousedown', onDown, true);
-      document.removeEventListener('mouseup', onUp, true);
-    };
-  }, [previewMode, selectElement]);
-
   const tiles: PageTile[] = slots.map((slot, index) => ({
     key: elements[index].key,
     sectionId: slot.section.id,
@@ -838,43 +854,124 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     tileBg: tileBackgroundFor(slot.section, theme),
     autoW: (slot.section.type === 'hero' && !['pdf', 'galleryImages', 'galleryVideos'].includes(slot.key)) || slot.key === 'title',
     static: slot.key === 'pageHero',
+    alignGroup: slot.key.startsWith('item-') && (slot.section.type === 'experience' || slot.section.type === 'education') ? slot.section.type : undefined,
     // The hero background is NOT a grid tile: grid tiles can never overlap, so
     // a full-width static background tile (min 60vh tall) would push every
     // hero content tile below its full height — the "content starts halfway
     // down the page" bug. It renders as a backdrop layer behind the grid
     // instead (see heroBackdrop below), so it's filtered out of the tiles.
   })).filter((tile) => !tile.static);
+  return tiles;
+}
 
-  // Content-driven tile heights (px) via ResizeObserver per tile, plus the
-  // natural (shrink-to-fit) width of each tile's content — autoW tiles size
-  // their grid box to that width so they can be dragged near the page edges.
+/** Saved grid geometry (x, y, w in columns) of one tile, or undefined if it was never placed. */
+export function savedTileGeometry(section: PortfolioSection | undefined, tile: PageTile): { x: number; y: number; w: number } | undefined {
+  const COLS = PAGE_COLS;
+  const pl = (section as any)?.pageLayout as Record<string, unknown> | undefined;
+  const raw = pl?.[tile.slotKey] as { x: number; y: number; w: number } | undefined;
+  if (!raw) return undefined;
+  const ver = (pl?.v as number | undefined) ?? 1;
+  if (ver >= 4) return raw;
+  // v1: 12 cols, 8px rows + 10px gaps. v2: 24 cols, 1px rows. v3: 48 cols,
+  // 1px rows. All rescaled into the 1920-col (≈1px) grid; any full-width
+  // tile (which could never move sideways) adopts the new narrower default
+  // so it becomes draggable.
+  const scale = ver >= 3 ? 40 : ver >= 2 ? 80 : 160;
+  const oldFullWidth = raw.w * scale >= COLS;
+  const w = oldFullWidth ? tile.defaultW : Math.min(COLS, raw.w * scale);
+  const rawX = oldFullWidth ? Math.floor((COLS - w) / 2) : raw.x * scale;
+  return { x: Math.max(0, Math.min(rawX, COLS - w)), y: ver >= 2 ? raw.y : PAGE_PAD + raw.y * 18, w };
+}
+
+/**
+ * Turns saved geometry and measured tile sizes into grid placements. Tiles
+ * with a saved position keep it (pushed down only on collision); the others
+ * are appended below. Shared by the editor grid and the static renderer.
+ */
+export function layoutPageTiles({ tiles, canvasWidth, heightPx, naturalW, headingW, savedOf }: {
+  tiles: PageTile[];
+  canvasWidth: number;
+  heightPx: Record<string, number>;
+  naturalW: Record<string, number>;
+  headingW: Record<string, number>;
+  savedOf: (tile: PageTile) => { x: number; y: number; w: number } | undefined;
+}): GridLayoutDef {
+  const COLS = PAGE_COLS;
+  const PAD = PAGE_PAD;
+  const ROW_H = 1;
+  const MARGIN: readonly [number, number] = [0, 0];
+  const TILE_PAD = PAGE_TILE_PAD;
+  const SECTION_CONTENT_MAX = PAGE_SECTION_CONTENT_MAX;
+  const colStepPx = canvasWidth > 0 ? (canvasWidth - 2 * PAD - (COLS - 1) * MARGIN[0]) / COLS + MARGIN[0] : 1;
+  // Convert a measured content width (px) into grid columns.
+  const colsForPx = (px: number) => Math.max(2, Math.min(COLS, Math.ceil((px + MARGIN[0]) / colStepPx)));
+  const rowsFor = (tile: PageTile) => {
+    const px = heightPx[tile.key] ?? (tile.estVh / 100) * PAGE_FALLBACK_VIEWPORT_H;
+    return Math.max(4, Math.ceil((px + 2 * TILE_PAD[1] + MARGIN[1]) / (ROW_H + MARGIN[1])));
+  };
+  const built = tiles.map((tile) => {
+    // Every tile's grid box hugs its measured content: the intrinsic width plus
+    // the uniform card padding. Content that fits the published design's max
+    // width always gets exactly that width; only content that must wrap keeps
+    // the shrink-only rule inside the cap, respecting widths the user chose.
+    const nat = canvasWidth > 0 ? naturalW[tile.key] : undefined;
+    // The PDF reader always occupies the full canvas width.
+    const saved = savedOf(tile);
+    const isMedia = ['pdf', 'galleryImages', 'galleryVideos'].includes(tile.slotKey);
+    const baseW = isMedia
+      ? Math.min(COLS, tile.defaultW)
+      : Math.max(1, Math.min(COLS, saved?.w ?? tile.defaultW));
+    const fitsW = nat !== undefined ? colsForPx(nat + 2 * TILE_PAD[0]) : 0;
+    const wRaw = isMedia
+      ? baseW
+      : nat === undefined
+      ? baseW
+      : tile.autoW || nat <= SECTION_CONTENT_MAX
+        ? Math.max(2, fitsW)
+        : Math.max(2, Math.min(baseW, colsForPx(SECTION_CONTENT_MAX + 2 * TILE_PAD[0])));
+    // Headings never wrap: never let the box drop below the widest one-line title.
+    const headNat = headingW[tile.key];
+    const w = headNat !== undefined
+      ? Math.min(COLS, Math.max(wRaw, colsForPx(headNat + 2 * TILE_PAD[0])))
+      : wRaw;
+    const h = rowsFor(tile);
+    // Growth of a tile keeps its centre where the user placed it.
+    const anchorX = saved
+      ? saved.x + Math.round((saved.w - w) / 2)
+      : Math.floor((COLS - w) / 2);
+    const x = Math.max(0, Math.min(anchorX, COLS - w));
+    return { item: { i: tile.key, x, y: 0, w, h, static: tile.static } as GridLayoutDef[number], placed: !!saved, savedY: saved?.y ?? 0 };
+  });
+  // Timeline entries (experience/education) without a saved position share one left edge:
+  // the block is centred by its widest entry, and each entry keeps its own width.
+  const groupOf = new Map(tiles.map((t) => [t.key, t.alignGroup]));
+  const groupWidth: Partial<Record<'experience' | 'education', number>> = {};
+  for (const entry of built) {
+    const group = groupOf.get(entry.item.i);
+    if (!group || entry.placed) continue;
+    groupWidth[group] = Math.max(groupWidth[group] ?? 0, entry.item.w);
+  }
+  for (const entry of built) {
+    const group = groupOf.get(entry.item.i);
+    if (!group || entry.placed) continue;
+    entry.item.x = Math.floor((COLS - (groupWidth[group] ?? 0)) / 2);
+  }
+  return placePageGridRows(built);
+}
+
+/**
+ * Measures every tile after each commit: pixel height (drives h) and the
+ * intrinsic max-content width (drives w). Shared by the editor grid and the
+ * static renderer so both size tiles the same way.
+ */
+export function usePageTileMeasurements(rootRef: React.RefObject<HTMLElement | null>) {
   const [heightPx, setHeightPx] = React.useState<Record<string, number>>({});
   const [naturalW, setNaturalW] = React.useState<Record<string, number>>({});
-  // Widest ONE-LINE heading (h1/h2/h3) inside each tile — the floor that
-  // keeps section titles like "Awards & Recognition" on a single line even
-  // when the tile's overall content must wrap (capped whole-section tiles).
   const [headingW, setHeadingW] = React.useState<Record<string, number>>({});
-  // ---- Snap guides (smart alignment while dragging) ----
-  // react-grid-layout has NO built-in guides, so a custom LayoutConstraint
-  // performs the magnetic snapping INSIDE RGL's drag pipeline (it receives the
-  // proposed grid cell before the move is committed), while the magenta lines
-  // are painted imperatively into a fixed pool of divs below. No React state
-  // updates mid-drag: that would push a stale layout prop back into GridLayout
-  // and fight the active drag.
-  const showGuides = usePortfolioStore((s) => s.showGuides);
-  const builderGuides = usePortfolioStore((s) => s.builderGuides);
-  const snapTargetsRef = React.useRef<{ x: SnapTarget[]; y: SnapTarget[] }>({ x: [], y: [] });
-  const snapLinesRef = React.useRef<SnapLineHit[]>([]);
-  const guidesLayerRef = React.useRef<HTMLDivElement>(null);
   // Measure every tile after each commit: pixel height (drives h) and the
-  // INTRINSIC max-content width (drives w). The probe flips the wrapper to
-  // width:max-content, reads it, and restores it within the same JS task, so
-  // the number never depends on the current box width — no freeze needed,
-  // no shrink spiral possible, and editing a tile's text re-measures it
-  // automatically. Every tile then shrinks to its true card width + the same
-  // uniform card padding, so left/right spacing is consistent everywhere.
+  // intrinsic max-content width (drives w). Same measurements as the static renderer.
   React.useEffect(() => {
-    const rootEl = containerRef.current;
+    const rootEl = rootRef.current;
     if (!rootEl) return;
     let probing = false;
     let pending = false;
@@ -920,36 +1017,240 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     }
     return () => { dead = true; ro.disconnect(); };
   });
+  return { heightPx, naturalW, headingW };
+}
 
-  const rowsFor = (tile: PageTile) => {
-    const px = heightPx[tile.key]
-      ?? (tile.estVh / 100) * (typeof window !== 'undefined' ? window.innerHeight : 800);
-    return Math.max(4, Math.ceil((px + 2 * TILE_PAD[1] + MARGIN[1]) / (ROW_H + MARGIN[1])));
-  };
+/**
+ * Read-only page canvas: the published site and template previews. Tiles are
+ * placed at their saved positions with plain CSS (no drag engine, rulers or
+ * guides). Below 600px wide, which the container query checks, the tiles stack
+ * in the same order the editor uses on mobile.
+ */
+export function StaticPageCanvas({ sections, theme, renderSection }: {
+  sections: PortfolioSection[];
+  theme: any;
+  renderSection: (section: PortfolioSection) => React.ReactNode;
+}) {
+  const viewMode = usePortfolioStore((state) => state.viewMode);
+  const visibleSections = sections.filter((s) => s.visible !== false);
+  const tiles = buildPageTiles(visibleSections, theme, renderSection);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const { heightPx, naturalW, headingW } = usePageTileMeasurements(rootRef);
+  const [canvasWidth, setCanvasWidth] = React.useState(0);
+  React.useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const update = () => setCanvasWidth(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  const savedOf = (tile: PageTile): { x: number; y: number; w: number } | undefined => {
-    const section = visibleSections.find((s) => s.id === tile.sectionId);
-    const pl = (section as any)?.pageLayout as Record<string, unknown> | undefined;
-    const raw = pl?.[tile.slotKey] as { x: number; y: number; w: number } | undefined;
-    if (!raw) return undefined;
-    const ver = (pl?.v as number | undefined) ?? 1;
-    if (ver >= 4) return raw;
-    // v1: 12 cols, 8px rows + 10px gaps. v2: 24 cols, 1px rows. v3: 48 cols,
-    // 1px rows. All rescaled into the 1920-col (≈1px) grid; any full-width
-    // tile (which could never move sideways) adopts the new narrower default
-    // so it becomes draggable.
-    const scale = ver >= 3 ? 40 : ver >= 2 ? 80 : 160;
-    const oldFullWidth = raw.w * scale >= COLS;
-    const w = oldFullWidth ? tile.defaultW : Math.min(COLS, raw.w * scale);
-    const rawX = oldFullWidth ? Math.floor((COLS - w) / 2) : raw.x * scale;
-    return { x: Math.max(0, Math.min(rawX, COLS - w)), y: ver >= 2 ? raw.y : PAD + raw.y * 18, w };
-  };
+  const savedOf = (tile: PageTile) => savedTileGeometry(visibleSections.find((s) => s.id === tile.sectionId), tile);
+  const layout = layoutPageTiles({ tiles, canvasWidth, heightPx, naturalW, headingW, savedOf });
+  const placed = new Map(layout.map((item) => [item.i, item]));
+  // Type-based anchors (e.g. #contact) resolve through [data-section-type].
+  const sectionTypeById = new Map(visibleSections.map((s) => [s.id, s.type]));
+  const mobileOrder = new Map(orderMobileTiles(tiles, savedOf).map((tile, index) => [tile.key, index]));
+  const canvasHeight = layout.reduce((bottom, item) => Math.max(bottom, item.y + item.h), 0) + 2 * PAGE_PAD;
 
-  // Convert a measured content width (px) into grid columns: k cols span
-  // k*colW + (k-1)*margin px. autoW boxes shrink to their content so the
-  // element can be dragged until its own edge touches the page edge.
+  // Hero background shapes sit behind the hero's content, as in the editor.
+  const hero = visibleSections.find((s) => s.type === 'hero') as HeroSection | undefined;
+  const heroItems = hero ? layout.filter((item) => tiles.find((t) => t.key === item.i)?.sectionId === hero.id) : [];
+  const showHeroBackdrop = !!hero && (hero.backgroundShapes?.length ?? 0) > 0 && (!!hero.backgroundValue || hero.backgroundType === 'color');
+  const heroTop = heroItems.length ? PAGE_PAD + Math.min(...heroItems.map((item) => item.y)) : PAGE_PAD;
+  const heroBottom = heroItems.length ? PAGE_PAD + Math.max(...heroItems.map((item) => item.y + item.h)) : PAGE_PAD;
+  const heroHeight = Math.max(Math.round(0.6 * PAGE_FALLBACK_VIEWPORT_H), heroBottom - heroTop);
+
+  return (
+    <div ref={rootRef} className="pb-static-root" data-device={viewMode}>
+      <div className="pb-static-canvas" style={{ position: 'relative', minHeight: '100vh', height: canvasHeight }}>
+        {hero && hero.backgroundScope === 'section' && (
+          <div aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: heroTop, height: heroHeight, pointerEvents: 'none', zIndex: 0, ...heroOwnBackground(hero) }} />
+        )}
+        {showHeroBackdrop && hero && (
+          <div aria-hidden className="pb-static-backdrop" style={{ position: 'absolute', left: 0, right: 0, top: heroTop, height: heroHeight, pointerEvents: 'none', zIndex: 0 }}>
+            <div className="relative h-full">
+              <HeroPreview section={{
+                ...hero,
+                showAvatar: false, showName: false, showTitle: false,
+                showSubtitle: false, showBio: false, ctaButtons: [],
+                showPdf: false,
+                galleryImages: [], galleryVideos: [],
+                backgroundType: 'none', backgroundValue: '', backgroundOverlayOpacity: 0,
+              } as unknown as HeroSection} theme={theme} compact decorative />
+            </div>
+          </div>
+        )}
+        {tiles.map((tile) => {
+          const item = placed.get(tile.key);
+          if (!item) return null;
+          return (
+            <div key={tile.key} data-tk={tile.key} data-section-type={sectionTypeById.get(tile.sectionId)} className="ff-tile pb-static-tile"
+              style={{
+                ...tile.tileBg,
+                position: 'absolute',
+                zIndex: 1,
+                left: `calc(${PAGE_PAD}px + (100% - ${2 * PAGE_PAD}px) * ${item.x / PAGE_COLS})`,
+                top: PAGE_PAD + item.y,
+                width: `calc((100% - ${2 * PAGE_PAD}px) * ${item.w / PAGE_COLS})`,
+                padding: `${PAGE_TILE_PAD[1]}px ${PAGE_TILE_PAD[0]}px`,
+                borderRadius: theme.borderRadius ?? 8,
+                order: mobileOrder.get(tile.key),
+              }}>
+              {tile.content}
+            </div>
+          );
+        })}
+      </div>
+      <style>{PAGE_TILE_CSS}</style>
+    </div>
+  );
+}
+
+const PAGE_TILE_CSS = `
+  .pb-static-root { container-type: inline-size; width: 100%; }
+  .pb-static-root .ff-tile section { padding: 0 !important; min-height: 0 !important; background: transparent !important; }
+  .pb-static-root .ff-tile section div { min-height: 0 !important; }
+  .pb-static-root .ff-tile section > div[class*="max-w-"], .pb-static-root .ff-tile section > div > div[class*="max-w-"] { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+  .pb-static-root .ff-tile h1, .pb-static-root .ff-tile h2 { white-space: nowrap; }
+  .pb-static-root .ff-tile .ff-cta-row { flex-wrap: nowrap !important; }
+  .pb-static-root .ff-tile .ff-cta-row > a { flex-shrink: 0; }
+  @container (max-width: 599px) {
+    .pb-static-canvas { height: auto !important; min-height: 0 !important; display: flex; flex-direction: column; padding: 16px; }
+    .pb-static-canvas > .pb-static-backdrop { display: none; }
+    .pb-static-canvas > .pb-static-tile { position: relative !important; left: auto !important; top: auto !important; width: 100% !important; min-width: 0; overflow-wrap: anywhere; }
+    .pb-static-canvas .ff-tile h1, .pb-static-canvas .ff-tile h2 { white-space: normal; }
+    .pb-static-canvas .ff-tile :not(h1):not(h2)[style*="--desktop-text-size"] { font-size: min(var(--desktop-text-size), max(1rem, calc(var(--desktop-text-size) * .8)), 2rem) !important; }
+    .pb-static-canvas .ff-tile h1 { font-size: min(var(--desktop-text-size, 3rem), max(1rem, calc(var(--desktop-text-size, 3rem) * .75)), 2.5rem) !important; line-height: 1.2; }
+    .pb-static-canvas .ff-tile h2 { font-size: min(var(--desktop-text-size, 1.5rem), max(1rem, calc(var(--desktop-text-size, 1.5rem) * .8)), 2rem) !important; line-height: 1.25; }
+    .pb-static-canvas .ff-tile [data-hero-pdf] { width: 100% !important; max-width: 100%; }
+    .pb-static-canvas .ff-tile [data-hero-pdf-card] { margin-top: 0 !important; transform: none !important; }
+    .pb-static-canvas .ff-tile .ff-cta-row { flex-wrap: wrap !important; }
+    .pb-static-canvas .ff-tile .ff-cta-row > a { max-width: 100%; white-space: normal; }
+    .pb-static-canvas .ff-tile img, .pb-static-canvas .ff-tile video, .pb-static-canvas .ff-tile iframe { max-width: 100%; }
+    .pb-static-canvas .ff-tile div { max-width: 100%; min-width: 0; }
+    .pb-static-canvas .ff-tile .grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .pb-static-canvas .ff-tile .gallery-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .pb-static-canvas .ff-tile .gallery-image-grid[data-single-column="true"] { grid-template-columns: minmax(0, 1fr) !important; }
+  }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas { height: auto !important; min-height: 0 !important; display: flex; flex-direction: column; padding: 16px; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas > .pb-static-backdrop { display: none; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas > .pb-static-tile { position: relative !important; left: auto !important; top: auto !important; width: 100% !important; min-width: 0; overflow-wrap: anywhere; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile h1, .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile h2 { white-space: normal; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile :not(h1):not(h2)[style*="--desktop-text-size"] { font-size: min(var(--desktop-text-size), max(1rem, calc(var(--desktop-text-size) * .8)), 2rem) !important; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile h1 { font-size: min(var(--desktop-text-size, 3rem), max(1rem, calc(var(--desktop-text-size, 3rem) * .75)), 2.5rem) !important; line-height: 1.2; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile h2 { font-size: min(var(--desktop-text-size, 1.5rem), max(1rem, calc(var(--desktop-text-size, 1.5rem) * .8)), 2rem) !important; line-height: 1.25; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile [data-hero-pdf] { width: 100% !important; max-width: 100%; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile [data-hero-pdf-card] { margin-top: 0 !important; transform: none !important; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile .ff-cta-row { flex-wrap: wrap !important; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile .ff-cta-row > a { max-width: 100%; white-space: normal; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile img, .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile video, .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile iframe { max-width: 100%; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile div { max-width: 100%; min-width: 0; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile .grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile .gallery-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .pb-static-root[data-device="tablet"] .pb-static-canvas .ff-tile .gallery-image-grid[data-single-column="true"] { grid-template-columns: minmax(0, 1fr) !important; }
+  /* tablet frame is a fixed 768px, so it always gets the single-column reflow */
+`;
+
+export function PageFreeFormCanvas({ sections, theme, renderSection }: {
+  sections: PortfolioSection[];
+  theme: any;
+  renderSection: (section: PortfolioSection) => React.ReactNode;
+}) {
+  const { updateSection, selectElement } = usePortfolioStore();
+  const visibleSections = sections.filter((s) => s.visible !== false);
+
+  // ===== Grid engine (react-grid-layout, FREE mode) =====
+  // Tiles live on a 1920-column × 1px-row grid: one column ≈ one CSS pixel
+  // (~0.98px at a 1920px canvas), so dragging moves elements in 1px steps on
+  // BOTH axes instead of jumping whole fat columns. Layouts are stored in
+  // column units (pageLayout v4) and scale proportionally with canvas width,
+  // exactly like the old 48-col grid (v3) did. Compaction is off and overlap
+  // is allowed (freePageCompactor), so a tile lands EXACTLY where you drop it
+  // — anywhere on the page, including on top of other tiles. Nothing else
+  // moves.
+  const COLS = 1920;
+  const ROW_H = 1;                                   // 1px per row → pixel-free vertical placement
+  const MARGIN: readonly [number, number] = [0, 0];  // no gaps: the user controls spacing by placing tiles
+  const PAD = 16;
+  // Uniform purple-card padding painted on every tile box [horizontal,
+  // vertical]. The grid box = content + this padding, so every element on the
+  // canvas gets the identical breathing room regardless of section type.
+  const TILE_PAD: readonly [number, number] = [20, 16];
+  // Growth cap for whole-section tiles: the published design never lets
+  // section content get wider than max-w-6xl (1152px). Without this cap the
+  // max-content probe would stretch a 3-card grid into one giant line.
+  const SECTION_CONTENT_MAX = 1152;
+
+  const previewMode = usePortfolioStore((s) => s.previewMode);
+  const { width: canvasWidth, mounted, containerRef } = useContainerWidth();
+  const mobileLayout = mounted && canvasWidth > 0 && canvasWidth < 600;
+
+  // Click-to-select: react-grid-layout v2's drag engine retargets the mouseup
+  // away from the tile element, so a per-tile React onMouseUp never fires for
+  // plain clicks (dragging still works). Catch the click at the document level
+  // instead: mousedown records the real tile under the cursor, mouseup selects
+  // it only when the cursor barely moved — movement means it was a drag, which
+  // the grid already handles.
+  const clickSelSectionsRef = React.useRef(visibleSections);
+  clickSelSectionsRef.current = visibleSections;
+  React.useEffect(() => {
+    if (previewMode) return;
+    let hitTile: HTMLElement | null = null;
+    let downX = 0;
+    let downY = 0;
+    const onDown = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      hitTile = el && el.closest ? (el.closest('[data-tk]') as HTMLElement | null) : null;
+      if (hitTile && hitTile.hasAttribute('data-no-select')) hitTile = null;
+      downX = e.clientX;
+      downY = e.clientY;
+    };
+    const onUp = (e: MouseEvent) => {
+      const tile = hitTile;
+      hitTile = null;
+      if (!tile || Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
+      const tk = tile.getAttribute('data-tk') || '';
+      const sep = tk.indexOf('||');
+      if (sep < 0) return;
+      const section = clickSelSectionsRef.current.find((s) => String(s.id) === tk.slice(0, sep));
+      if (section) selectElement(section.id, tk.slice(sep + 2));
+    };
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('mouseup', onUp, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('mouseup', onUp, true);
+    };
+  }, [previewMode, selectElement]);
+
+  const tiles = buildPageTiles(visibleSections, theme, renderSection);
+
+  // Content-driven tile heights (px) via ResizeObserver per tile, plus the
+  // natural (shrink-to-fit) width of each tile's content — autoW tiles size
+  // their grid box to that width so they can be dragged near the page edges.
+  const { heightPx, naturalW, headingW } = usePageTileMeasurements(containerRef);
+  // ---- Snap guides (smart alignment while dragging) ----
+  // react-grid-layout has NO built-in guides, so a custom LayoutConstraint
+  // performs the magnetic snapping INSIDE RGL's drag pipeline (it receives the
+  // proposed grid cell before the move is committed), while the magenta lines
+  // are painted imperatively into a fixed pool of divs below. No React state
+  // updates mid-drag: that would push a stale layout prop back into GridLayout
+  // and fight the active drag.
+  const showGuides = usePortfolioStore((s) => s.showGuides);
+  const builderGuides = usePortfolioStore((s) => s.builderGuides);
+  // The "Snap Guides" switch in the editor stores its flag on the hero section.
+  // When it is off, the page canvas neither snaps nor paints guide lines.
+  const snapOn = usePortfolioStore((s) => s.portfolio.sections.find((x) => x.type === 'hero')?.snapEnabled !== false);
+  const snapTargetsRef = React.useRef<{ x: SnapTarget[]; y: SnapTarget[] }>({ x: [], y: [] });
+  const snapLinesRef = React.useRef<SnapLineHit[]>([]);
+  const guidesLayerRef = React.useRef<HTMLDivElement>(null);
+
+  const savedOf = (tile: PageTile) => savedTileGeometry(visibleSections.find((s) => s.id === tile.sectionId), tile);
+
   const colStepPx = canvasWidth > 0 ? (canvasWidth - 2 * PAD - (COLS - 1) * MARGIN[0]) / COLS + MARGIN[0] : 1;
-  const colsForPx = (px: number) => Math.max(2, Math.min(COLS, Math.ceil((px + MARGIN[0]) / colStepPx)));
 
   // Paint magenta snap lines into the fixed pool of divs (see guidesLayer
   // below). axis 'x' = vertical line at left=pos; axis 'y' = horizontal line
@@ -981,6 +1282,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
   // visible — the guides from the store (converted from the ruler's document-%
   // space, same math the old useFreeFormDrag hook used).
   const collectSnapTargets = (dragKey: string) => {
+    if (!snapOn) { snapTargetsRef.current = { x: [], y: [] }; return; }
     const root = containerRef.current;
     if (!root) return;
     const rect = root.getBoundingClientRect();
@@ -1025,6 +1327,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
       const lines: SnapLineHit[] = [];
       let x = Math.max(0, Math.min(COLS - item.w, Math.round(xIn)));
       let y = Math.max(0, Math.round(yIn));
+      if (!snapOn) { snapLinesRef.current = []; return { x, y }; }
       const rw = item.w * colStepPx - MARGIN[0];
       const rh = item.h; // ROW_H=1 + MARGIN[1]=0 → 1 grid row = 1px
       const canvasH = containerRef.current?.getBoundingClientRect().height ?? 0;
@@ -1084,58 +1387,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     },
   };
 
-  // Build the layout from saved positions and measured tile heights. Colliding
-  // tiles move down, and new tiles start below the saved layout.
-  const layout: GridLayoutDef = (() => {
-    const built = tiles.map((tile) => {
-      const saved = savedOf(tile);
-      // Every tile's grid box HUGS its measured content: the intrinsic
-      // max-content width (+ the uniform card padding) IS the box width.
-      // Content whose ONE-LINE width fits the published design's max
-      // (max-w-6xl = 1152px) — titles, labels, cards, short rows — always
-      // gets exactly that width, so a title like "What I do" can never be
-      // squeezed into wrapping by a stale saved width, a re-render, or a
-      // canvas resize. Only content that genuinely needs to wrap (paragraphs,
-      // multi-card grids whose max-content exceeds the cap) keeps the old
-      // shrink-only rule inside the cap, respecting widths the user chose.
-      // Near the page edges RGL clamps x so the box stays on canvas.
-      const nat = canvasWidth > 0 ? naturalW[tile.key] : undefined;
-      // The PDF reader always occupies the full canvas width — its content is
-      // %-based (hug-measurement collapses it) and it must stay far wider than
-      // the 1152px text cap to be readable. Stale saved widths are ignored.
-      const isMedia = ['pdf', 'galleryImages', 'galleryVideos'].includes(tile.slotKey);
-      const baseW = isMedia
-        ? Math.min(COLS, tile.defaultW)
-        : Math.max(1, Math.min(COLS, saved?.w ?? tile.defaultW));
-      const fitsW = nat !== undefined ? colsForPx(nat + 2 * TILE_PAD[0]) : 0;
-      const wRaw = isMedia
-        ? baseW
-        : nat === undefined
-        ? baseW
-        : tile.autoW || nat <= SECTION_CONTENT_MAX
-          ? Math.max(2, fitsW)
-          : Math.max(2, Math.min(baseW, colsForPx(SECTION_CONTENT_MAX + 2 * TILE_PAD[0])));
-      // Headings never wrap: never let the box drop below the widest
-      // one-line title inside the tile (only if the canvas can actually
-      // hold it — near the borders / tiny canvases still wrap, as intended).
-      const headNat = headingW[tile.key];
-      const w = headNat !== undefined
-        ? Math.min(COLS, Math.max(wRaw, colsForPx(headNat + 2 * TILE_PAD[0])))
-        : wRaw;
-      const h = rowsFor(tile);
-      // Content-driven width growth (e.g. adding a 3rd CTA button) must keep
-      // the tile's CENTER where the user placed it. Pinning the left edge
-      // would expand the box only rightward and shove the button row out of
-      // alignment with the neighbouring name/title tiles. saved.w == w for
-      // everything but a resize, so placements are untouched otherwise.
-      const anchorX = saved
-        ? saved.x + Math.round((saved.w - w) / 2)
-        : Math.floor((COLS - w) / 2);
-      const x = Math.max(0, Math.min(anchorX, COLS - w));
-      return { item: { i: tile.key, x, y: 0, w, h, static: tile.static } as GridLayoutDef[number], placed: !!saved, savedY: saved?.y ?? 0 };
-    });
-    return placePageGridRows(built);
-  })();
+  const layout = layoutPageTiles({ tiles, canvasWidth, heightPx, naturalW, headingW, savedOf });
 
   // Hero background = absolutely-positioned backdrop BEHIND the grid (grid
   // tiles can't overlap, so it can't be a tile itself). It spans the vertical
@@ -1163,6 +1415,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     const layerStyle: React.CSSProperties = {
       position: 'absolute', left: 0, right: 0, top: topPx, height: heightPx,
       pointerEvents: 'none', zIndex: 0,
+      ...(hero.backgroundScope === 'section' ? heroOwnBackground(hero) : {}),
     };
     const hasFlowExtras = (hero.backgroundShapes?.length ?? 0) > 0;
     return (
@@ -1205,10 +1458,22 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
     }
   };
 
+  const sectionTypeById = new Map(visibleSections.map((s) => [s.id, s.type]));
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', minHeight: '100vh' }}>
-      {heroBackdrop}
-      {mounted && canvasWidth > 0 && (
+      {!mobileLayout && heroBackdrop}
+      {mobileLayout ? (
+        <div className="ff-mobile-page" style={{ position: 'relative', zIndex: 1, padding: '16px' }}>
+          {orderMobileTiles(tiles, savedOf).map(tile => (
+            <div key={tile.key} data-tk={tile.key} data-section-type={sectionTypeById.get(tile.sectionId)} className="ff-tile"
+              style={{ ...tile.tileBg, padding: `${TILE_PAD[1]}px ${TILE_PAD[0]}px`, borderRadius: theme.borderRadius ?? 8 }}
+              onClick={() => { if (!previewMode && tile.slotKey !== 'pdf') selectElement(tile.sectionId, tile.slotKey); }}>
+              {tile.content}
+            </div>
+          ))}
+        </div>
+      ) : mounted && canvasWidth > 0 && (
         <div style={{ position: 'relative', zIndex: 1 }}>
         <GridLayout
           width={canvasWidth}
@@ -1244,6 +1509,7 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
             <div
               key={tile.key}
               data-tk={tile.key}
+              data-section-type={sectionTypeById.get(tile.sectionId)}
               data-no-select={tile.slotKey === 'pdf' ? '' : undefined}
               className={cn('ff-tile', !previewMode && tile.slotKey !== 'pdf' && 'cursor-move')}
               style={{ ...tile.tileBg, padding: `${TILE_PAD[1]}px ${TILE_PAD[0]}px`, borderRadius: theme.borderRadius ?? 8 }}
@@ -1276,10 +1542,28 @@ export function PageFreeFormCanvas({ sections, theme, renderSection }: {
         .ff-tile h1, .ff-tile h2 { white-space: nowrap; }
         .ff-tile .ff-cta-row { flex-wrap: nowrap !important; }
         .ff-tile .ff-cta-row > a { flex-shrink: 0; }
+        .ff-mobile-page .ff-tile { width: 100%; min-width: 0; overflow-wrap: anywhere; }
+        .ff-mobile-page .ff-tile h1, .ff-mobile-page .ff-tile h2 { white-space: normal; }
+        .ff-mobile-page .ff-tile :not(h1):not(h2)[style*="--desktop-text-size"] { font-size: min(var(--desktop-text-size), max(1rem, calc(var(--desktop-text-size) * .8)), 2rem) !important; }
+        .ff-mobile-page .ff-tile h1 { font-size: min(var(--desktop-text-size, 3rem), max(1rem, calc(var(--desktop-text-size, 3rem) * .75)), 2.5rem) !important; line-height: 1.2; }
+        .ff-mobile-page .ff-tile h2 { font-size: min(var(--desktop-text-size, 1.5rem), max(1rem, calc(var(--desktop-text-size, 1.5rem) * .8)), 2rem) !important; line-height: 1.25; }
+        .ff-mobile-page [data-hero-pdf] { width: 100% !important; max-width: 100%; }
+        .ff-mobile-page [data-hero-pdf-card] { margin-top: 0 !important; transform: none !important; }
+        .ff-mobile-page .ff-tile .ff-cta-row { flex-wrap: wrap !important; }
+        .ff-mobile-page .ff-tile .ff-cta-row > a { max-width: 100%; white-space: normal; }
+        .ff-mobile-page .ff-tile img, .ff-mobile-page .ff-tile video, .ff-mobile-page .ff-tile iframe { max-width: 100%; }
+        .ff-mobile-page .ff-tile div { max-width: 100%; min-width: 0; }
+        .ff-mobile-page .ff-tile .grid { grid-template-columns: minmax(0, 1fr) !important; }
+        .ff-mobile-page .ff-tile .gallery-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        .ff-mobile-page .ff-tile .gallery-image-grid[data-single-column="true"] { grid-template-columns: minmax(0, 1fr) !important; }
         /* During a tile drag every iframe (PDF viewers, embeds) disappears:
            they re-rasterize expensively under movement and swallow the release
            mouseup, which strands the drag placeholder on the canvas. */
         .ff-canvas-dragging iframe { visibility: hidden; }
+        /* react-grid-layout's drop placeholder paints a red 20% box over the
+           dragged element's slot (it reads as purple on the gradients). The
+           element itself already shows the drag, so hide the placeholder. */
+        .react-grid-layout .react-grid-placeholder { opacity: 0 !important; background: transparent !important; }
       `}</style>
       {/* Snap guide lines — hidden except while dragging (paintGuides writes
           their style directly, no React state, so the grid never re-renders
@@ -1326,7 +1610,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
     ? { position: 'absolute' as const, inset: 0, backgroundColor: `rgba(0,0,0,${section.backgroundOverlayOpacity / 100})`, pointerEvents: 'none' as const }
     : {};
 
-  const avatarSizeClasses = { small: 'w-20 h-20', medium: 'w-32 h-32', large: 'w-48 h-48' };
+  const avatarSizeClasses = { small: 'w-20 h-20', medium: 'w-32 h-32', large: 'w-36 h-36 @min-[768px]:w-48 @min-[768px]:h-48' };
 
   // Get avatar shape class
   const getAvatarShapeClass = () => {
@@ -1757,7 +2041,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const [fullscreenImage, setFullscreenImage] = React.useState<string | null>(null);
+  const [fullscreenImage, setFullscreenImage] = React.useState<{ url: string; caption?: string } | null>(null);
   const [fullscreenVideo, setFullscreenVideo] = React.useState<GalleryVideo | null>(null);
 
   // Close fullscreen image/video on Escape key
@@ -1861,19 +2145,19 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
             <OptimizedImage src={section.avatar} alt={section.name} className={cn('object-cover border-4 border-white shadow-lg', getAvatarShapeClass())} style={getAvatarSize().style} width={getAvatarSize().width} height={getAvatarSize().height} />
           )}
           {section.showName !== false && (
-            <h1 className="text-4xl md:text-5xl font-bold" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
+            <h1 className="text-3xl @min-[768px]:text-4xl @min-[768px]:text-5xl font-bold" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           )}
           {section.showTitle !== false && (
             section.typingWords && section.typingWords.length > 0 ? (
-              <h2 className="text-xl md:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>
+              <h2 className="text-xl @min-[768px]:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: theme.colors.text })}>
                 <TypingAnimation words={section.typingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} />
               </h2>
             ) : (
-              <h2 className="text-xl md:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
+              <h2 className="text-xl @min-[768px]:text-2xl font-medium" style={getTextStyle(section.textStyles, 'title', { color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )
           )}
           {section.showSubtitle !== false && (
-            <p className="text-lg" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
+            <p className="text-lg" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.text })}>{section.subtitleTypingWords && section.subtitleTypingWords.length > 0 ? <TypingAnimation words={section.subtitleTypingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} /> : <AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} />}</p>
           )}
           {section.showBio !== false && (
             <p className="text-base" style={getTextStyle(section.textStyles, 'bio', { color: theme.colors.text })}><AnimatedText text={section.bio} textStyles={section.textStyles?.bio} /></p>
@@ -1881,14 +2165,12 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
           {section.ctaButtons && section.ctaButtons.length > 0 && (
             <div className="ff-cta-row flex flex-wrap justify-center gap-4 mt-4">
               {section.ctaButtons.map((btn) => (
-                <a key={btn.id} href={btn.link}
+                <a key={btn.id} href={safeHref(btn.link)}
                   className={cn('inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:opacity-90',
                     btn.variant === 'primary' && 'text-white',
                     btn.variant === 'outline' && 'border-2',
                     btn.variant === 'secondary' && 'text-white')}
-                  style={btn.variant === 'primary' ? { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }
-                    : btn.variant === 'outline' ? { borderColor: theme.colors.primary, color: theme.colors.primary, borderRadius: theme.borderRadius }
-                    : { backgroundColor: theme.colors.secondary, borderRadius: theme.borderRadius }}
+                  style={buttonShapeStyle(theme, btn.variant)}
                   onClick={(e) => scrollToAnchor(e, btn.link)}>
                   {btn.label}
                   <ArrowRight className="w-4 h-4" />
@@ -1897,11 +2179,12 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
             </div>
           )}
           {/* PDF Reader — after CTA, before gallery, clearly within the hero section */}
-          <HeroPdfReader section={section} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
+          <HeroPdfReader section={section} titleColor={theme.colors.text} onMove={previewMode ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} />
           {section.galleryImages && section.galleryImages.length > 0 && (
             <div className="w-full mt-4 flex justify-center">
               <div
-                className="grid gap-6"
+                className="gallery-image-grid grid gap-6"
+                data-single-column={(section.galleryGridCols || 2) === 1}
                 style={{
                   gridTemplateColumns: `repeat(${section.galleryGridCols || 2}, minmax(0, 1fr))`,
                   maxWidth: '1136px',
@@ -1914,7 +2197,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                     <div
                       key={img.id}
                       className="relative self-start group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
-                      onClick={() => setFullscreenImage(img.url)}
+                      onClick={() => setFullscreenImage({ url: img.url, caption: img.caption })}
                     >
                       <OptimizedImage
                         src={img.url}
@@ -1946,7 +2229,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                   <div key={video.id} className="relative group rounded-lg overflow-hidden bg-gray-900 aspect-video">
                     {video.type === 'youtube' ? (
                       <iframe
-                        src={video.url}
+                        src={safeEmbedUrl(video.url)}
                         className="w-full h-full"
                         allowFullScreen
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1954,7 +2237,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                       />
                     ) : video.type === 'vimeo' ? (
                       <iframe
-                        src={video.url}
+                        src={safeEmbedUrl(video.url)}
                         className="w-full h-full"
                         allowFullScreen
                         allow="autoplay; fullscreen; picture-in-picture"
@@ -1962,7 +2245,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                       />
                     ) : (
                       <video className="w-full h-full object-cover" controls>
-                        <source src={video.url} type="video/mp4" />
+                        <source src={safeEmbedUrl(video.url)} type="video/mp4" />
                         Your browser does not support the video tag.
                       </video>
                     )}
@@ -1980,32 +2263,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
           </div>
         )}
 
-        {fullscreenImage && (
-          <div
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-            onClick={() => setFullscreenImage(null)}
-          >
-            <div className="relative max-w-4xl max-h-screen">
-              <OptimizedImage
-                src={fullscreenImage}
-                alt="Fullscreen"
-                className="max-w-full max-h-screen object-contain"
-                width={1200}
-                height={800}
-              />
-              <button
-                className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
-                onClick={() => setFullscreenImage(null)}
-                title="Close"
-              >
-                <X className="w-8 h-8" />
-              </button>
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm">
-                Click anywhere to close
-              </div>
-            </div>
-          </div>
-        )}
+        <GalleryLightbox src={fullscreenImage?.url ?? null} caption={fullscreenImage?.caption} onClose={() => setFullscreenImage(null)} />
       </section>
     );
   }
@@ -2182,7 +2440,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
             onTouchStart={(e) => handleTouchStart(e, 'name')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
-            <h1 className="text-4xl md:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
+            <h1 className="text-3xl @min-[768px]:text-4xl @min-[768px]:text-5xl font-bold whitespace-nowrap" style={getTextStyle(section.textStyles, 'name', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.name} textStyles={section.textStyles?.name} /></h1>
           </div>
         )}
 
@@ -2195,11 +2453,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
             {section.typingWords && section.typingWords.length > 0 ? (
-              <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}>
+              <h2 className="text-xl @min-[768px]:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: theme.colors.text })}>
                 <TypingAnimation words={section.typingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} />
               </h2>
             ) : (
-              <h2 className="text-xl md:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: '#000000' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
+              <h2 className="text-xl @min-[768px]:text-2xl font-medium whitespace-nowrap" style={getTextStyle(section.textStyles, 'title', { color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )}
           </div>
         )}
@@ -2212,7 +2470,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
             onTouchStart={(e) => handleTouchStart(e, 'subtitle')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
-            <p className="text-lg whitespace-nowrap" style={getTextStyle(section.textStyles, 'subtitle', { color: '#000000' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
+            <p className="text-lg max-w-full break-words" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.text })}>{section.subtitleTypingWords && section.subtitleTypingWords.length > 0 ? <TypingAnimation words={section.subtitleTypingWords} typeSpeed={100} deleteSpeed={50} delayBetween={2000} /> : <AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} />}</p>
           </div>
         )}
 
@@ -2230,21 +2488,19 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
 
         {/* CTA Buttons */}
         {section.ctaButtons && section.ctaButtons.length > 0 && (
-          <div className={cn(ctaPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'ff-cta-row flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 items-center', !previewMode && 'cursor-move', dragging === 'ctaButtons' && 'z-20')}
+          <div className={cn(ctaPos ? 'absolute transform -translate-x-1/2 -translate-y-1/2' : '', 'ff-cta-row flex flex-col @min-[640px]:flex-row flex-wrap justify-center gap-3 @min-[640px]:gap-4 items-center', !previewMode && 'cursor-move', dragging === 'ctaButtons' && 'z-20')}
             style={ctaPos ? { left: `${ctaPos.x}%`, top: `${ctaPos.y}%`, zIndex: 10, pointerEvents: 'auto' } : { zIndex: 10, pointerEvents: 'auto' }}
             onMouseDown={(e) => handleMouseDown(e, 'ctaButtons')}
             onTouchStart={(e) => handleTouchStart(e, 'ctaButtons')}
             title={!previewMode ? 'Drag to move • Ctrl+Click to edit' : undefined}
           >
             {section.ctaButtons.map((btn) => (
-              <a key={btn.id} href={btn.link}
-                className={cn('inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium transition-all hover:opacity-90 whitespace-nowrap text-sm sm:text-base',
+              <a key={btn.id} href={safeHref(btn.link)}
+                className={cn('inline-flex items-center gap-2 px-4 @min-[640px]:px-6 py-2.5 @min-[640px]:py-3 rounded-lg font-medium transition-all hover:opacity-90 whitespace-nowrap text-sm @min-[640px]:text-base',
                   btn.variant === 'primary' && 'text-white',
                   btn.variant === 'outline' && 'border-2',
                   btn.variant === 'secondary' && 'text-white')}
-                style={btn.variant === 'primary' ? { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }
-                  : btn.variant === 'outline' ? { borderColor: theme.colors.primary, color: theme.colors.primary, borderRadius: theme.borderRadius }
-                  : { backgroundColor: theme.colors.secondary, borderRadius: theme.borderRadius }}
+                style={buttonShapeStyle(theme, btn.variant)}
                 onClick={(e) => scrollToAnchor(e, btn.link)}>
                 {btn.label}
                 <ArrowRight className="w-4 h-4" />
@@ -2262,7 +2518,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
       </div>{/* End of fixed-height free-form canvas */}
 
       {/* PDF Reader — between canvas and gallery, clearly within the hero section */}
-      {!(!compact && !section.showPdf) && <HeroPdfReader section={section} onMove={previewMode || compact ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} tileMoveHint={!previewMode} />}
+      {!(!compact && !section.showPdf) && <HeroPdfReader section={section} titleColor={theme.colors.text} onMove={previewMode || compact ? undefined : offset => updateSection(section.id, { pdf: { ...section.pdf!, offset } })} tileMoveHint={!previewMode} />}
 
       {/* Gallery and Videos flow below the canvas in normal document flow */}
       <div
@@ -2309,7 +2565,8 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
           onClick={!previewMode ? (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { selectElement(section.id, 'galleryImages'); } } : undefined}
         >
           <div
-            className="grid gap-6"
+            className="gallery-image-grid grid gap-6"
+            data-single-column={(section.galleryGridCols || 2) === 1}
             style={{
               width: '100%',
               maxWidth: 'none',
@@ -2321,7 +2578,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
                 <div
                   key={img.id}
                   className="relative self-start group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border border-gray-200 rounded-lg"
-                  onClick={(e) => { e.stopPropagation(); setFullscreenImage(img.url); }}
+                  onClick={(e) => { e.stopPropagation(); setFullscreenImage({ url: img.url, caption: img.caption }); }}
                 >
                   <OptimizedImage
                     src={img.url}
@@ -2385,11 +2642,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
               <div key={video.id} className="relative group rounded-lg overflow-hidden bg-gray-900 cursor-pointer" style={{ aspectRatio: '16 / 9', width: '100%', minHeight: '200px' }} onClick={(e) => { if (previewMode) { e.stopPropagation(); setFullscreenVideo(video); } }}>
 
                 {video.type === 'youtube' ? (
-                  <iframe src={video.url} className="w-full h-full" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={video.caption || 'Video'} />
+                  <iframe src={safeEmbedUrl(video.url)} className="w-full h-full" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={video.caption || 'Video'} />
                 ) : video.type === 'vimeo' ? (
-                  <iframe src={video.url} className="w-full h-full" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} allowFullScreen allow="autoplay; fullscreen; picture-in-picture" title={video.caption || 'Video'} />
+                  <iframe src={safeEmbedUrl(video.url)} className="w-full h-full" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} allowFullScreen allow="autoplay; fullscreen; picture-in-picture" title={video.caption || 'Video'} />
                 ) : (
-                  <video className="w-full h-full object-cover" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} controls><source src={video.url} type="video/mp4" />Your browser does not support the video tag.</video>
+                  <video className="w-full h-full object-cover" style={{ pointerEvents: previewMode ? 'auto' : 'none' }} controls><source src={safeEmbedUrl(video.url)} type="video/mp4" />Your browser does not support the video tag.</video>
                 )}
                 {!previewMode && <div className="absolute inset-0" style={{ cursor: 'move' }} />}
                 {previewMode && (
@@ -2407,24 +2664,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
 
       </div>{/* End of gallery/videos flow container */}
 
-      {fullscreenImage && (
-        <div
-          className="fixed inset-0 bg-black z-[9999] flex items-center justify-center p-4"
-          onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div className="relative max-w-4xl max-h-screen" onClick={(e) => e.stopPropagation()}>
-            <OptimizedImage src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-[90vh] object-contain" width={1200} height={800} />
-            <button
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 bg-black/50 rounded-full p-2"
-              onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}
-              title="Close"
-            >
-              <X className="w-8 h-8" />
-            </button>
-          </div>
-        </div>
-      )}
+      <GalleryLightbox src={fullscreenImage?.url ?? null} caption={fullscreenImage?.caption} onClose={() => setFullscreenImage(null)} />
 
       {fullscreenVideo && (
         <div
@@ -2435,11 +2675,11 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
           <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
             <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
               {fullscreenVideo.type === 'youtube' ? (
-                <iframe src={fullscreenVideo.url} className="absolute top-0 left-0 w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={fullscreenVideo.caption || 'Video'} />
+                <iframe src={safeEmbedUrl(fullscreenVideo.url)} className="absolute top-0 left-0 w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={fullscreenVideo.caption || 'Video'} />
               ) : fullscreenVideo.type === 'vimeo' ? (
-                <iframe src={fullscreenVideo.url} className="absolute top-0 left-0 w-full h-full" allowFullScreen allow="autoplay; fullscreen; picture-in-picture" title={fullscreenVideo.caption || 'Video'} />
+                <iframe src={safeEmbedUrl(fullscreenVideo.url)} className="absolute top-0 left-0 w-full h-full" allowFullScreen allow="autoplay; fullscreen; picture-in-picture" title={fullscreenVideo.caption || 'Video'} />
               ) : (
-                <video className="absolute top-0 left-0 w-full h-full" controls autoPlay><source src={fullscreenVideo.url} type="video/mp4" />Your browser does not support the video tag.</video>
+                <video className="absolute top-0 left-0 w-full h-full" controls autoPlay><source src={safeEmbedUrl(fullscreenVideo.url)} type="video/mp4" />Your browser does not support the video tag.</video>
               )}
             </div>
             <button
@@ -2461,6 +2701,7 @@ export function HeroPreview({ section, theme, useLandingBackground = false, comp
 
 // ============ ABOUT ============
 function AboutPreview({ section, theme }: { section: AboutSection; theme: any }) {
+  const [fullscreenImage, setFullscreenImage] = React.useState<{ url: string; caption?: string } | null>(null);
   const [galleryColumns, setGalleryColumns] = React.useState(2);
   React.useEffect(() => {
     const query = window.matchMedia('(min-width: 768px)');
@@ -2475,7 +2716,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
   const imageShapeClass = section.imageShape === 'circle' ? 'rounded-full' : section.imageShape === 'square' ? 'rounded-none' : 'rounded-lg';
   const imageLayout = section.imageLayout || 'left';
   const imageSize = section.imageSize || 'medium';
-  const imageWidthClass = imageSize === 'small' ? 'md:w-1/4' : imageSize === 'large' ? 'md:w-1/2' : 'md:w-1/3';
+  const imageWidthClass = imageSize === 'small' ? '@min-[768px]:w-1/4' : imageSize === 'large' ? '@min-[768px]:w-1/2' : '@min-[768px]:w-1/3';
   const imageBorderClass = section.imageBorder ? `border-4 border-solid` : '';
   const imageShadowClass = section.imageShadow !== false ? 'shadow-lg' : '';
 
@@ -2569,7 +2810,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.tagline,
 
         defaultPosition: defaultPositions.tagline,
-        content: <p className="text-lg italic text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}><AnimatedText text={section.tagline ?? ""} textStyles={section.textStyles?.tagline} /></p>,
+        content: <p className="text-lg italic text-center whitespace-nowrap" style={getTextStyle(section.textStyles, 'tagline', { color: theme.colors.text })}><AnimatedText text={section.tagline ?? ""} textStyles={section.textStyles?.tagline} /></p>,
 
       },
       {
@@ -2617,7 +2858,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.quickFacts,
         defaultPosition: defaultPositions.quickFacts,
 
-        content: <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{(section.quickFacts || []).map(fact => <div key={fact.id} className="text-center p-3 rounded-lg" style={{ backgroundColor: `${theme.colors.primary}08` }}><div className="text-2xl font-bold" style={{ color: theme.colors.primary }}>{fact.value}</div><div className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>{fact.label}</div></div>)}</div>,
+        content: <div className="flex flex-wrap justify-center gap-8">{(section.quickFacts || []).map(fact => <QuickFactCard key={fact.id} fact={fact} theme={theme} />)}</div>,
       },
       {
         key: 'video',
@@ -2625,7 +2866,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
         position: effectivePositions.video,
         defaultPosition: defaultPositions.video,
 
-        content: videoEmbedUrl ? <div className="rounded-lg overflow-hidden" style={{ width: '640px', height: '360px' }}><iframe src={videoEmbedUrl} className="w-full h-full" style={{ border: 0 }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div> : null,
+        content: videoEmbedUrl ? <div className="rounded-lg overflow-hidden" style={{ width: '640px', height: '360px' }}><iframe src={safeEmbedUrl(videoEmbedUrl)} className="w-full h-full" style={{ border: 0 }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div> : null,
       },
       {
         key: 'cta',
@@ -2638,19 +2879,19 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             {section.showResume !== false && section.resumeUrl && (
               (section.resumeDisplayMode || 'embed') === 'embed' ? (
                 <iframe
-                  src={section.resumeUrl}
+                  src={safeEmbedUrl(section.resumeUrl)}
                   style={{ width: '100%', height: `${(section.resumeHeight || 600) * 1.5}px`, borderColor: `${theme.colors.primary}30`, borderRadius: theme.borderRadius, pointerEvents: previewMode ? 'auto' : 'none' }}
                   className="rounded-lg border"
                   title="Resume / CV"
                 />
               ) : (
-                <a href={section.resumeUrl} download className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium" style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}>
+                <a href={safeHref(section.resumeUrl)} download className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium" style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}>
                   <Download className="w-4 h-4" /> Resume
                 </a>
               )
             )}
             {section.showCTA !== false && section.ctaButtonText && section.ctaButtonLink && (
-              <a href={section.ctaButtonLink} onClick={(e) => scrollToAnchor(e, section.ctaButtonLink)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium" style={{ border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius }}>{section.ctaButtonText}</a>
+              <a href={safeHref(section.ctaButtonLink)} onClick={(e) => scrollToAnchor(e, section.ctaButtonLink)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium" style={{ border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius }}>{section.ctaButtonText}</a>
             )}
           </div>
         ),
@@ -2659,12 +2900,12 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
 
 
     const handlePositionChange = (key: string, pos: ElementPosition) => {
-      const newPositions = { ...positions, [key]: pos };
+      const newPositions = { ...positions, [entryPositionKey(section, key)]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
 
@@ -2701,7 +2942,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
 
           {/* Tagline */}
           {section.showTagline !== false && section.tagline && (
-            <p className="text-lg text-center mb-8 italic" style={getTextStyle(section.textStyles, 'tagline', { color: '#000000' })}>
+            <p className="text-lg text-center mb-8 italic" style={getTextStyle(section.textStyles, 'tagline', { color: theme.colors.text })}>
               {section.tagline}
             </p>
 
@@ -2765,12 +3006,9 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
               {/* Quick facts */}
 
               {section.showQuickFacts !== false && (section.quickFacts || []).length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+                <div className="flex flex-wrap justify-center gap-8 my-6">
                   {(section.quickFacts || []).map(fact => (
-                    <div key={fact.id} className="text-center p-3 rounded-lg" style={{ backgroundColor: `${theme.colors.primary}08` }}>
-                      <div className="text-2xl font-bold" style={{ color: theme.colors.primary }}>{fact.value}</div>
-                      <div className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>{fact.label}</div>
-                    </div>
+                    <QuickFactCard key={fact.id} fact={fact} theme={theme} />
                   ))}
                 </div>
               )}
@@ -2825,7 +3063,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
               {section.showCTA !== false && section.ctaButtonText && section.ctaButtonLink && (
                 <div className="mt-6">
                   <a
-                    href={section.ctaButtonLink}
+                    href={safeHref(section.ctaButtonLink)}
                     onClick={(e) => scrollToAnchor(e, section.ctaButtonLink)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all hover:opacity-90"
                     style={getTextStyle(section.textStyles, 'ctaButtonText', { border: `2px solid ${theme.colors.primary}`, color: theme.colors.primary, borderRadius: theme.borderRadius })}
@@ -2843,7 +3081,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             (section.resumeDisplayMode || 'embed') === 'embed' ? (
               <div className="mt-8" style={{ width: 'min(916px, 100%)', marginLeft: 'auto', marginRight: 'auto' }}>
                 <iframe
-                  src={section.resumeUrl}
+                  src={safeEmbedUrl(section.resumeUrl)}
                   className="w-full rounded-lg border"
                   style={{ height: `${(section.resumeHeight || 600) * 1.5}px`, borderColor: `${theme.colors.primary}30`, borderRadius: theme.borderRadius }}
                   title="Resume / CV"
@@ -2852,7 +3090,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             ) : (
               <div className="mt-8">
                 <a
-                  href={section.resumeUrl}
+                  href={safeHref(section.resumeUrl)}
                   download
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium transition-all hover:opacity-90"
                   style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}
@@ -2867,9 +3105,9 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
           {section.showGallery !== false && section.galleryImages && section.galleryImages.length > 0 && (() => {
             return (
               <div className="mt-8">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 @min-[768px]:grid-cols-3 gap-6">
                   {orderedGalleryImages.map((img) => (
-                    <div key={img.id} className="relative self-start group overflow-hidden rounded-lg shadow-md border border-gray-200">
+                    <div key={img.id} className="relative self-start group overflow-hidden rounded-lg shadow-md border border-gray-200 cursor-pointer" onClick={() => setFullscreenImage({ url: img.url, caption: img.caption })}>
                       <OptimizedImage
                         src={img.url}
                         alt={img.caption || 'Gallery'}
@@ -2883,6 +3121,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
                     </div>
                   ))}
                 </div>
+                <GalleryLightbox src={fullscreenImage?.url ?? null} caption={fullscreenImage?.caption} onClose={() => setFullscreenImage(null)} />
               </div>
             );
           })()}
@@ -2893,7 +3132,7 @@ function AboutPreview({ section, theme }: { section: AboutSection; theme: any })
             <div className="mt-8 max-w-2xl mx-auto rounded-lg overflow-hidden">
               <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
                 <iframe
-                  src={videoEmbedUrl}
+                  src={safeEmbedUrl(videoEmbedUrl)}
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ border: 0 }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -2969,15 +3208,19 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
   }, [hasMore]);
 
   const aspectStyle = section.aspectRatio === '1:1' ? '1 / 1' : section.aspectRatio === '4:3' ? '4 / 3' : section.aspectRatio === '16:9' ? '16 / 9' : '4 / 3';
-  const gridCols = section.columnCount || 3;
+  // Mosaic: three columns, and every fourth project is a wide tile spanning two columns.
+  const gridCols = section.mosaic ? 3 : (section.columnCount || 3);
 
-  const renderProjectCard = (project: Project) => (
-    <div key={project.id} onClick={() => handleProjectClick(project)} className="cursor-pointer group">
-      <div className="relative overflow-hidden mb-3" style={{ borderRadius: theme.borderRadius, aspectRatio: aspectStyle }}>
+  const renderProjectCard = (project: Project, wide = false) => (
+    <div key={project.id} onClick={() => handleProjectClick(project)} className="cursor-pointer group" style={wide ? { gridColumn: 'span 2' } : undefined}>
+      <div className="relative overflow-hidden mb-3" style={{ borderRadius: theme.borderRadius, aspectRatio: wide ? '2 / 1' : aspectStyle }}>
         {project.imageUrl ? (
           <OptimizedImage src={project.imageUrl} alt={project.title} fill className="object-cover" />
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center"><span className="text-gray-400">No image</span></div>
+          // Themed placeholder until a cover image is added: a soft two-tone block in the template colors.
+          <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${theme.colors.primary}33, ${theme.colors.secondary} 100%)` }}>
+            <span className="text-sm" style={{ color: theme.colors.textSecondary }}>Add a cover image</span>
+          </div>
         )}
       </div>
       <h3 className="font-medium text-sm" style={{ color: theme.colors.text }}>{project.title}</h3>
@@ -3026,7 +3269,7 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
               </span>
               {/* Category name and description on top */}
               <div className="relative" style={{ zIndex: 1 }}>
-                <h2 className="text-4xl font-bold mb-1" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{category.name}</h2>
+                <h2 className="text-3xl @min-[768px]:text-4xl font-bold mb-1" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}>{category.name}</h2>
                 {category.description && <p className="text-base" style={{ color: theme.colors.textSecondary }}>{category.description}</p>}
                 <p className="text-sm mt-1" style={{ color: theme.colors.textSecondary }}>
                   {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
@@ -3040,13 +3283,13 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
             <div className="text-center py-12 text-gray-500"><p>No projects in this category yet.</p></div>
           ) : (
             <div className="grid grid-cols-1 gap-6" style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
-              {visibleProjects.map(renderProjectCard)}
+              {visibleProjects.map((project) => renderProjectCard(project))}
             </div>
           )}
           {hasMore && <div ref={loadMoreRef} className="py-8 flex justify-center">{Array.from({ length: Math.min(3, filteredProjects.length - visibleCount) }).map((_, i) => <ProjectCardSkeleton key={i} />)}</div>}
         </div>
 
-        <ProjectDetailModal
+        <ProjectLightbox
           project={selectedProject}
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setSelectedProject(null); }}
@@ -3074,34 +3317,32 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
                 <div
                   key={category.id}
                   onClick={() => setSelectedCategory(category.name)}
-                  className="cursor-pointer group flex flex-col md:flex-row items-stretch overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
+                  className="cursor-pointer group flex flex-col @min-[768px]:flex-row items-stretch overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
                   style={{ borderRadius: theme.borderRadius }}
                 >
                   {/* Left side: category name and description */}
                   <div
-                    className="flex flex-col justify-center p-6 md:w-1/2"
+                    className="flex flex-col justify-center p-6 @min-[768px]:w-1/2"
                     style={{ backgroundColor: `${theme.colors.primary}08` }}
                   >
-                    <h3 className="text-5xl font-bold text-center" style={{ color: theme.colors.text, fontFamily: "'Blush Asliring', cursive", marginBottom: '50px' }}>
+                    <h3 className="text-3xl @min-[768px]:text-5xl font-bold text-center mb-6 @min-[768px]:mb-[50px]" style={{ color: theme.colors.text, fontFamily: "'Blush Asliring', cursive" }}>
                       {category.name}
                     </h3>
                     {category.description && (
-                      <p className="text-sm mb-3" style={{ color: '#000000' }}>{category.description}</p>
+                      <p className="text-sm mb-3" style={{ color: theme.colors.text }}>{category.description}</p>
                     )}
                     <p className="text-xs" style={{ color: theme.colors.primary }}>
                       {projectCount} {projectCount === 1 ? 'project' : 'projects'}
                     </p>
                   </div>
                   {/* Right side: cover image */}
-                  <div className="relative overflow-hidden md:w-1/2" style={{ aspectRatio: aspectStyle }}>
+                  <div className="relative overflow-hidden @min-[768px]:w-1/2" style={{ aspectRatio: aspectStyle }}>
 
 
                     {category.imageUrl ? (
                       <OptimizedImage src={category.imageUrl} alt={category.name} fill className="object-cover transition-transform group-hover:scale-105" />
                     ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-400">No cover image</span>
-                      </div>
+                      <div className="w-full h-full" aria-hidden="true" style={{ background: `linear-gradient(135deg, ${theme.colors.textSecondary}22, ${theme.colors.textSecondary}11)` }} />
                     )}
                   </div>
 
@@ -3124,8 +3365,8 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-6" style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
-                {visibleProjects.map(renderProjectCard)}
+              <div className="grid grid-cols-1 gap-6" style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, minWidth: section.mosaic || section.fullWidth ? 960 : undefined }}>
+                {visibleProjects.map((project, index) => renderProjectCard(project, !!section.mosaic && index % 4 === 0))}
               </div>
               {hasMore && <div ref={loadMoreRef} className="py-8 flex justify-center">{Array.from({ length: Math.min(3, filteredProjects.length - visibleCount) }).map((_, i) => <ProjectCardSkeleton key={i} />)}</div>}
             </>
@@ -3133,7 +3374,7 @@ function ProjectsPreview({ section, theme, onEditProject, selectedCategory: exte
         )}
       </div>
 
-      <ProjectDetailModal
+      <ProjectLightbox
         project={selectedProject}
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setSelectedProject(null); }}
@@ -3191,6 +3432,47 @@ function getSkillIcon(iconId: string | undefined): React.ElementType {
 }
 
 // #rrggbb → true when the color is light enough that white text would vanish
+// Default ink for text: white on a dark hex background, black otherwise (gradients, images, light colours).
+function withDefaultInk<T extends { colors: { background: string; text: string; textSecondary: string } }>(theme: T): T {
+  const bg = theme.colors.background?.trim() ?? '';
+  const isDarkHex = /^#?[0-9a-fA-F]{6}$/.test(bg) && !isLightColor(bg);
+  const ink = isDarkHex ? '#ffffff' : '#000000';
+  return { ...theme, colors: { ...theme.colors, text: ink, textSecondary: ink } };
+}
+
+// Card surface: white on light sites, dark grey on dark sites, so text inside cards stays readable.
+// Free-form entry positions are saved under the entry's id, so reordering or deleting
+// entries can't move a saved position onto a different entry. Element keys (exp-<index>)
+// are still used for selection; this maps them to the id-based storage key.
+// Sections other than experience/education never emit exp-/edu- keys, so they pass through unchanged.
+function entryPositionKey(section: object, key: string): string {
+  const m = key.match(/^(exp|edu)-(\d+)$/);
+  if (!m) return key;
+  const s = section as { experiences?: { id?: string }[]; educations?: { id?: string }[] };
+  const list = (m[1] === 'exp' ? s.experiences : s.educations) ?? [];
+  const id = list[Number(m[2])]?.id;
+  return id ? `${m[1]}:${id}` : key;
+}
+
+function cardSurface(theme: { colors: { background: string } }): string {
+  const bg = theme.colors.background?.trim() ?? "";
+  const isDarkHex = /^#?[0-9a-fA-F]{6}$/.test(bg) && !isLightColor(bg);
+  return isDarkHex ? "#1f2937" : "#ffffff";
+}
+
+// Footer fill: the text colour on light text, a near-black fill when dark mode makes the text light.
+function footerBackground(theme: { colors: { text: string } }): string {
+  const t = theme.colors.text?.trim() ?? "";
+  const isLightHex = /^#?[0-9a-fA-F]{6}$/.test(t) && isLightColor(t);
+  return isLightHex ? "#0b0d10" : t;
+}
+
+// A logo is only rendered as an image when it looks like a URL; anything else
+// (for example a stray text entry) falls back to the item's name.
+function isImageSource(src?: string): src is string {
+  return !!src && /^(https?:\/\/|\/|data:image\/|blob:)/i.test(src.trim());
+}
+
 function isLightColor(hex: string): boolean {
   const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
   if (!m) return false;
@@ -3205,7 +3487,8 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
   const displayStyle = section.displayStyle || 'bars';
   // Custom bar colors (theme fallback); clicking a bar opens focus mode on the color panel
   const barColor = section.barColor || theme.colors.primary;
-  const barTrackColor = section.barTrackColor || '#e5e7eb';
+  // Track contrasts with the page: dark ink on light pages, light ink on dark pages.
+  const barTrackColor = section.barTrackColor || (isLightColor(theme.colors.background) ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.25)');
   const barLabelColor = (level: number) => (level >= 50 && !isLightColor(barColor) ? '#ffffff' : theme.colors.text);
   const barClickable = !previewMode;
   const barClickProps = barClickable ? {
@@ -3219,10 +3502,10 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
   const renderCategoryContent = (category: string) => {
     const categorySkills = section.skills.filter((s) => s.category === category);
     return (
-      <div style={{ width: '600px' }}>
-        <h3 className="text-lg font-semibold mb-4" style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.primary })}>{category}</h3>
+      <div style={{ width: '600px', ...(displayStyle === 'circles' ? circleGroupStyle(theme.colors.background) : {}) }} className={cn(displayStyle === 'circles' && CIRCLE_GROUP_CLASS)}>
+        <h3 className={cn('text-lg font-semibold mb-4', displayStyle === 'circles' && 'text-center')} style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.text })}>{category}</h3>
         {displayStyle === 'bars' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 @min-[768px]:grid-cols-2 gap-4">
             {categorySkills.map((skill) => {
               const Icon = getSkillIcon(skill.icon);
               return (
@@ -3243,17 +3526,12 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
           </div>
         )}
         {displayStyle === 'circles' && (
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {categorySkills.map((skill) => {
               const Icon = getSkillIcon(skill.icon);
               return (
                 <div key={skill.id} className="flex flex-col items-center">
-                  <div className={barCircleClass} {...barClickProps}>
-                    <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke={barTrackColor} strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={barColor} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
-                    <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
-                  </div>
-                  <span className="text-sm mt-2 text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
+                  <SkillRing id={skill.id} name={skill.name} level={skill.level} color={visibleColor(barColor, theme.colors.background)} trackColor={barTrackColor} labelStyle={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })} clickable={barClickable} clickProps={barClickProps} />
                 </div>
               );
             })}
@@ -3273,7 +3551,7 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
           </div>
         )}
         {displayStyle === 'icons' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 @min-[768px]:grid-cols-4 gap-4">
             {categorySkills.map((skill) => {
               const Icon = getSkillIcon(skill.icon);
               return (
@@ -3312,7 +3590,7 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     return (
@@ -3332,10 +3610,10 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
         <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
       )}
       {categories.map((category) => (
-        <div key={category} className={tileMode ? undefined : 'mb-8'}>
-              <h3 className="text-lg font-semibold mb-4" style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.primary })}>{category}</h3>
+        <div key={category} className={cn(tileMode ? undefined : 'mb-8', displayStyle === 'circles' && CIRCLE_GROUP_CLASS)} style={displayStyle === 'circles' ? circleGroupStyle(theme.colors.background) : undefined}>
+              <h3 className={cn('text-lg font-semibold mb-4', displayStyle === 'circles' && 'text-center')} style={getTextStyle(section.textStyles, 'skillCategory', { color: theme.colors.text })}>{category}</h3>
               {displayStyle === 'bars' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 @min-[768px]:grid-cols-2 gap-4">
                   {section.skills.filter((s) => s.category === category).map((skill) => {
                     const Icon = getSkillIcon(skill.icon);
                     return (
@@ -3356,17 +3634,12 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                 </div>
               )}
               {displayStyle === 'circles' && (
-                <div className="flex flex-wrap gap-6">
+                <div className="flex flex-wrap justify-center gap-6">
                   {section.skills.filter((s) => s.category === category).map((skill) => {
                     const Icon = getSkillIcon(skill.icon);
                     return (
                       <div key={skill.id} className="flex flex-col items-center">
-                        <div className={barCircleClass} {...barClickProps}>
-                          <svg className="w-20 h-20 transform -rotate-90"><circle cx="40" cy="40" r="36" fill="none" stroke={barTrackColor} strokeWidth="6" /><circle cx="40" cy="40" r="36" fill="none" stroke={barColor} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 36 * (skill.level / 100)} ${2 * Math.PI * 36}`} strokeLinecap="round" /></svg>
-                          <Icon className="absolute inset-0 m-auto w-6 h-6" style={{ color: theme.colors.primary }} />
-                          <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textSecondary }}>{skill.level}%</span>
-                        </div>
-                        <span className="text-sm mt-2 text-center" style={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })}>{skill.name}</span>
+                        <SkillRing id={skill.id} name={skill.name} level={skill.level} color={visibleColor(barColor, theme.colors.background)} trackColor={barTrackColor} labelStyle={getTextStyle(section.textStyles, 'skillName', { color: theme.colors.text })} clickable={barClickable} clickProps={barClickProps} />
                       </div>
                     );
                   })}
@@ -3386,7 +3659,7 @@ function SkillsPreview({ section, theme, tileMode = false }: { section: SkillsSe
                 </div>
               )}
               {displayStyle === 'icons' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 @min-[768px]:grid-cols-4 gap-4">
                   {section.skills.filter((s) => s.category === category).map((skill) => {
                     const Icon = getSkillIcon(skill.icon);
                     return (
@@ -3460,17 +3733,17 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
       elements.push({
         key: `exp-${i}`,
         visible: true,
-        position: positions[`exp-${i}`],
+        position: positions[entryPositionKey(section, `exp-${i}`)],
         defaultPosition: defaultPositions[`exp-${i}`],
         content: (
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             {exp.companyLogo && <OptimizedImage src={exp.companyLogo} alt={exp.company} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
             <div className="mb-1">
-            <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
-              <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
+            <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: theme.colors.text })}>{exp.position}</h3>
+              <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: theme.colors.text })}>{exp.company}</p>
             </div>
-            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: theme.colors.textSecondary })}>{exp.startDate ? <>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: theme.colors.textSecondary })}>{exp.endDate || 'Present'}</span></> : null}{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: theme.colors.textSecondary })}>{exp.location}</span></p>
             <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
             {exp.achievements && exp.achievements.length > 0 && (
               <ul className="mt-2 space-y-1">
@@ -3487,12 +3760,12 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
     });
 
     const handlePositionChange = (key: string, pos: ElementPosition) => {
-      const newPositions = { ...positions, [key]: pos };
+      const newPositions = { ...positions, [entryPositionKey(section, key)]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
 
@@ -3520,15 +3793,15 @@ function ExperiencePreview({ section, theme }: { section: ExperienceSection; the
           )}
           <div className="space-y-8">
             {section.experiences.map((exp, i) => (
-              <div key={exp.id} className={cn('relative pl-6 border-l-2', layout === 'alternate' && i % 2 === 1 && 'md:ml-auto md:pl-6 md:pr-6 md:border-l-0 md:border-r-2 md:text-right')} style={{ borderColor: theme.colors.primary }}>
+              <div key={exp.id} className={cn('relative pl-6 border-l-2', layout === 'alternate' && i % 2 === 1 && '@min-[768px]:ml-auto @min-[768px]:pl-6 @min-[768px]:pr-6 @min-[768px]:border-l-0 @min-[768px]:border-r-2 @min-[768px]:text-right')} style={{ borderColor: theme.colors.primary }}>
                 <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 {exp.companyLogo && <OptimizedImage src={exp.companyLogo} alt={exp.company} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
 
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: '#1a1a1a' })}>{exp.position}</h3>
-                  <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: '#333333' })}>{exp.company}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'experiencePosition', { color: theme.colors.text })}>{exp.position}</h3>
+                  <p style={getTextStyle(section.textStyles, 'experienceCompany', { color: theme.colors.text })}>{exp.company}</p>
                 </div>
-                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: '#555555' })}>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: '#555555' })}>{exp.endDate || 'Present'}</span>{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: '#555555' })}>{exp.location}</span></p>
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'experienceStartDate', { color: theme.colors.textSecondary })}>{exp.startDate ? <>{exp.startDate} - <span style={getTextStyle(section.textStyles, 'experienceEndDate', { color: theme.colors.textSecondary })}>{exp.endDate || 'Present'}</span></> : null}{exp.location && ` • `}<span style={getTextStyle(section.textStyles, 'experienceLocation', { color: theme.colors.textSecondary })}>{exp.location}</span></p>
                 <p style={getTextStyle(section.textStyles, 'experienceDescription', { color: theme.colors.text })}>{exp.description}</p>
                 {exp.achievements && exp.achievements.length > 0 && (
                   <ul className="mt-2 space-y-1">
@@ -3582,17 +3855,17 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
       elements.push({
         key: `edu-${i}`,
         visible: true,
-        position: positions[`edu-${i}`],
+        position: positions[entryPositionKey(section, `edu-${i}`)],
         defaultPosition: defaultPositions[`edu-${i}`],
         content: (
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             {edu.logo && <OptimizedImage src={edu.logo} alt={edu.institution} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: '#1a1a1a' })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: '#1a1a1a' })}>{edu.field}</span></h3>
-              <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: '#333333' })}>{edu.institution}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: theme.colors.text })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: theme.colors.text })}>{edu.field}</span></h3>
+              <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: theme.colors.text })}>{edu.institution}</p>
             </div>
-            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: '#555555' })}>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: '#555555' })}>{edu.endDate}</span></p>
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: theme.colors.textSecondary })}>{edu.startDate ? <>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: theme.colors.textSecondary })}>{edu.endDate}</span></> : null}</p>
             {edu.description && <p style={getTextStyle(section.textStyles, 'educationDescription', { color: theme.colors.text })}>{edu.description}</p>}
           </div>
         ),
@@ -3600,12 +3873,12 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
     });
 
     const handlePositionChange = (key: string, pos: ElementPosition) => {
-      const newPositions = { ...positions, [key]: pos };
+      const newPositions = { ...positions, [entryPositionKey(section, key)]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
 
@@ -3636,10 +3909,10 @@ function EducationPreview({ section, theme }: { section: EducationSection; theme
                 <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 {edu.logo && <OptimizedImage src={edu.logo} alt={edu.institution} className="w-8 h-8 rounded mb-2" width={32} height={32} />}
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: '#1a1a1a' })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: '#1a1a1a' })}>{edu.field}</span></h3>
-                  <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: '#333333' })}>{edu.institution}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'educationDegree', { color: theme.colors.text })}>{edu.degree}{edu.field ? ' ' : ''}<span style={getTextStyle(section.textStyles, 'educationField', { color: theme.colors.text })}>{edu.field}</span></h3>
+                  <p style={getTextStyle(section.textStyles, 'educationInstitution', { color: theme.colors.text })}>{edu.institution}</p>
                 </div>
-                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: '#555555' })}>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: '#555555' })}>{edu.endDate}</span></p>
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'educationStartDate', { color: theme.colors.textSecondary })}>{edu.startDate ? <>{edu.startDate} - <span style={getTextStyle(section.textStyles, 'educationEndDate', { color: theme.colors.textSecondary })}>{edu.endDate}</span></> : null}</p>
                 {edu.description && <p style={getTextStyle(section.textStyles, 'educationDescription', { color: theme.colors.text })}>{edu.description}</p>}
               </div>
             ))}
@@ -3667,7 +3940,7 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
             {section.showTitle !== false && (
               <h2 className="text-3xl font-bold mb-8" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
             )}
-            <div className="p-8 rounded-lg shadow-lg" style={{ borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+            <div className="p-8 rounded-lg shadow-lg" style={{ borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
               {testimonial.rating && (
                 <div className="flex justify-center gap-1 mb-4">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -3709,10 +3982,10 @@ function TestimonialsPreview({ section, theme }: { section: TestimonialsSection;
           {section.showTitle !== false && (
             <h2 className="text-3xl font-bold mb-8 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          <AnimatedStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatedStagger className="grid grid-cols-1 @min-[768px]:grid-cols-2 @min-[1024px]:grid-cols-3 gap-6">
             {section.testimonials.map((t) => (
               <AnimatedItem key={t.id}>
-                <div className="p-6 rounded-lg shadow-lg h-full" style={{ borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                <div className="p-6 rounded-lg shadow-lg h-full" style={{ borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                   {t.rating && (
                     <div className="flex gap-1 mb-3">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -3777,7 +4050,7 @@ function ContactPreview({ section, theme }: { section: ContactSection; theme: an
             {section.showLocation !== false && section.location && <div className="flex items-center justify-center gap-2"><MapPin className="w-5 h-5" style={{ color: theme.colors.primary }} /><span style={getTextStyle(section.textStyles, 'location', { color: theme.colors.text })}>{section.location}</span></div>}
           </div>
           {section.showCalendly !== false && section.calendlyUrl && (
-            <a href={section.calendlyUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium mb-6" style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}>
+            <a href={safeHref(section.calendlyUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium mb-6" style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}>
               <Calendar className="w-4 h-4" /> Schedule a Call
             </a>
           )}
@@ -3809,7 +4082,7 @@ function ContactPreview({ section, theme }: { section: ContactSection; theme: an
                 return (
                   <a
                     key={link.id}
-                    href={link.url}
+                    href={safeHref(link.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-3 rounded-full transition-all hover:scale-110"
@@ -3854,7 +4127,7 @@ function SocialPreview({ section, theme }: { section: SocialSection; theme: any 
             {section.links.map((link) => {
               const Icon = getSocialIcon(link.platform);
               return (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-4 rounded-full transition-all hover:scale-110" style={{ backgroundColor: theme.colors.primary, color: 'white' }}>
+                <a key={link.id} href={safeHref(link.url)} target="_blank" rel="noopener noreferrer" className="p-4 rounded-full transition-all hover:scale-110" style={{ backgroundColor: theme.colors.primary, color: 'white' }}>
                   <Icon className="w-6 h-6" />
                 </a>
               );
@@ -3876,9 +4149,9 @@ function FooterPreview({ section, theme }: { section: FooterSection; theme: any 
   const navLinks = portfolio.sections.filter(s => s.visible !== false && s.type !== 'footer').map(s => ({ id: s.id, label: s.type === 'hero' ? (s as any).name || 'Home' : (s as any).title || s.type }));
 
   return (
-    <footer className="py-12 px-6" style={{ backgroundColor: theme.colors.text, color: '#fff' }}>
+    <footer className="py-12 px-6" style={{ backgroundColor: footerBackground(theme), color: '#fff' }}>
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 @min-[768px]:grid-cols-3 gap-8 mb-8">
           {section.showQuickLinks && (
             <div>
               <h4 className="text-sm font-semibold uppercase mb-4 opacity-70">Quick Links</h4>
@@ -3905,7 +4178,7 @@ function FooterPreview({ section, theme }: { section: FooterSection; theme: any 
               <div className="flex gap-3">
                 {socialSection.links.map((link: any) => {
                   const Icon = getSocialIcon(link.platform);
-                  return <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><Icon className="w-5 h-5" /></a>;
+                  return <a key={link.id} href={safeHref(link.url)} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><Icon className="w-5 h-5" /></a>;
                 })}
               </div>
             </div>
@@ -3914,7 +4187,7 @@ function FooterPreview({ section, theme }: { section: FooterSection; theme: any 
         <div className="border-t border-white/10 pt-6 flex items-center justify-between">
           <p className="text-sm opacity-60" style={getTextStyle(section.textStyles, 'copyright', { color: 'rgba(255,255,255,0.6)' })}>{copyright}</p>
           {section.showBackToTop && (
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+            <button aria-label="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
               <ArrowUp className="w-4 h-4" />
             </button>
           )}
@@ -3932,13 +4205,13 @@ function CTABannerPreview({ section, theme }: { section: CTABannerSection; theme
       <section className="py-20 px-6 text-center" style={bgStyle}>
         <div className="max-w-2xl mx-auto">
           {section.showTitle !== false && (
-            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
+            <h2 className="text-3xl @min-[768px]:text-4xl font-bold mb-4" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           {section.showSubtitle !== false && (
             <p className="text-lg mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>
           )}
           {section.showButton !== false && (
-            <a href={section.buttonLink} onClick={(e) => scrollToAnchor(e, section.buttonLink)}
+            <a href={safeHref(section.buttonLink)} onClick={(e) => scrollToAnchor(e, section.buttonLink)}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all hover:opacity-90"
               style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius }}
             >
@@ -3963,12 +4236,12 @@ function ServicesPreview({ section, theme }: { section: ServicesSection; theme: 
             <h2 className="text-3xl font-bold mb-2 text-center" style={getTextStyle(section.textStyles, 'title', { fontFamily: theme.typography.headingFont, color: theme.colors.text })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
-          <AnimatedStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatedStagger className="grid grid-cols-1 @min-[768px]:grid-cols-2 @min-[1024px]:grid-cols-3 gap-6">
             {section.services.map((service) => {
               const Icon = iconMap[service.icon] || Star;
               return (
                 <AnimatedItem key={service.id}>
-                  <div className="p-6 rounded-lg border text-center h-full" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                  <div className="p-6 rounded-lg border text-center h-full" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                     <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: `${theme.colors.primary}15` }}>
                       <Icon className="w-7 h-7" style={{ color: theme.colors.primary }} />
                     </div>
@@ -4007,14 +4280,14 @@ function ProcessPreview({ section, theme }: { section: ProcessSection; theme: an
           )}
           {section.showSubtitle !== false && section.subtitle && <p className="text-center mb-10" style={getTextStyle(section.textStyles, 'subtitle', { color: theme.colors.textSecondary })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
           <div
-            className={cn('relative', layout === 'horizontal' ? 'grid grid-cols-1 gap-4 md:gap-5' : 'max-w-3xl mx-auto space-y-3 pl-12 md:space-y-4 md:pl-16')}
+            className={cn('relative', layout === 'horizontal' ? 'grid grid-cols-1 gap-4 @min-[768px]:gap-5' : 'max-w-3xl mx-auto space-y-3 pl-12 @min-[768px]:space-y-4 @min-[768px]:pl-16')}
             style={layout === 'horizontal' ? { gridTemplateColumns: `repeat(${Math.min(Math.max(section.steps.length, 1), 5)}, minmax(0, 1fr))` } : undefined}
           >
             {section.steps.map((step, i) => {
               const isActive = activeStep === i;
               return (
                 <button key={step.id} type="button" onClick={() => setActiveStep(i)}
-                  className={cn('group relative z-10 w-full text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4', layout === 'horizontal' ? 'rounded-2xl p-5 md:p-6' : 'flex items-start gap-4 rounded-2xl p-4 md:gap-6 md:p-5', 'hover:-translate-y-1')}
+                  className={cn('group relative z-10 w-full text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4', layout === 'horizontal' ? 'rounded-2xl p-5 @min-[768px]:p-6' : 'flex items-start gap-4 rounded-2xl p-4 @min-[768px]:gap-6 @min-[768px]:p-5', 'hover:-translate-y-1')}
                   style={{ backgroundColor: tileBackgroundColor, border: `1px solid ${isActive ? `${accentColor}55` : tileBorderColor}`, boxShadow: isActive ? `0 18px 45px ${accentColor}18` : '0 5px 18px rgba(15, 23, 42, 0.04)', outlineColor: accentColor }}>
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'stepTitle', { color: theme.colors.text })}>{step.title}</h3>
@@ -4039,10 +4312,10 @@ function StatsPreview({ section, theme }: { section: StatsSection; theme: any })
           {section.showTitle !== false && (
             <h2 className="text-3xl font-bold mb-10 text-center text-white" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 @min-[768px]:grid-cols-4 gap-8">
             {section.stats.map((stat) => (
               <div key={stat.id} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2" style={getTextStyle(section.textStyles, 'statValue', { color: '#fff' })}>
+                <div className="text-3xl @min-[768px]:text-4xl @min-[768px]:text-5xl font-bold text-white mb-2" style={getTextStyle(section.textStyles, 'statValue', { color: '#fff' })}>
                   <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                 </div>
                 <p className="text-sm text-white/80" style={getTextStyle(section.textStyles, 'statLabel', { color: 'rgba(255,255,255,0.8)' })}>{stat.label}</p>
@@ -4095,10 +4368,10 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: '#1a1a1a' })}>{award.title}</h3>
-              <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: '#333333' })}>{award.organization}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: theme.colors.text })}>{award.title}</h3>
+              <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: theme.colors.text })}>{award.organization}</p>
             </div>
-            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: '#555555' })}>{award.year}</p>
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: theme.colors.textSecondary })}>{award.year}</p>
             {award.description && <p style={getTextStyle(section.textStyles, 'awardDescription', { color: theme.colors.text })}>{award.description}</p>}
           </div>
         ),
@@ -4106,12 +4379,12 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
     });
 
     const handlePositionChange = (key: string, pos: ElementPosition) => {
-      const newPositions = { ...positions, [key]: pos };
+      const newPositions = { ...positions, [entryPositionKey(section, key)]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
 
@@ -4142,10 +4415,10 @@ function AwardsPreview({ section, theme }: { section: AwardsSection; theme: any 
                 <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary }}>
                   <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 <div className="mb-1">
-                    <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: '#1a1a1a' })}>{award.title}</h3>
-                    <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: '#333333' })}>{award.organization}</p>
+                    <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'awardTitle', { color: theme.colors.text })}>{award.title}</h3>
+                    <p style={getTextStyle(section.textStyles, 'awardOrganization', { color: theme.colors.text })}>{award.organization}</p>
                   </div>
-                  <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: '#555555' })}>{award.year}</p>
+                  <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'awardYear', { color: theme.colors.textSecondary })}>{award.year}</p>
                   {award.description && <p style={getTextStyle(section.textStyles, 'awardDescription', { color: theme.colors.text })}>{award.description}</p>}
                 </div>
               </AnimatedItem>
@@ -4171,11 +4444,11 @@ function PressPreview({ section, theme }: { section: PressSection; theme: any })
             {section.items.map((item) => (
               <div key={item.id}>
                 {item.link ? (
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="block opacity-60 hover:opacity-100 transition-opacity">
-                    {item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto" width={48} height={48} /> : <span className="text-xl font-bold" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>}
+                  <a href={safeHref(item.link)} target="_blank" rel="noopener noreferrer" className="block opacity-60 hover:opacity-100 transition-opacity">
+                    {isImageSource(item.logo) ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto" width={48} height={48} /> : <span className="text-xl font-bold" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>}
                   </a>
                 ) : (
-                  item.logo ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto opacity-60" width={48} height={48} /> : <span className="text-xl font-bold opacity-60" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>
+                  isImageSource(item.logo) ? <OptimizedImage src={item.logo} alt={item.name} className="h-12 w-auto opacity-60" width={48} height={48} /> : <span className="text-xl font-bold opacity-60" style={getTextStyle(section.textStyles, 'pressTitle', { color: theme.colors.text })}>{item.name}</span>
                 )}
 
               </div>
@@ -4227,23 +4500,23 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
           <div className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary, width: '500px' }}>
             <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
             <div className="mb-1">
-              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: '#1a1a1a' })}>{cert.name}</h3>
-              <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
+              <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: theme.colors.text })}>{cert.name}</h3>
+              <p style={getTextStyle(section.textStyles, 'certIssuer', { color: theme.colors.text })}>{cert.issuer}</p>
             </div>
-            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
-            {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
+            <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: theme.colors.textSecondary })}>{cert.date}</p>
+            {cert.url && <a href={safeHref(cert.url)} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
           </div>
         ),
       });
     });
 
     const handlePositionChange = (key: string, pos: ElementPosition) => {
-      const newPositions = { ...positions, [key]: pos };
+      const newPositions = { ...positions, [entryPositionKey(section, key)]: pos };
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
     const handleBatchPositionChange = (updates: Record<string, ElementPosition>) => {
       const newPositions = { ...positions };
-      for (const [key, pos] of Object.entries(updates)) newPositions[key] = pos;
+      for (const [key, pos] of Object.entries(updates)) newPositions[entryPositionKey(section, key)] = pos;
       updateSection(section.id, { elementPositions: newPositions } as any);
     };
 
@@ -4273,11 +4546,11 @@ function CertificationsPreview({ section, theme }: { section: CertificationsSect
               <div key={cert.id} className="relative pl-6 border-l-2" style={{ borderColor: theme.colors.primary }}>
                 <div className="absolute -left-2 top-0 w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                 <div className="mb-1">
-                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: '#1a1a1a' })}>{cert.name}</h3>
-                  <p style={getTextStyle(section.textStyles, 'certIssuer', { color: '#333333' })}>{cert.issuer}</p>
+                  <h3 className="text-lg font-semibold" style={getTextStyle(section.textStyles, 'certName', { color: theme.colors.text })}>{cert.name}</h3>
+                  <p style={getTextStyle(section.textStyles, 'certIssuer', { color: theme.colors.text })}>{cert.issuer}</p>
                 </div>
-                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: '#555555' })}>{cert.date}</p>
-                {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
+                <p className="text-sm mb-2" style={getTextStyle(section.textStyles, 'certDate', { color: theme.colors.textSecondary })}>{cert.date}</p>
+                {cert.url && <a href={safeHref(cert.url)} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: theme.colors.primary }}>View certificate →</a>}
               </div>
             ))}
           </div>
@@ -4303,9 +4576,9 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
           ) : layout === 'list' ? (
             <div className="max-w-3xl mx-auto space-y-6">
               {section.posts.map((post) => (
-                <div key={post.id} className="flex flex-col md:flex-row gap-6 p-4 rounded-lg border" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                <div key={post.id} className="flex flex-col @min-[768px]:flex-row gap-6 p-4 rounded-lg border" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                   {post.imageUrl && (
-                    <OptimizedImage src={post.imageUrl} alt={post.title} className="w-full md:w-48 h-32 object-cover rounded-lg flex-shrink-0" width={192} height={128} />
+                    <OptimizedImage src={post.imageUrl} alt={post.title} className="w-full @min-[768px]:w-48 h-32 object-cover rounded-lg flex-shrink-0" width={192} height={128} />
                   )}
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-1" style={getTextStyle(section.textStyles, 'postTitle', { color: theme.colors.text })}>{post.title}</h3>
@@ -4322,7 +4595,7 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                       </div>
                     )}
                     {post.link && (
-                      <a href={post.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm mt-3" style={{ color: theme.colors.primary }}>
+                      <a href={safeHref(post.link)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm mt-3" style={{ color: theme.colors.primary }}>
                         Read more <ArrowRight className="w-3 h-3" />
                       </a>
                     )}
@@ -4331,10 +4604,10 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
               ))}
             </div>
           ) : (
-            <AnimatedStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatedStagger className="grid grid-cols-1 @min-[768px]:grid-cols-2 @min-[1024px]:grid-cols-3 gap-6">
               {section.posts.map((post) => (
                 <AnimatedItem key={post.id}>
-                  <div className="rounded-lg overflow-hidden border h-full flex flex-col" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                  <div className="rounded-lg overflow-hidden border h-full flex flex-col" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                     {post.imageUrl && (
                       <OptimizedImage src={post.imageUrl} alt={post.title} className="w-full h-48 object-cover" width={400} height={192} />
                     )}
@@ -4353,7 +4626,7 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
                         </div>
                       )}
                       {post.link && (
-                        <a href={post.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm mt-3" style={{ color: theme.colors.primary }}>
+                        <a href={safeHref(post.link)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm mt-3" style={{ color: theme.colors.primary }}>
                           Read more <ArrowRight className="w-3 h-3" />
                         </a>
                       )}
@@ -4371,6 +4644,8 @@ function BlogPreview({ section, theme }: { section: BlogSection; theme: any }) {
 
 // ============ FAQ ============
 function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
+  const visitorView = usePortfolioStore((s) => s.previewMode);
+  if (visitorView) section = { ...section, items: section.items.filter((item) => !isPlaceholderFaqItem(item)) };
   const [openIndex, setOpenIndex] = React.useState<number | null>(0);
   const layout = section.layout || 'accordion';
   return (
@@ -4384,9 +4659,9 @@ function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
           {section.items.length === 0 ? (
             <div className="text-center py-12 text-gray-500"><p>No FAQ items yet.</p></div>
           ) : layout === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 @min-[768px]:grid-cols-2 gap-4">
               {section.items.map((item) => (
-                <div key={item.id} className="p-5 rounded-lg border" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                <div key={item.id} className="p-5 rounded-lg border" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                   <div className="flex items-start gap-3 mb-2">
                     <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: theme.colors.primary }} />
                     <h3 className="font-semibold" style={getTextStyle(section.textStyles, 'question', { color: theme.colors.text })}>{item.question}</h3>
@@ -4398,7 +4673,7 @@ function FAQPreview({ section, theme }: { section: FAQSection; theme: any }) {
           ) : (
             <div className="space-y-3">
               {section.items.map((item, i) => (
-                <div key={item.id} className="rounded-lg border overflow-hidden" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: 'white' }}>
+                <div key={item.id} className="rounded-lg border overflow-hidden" style={{ borderColor: `${theme.colors.primary}20`, borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}>
                   <button
                     onClick={() => setOpenIndex(openIndex === i ? null : i)}
                     className="w-full flex items-center justify-between p-4 text-left"
@@ -4426,10 +4701,25 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
   const [email, setEmail] = React.useState('');
   const [status, setStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    // If a provider URL is set, the form will submit to it; otherwise show success
+    // F16: a configured provider must receive the address. Without a URL the sign-up
+    // used to be reported as successful and then lost, so report the gap instead.
+    const providerActive = section.provider && section.provider !== 'none';
+    if (providerActive && !section.providerUrl) {
+      setStatus('error');
+      return;
+    }
+    if (providerActive && section.providerUrl) {
+      try {
+        // Cross-origin providers answer opaquely, so success means the request was sent.
+        await fetch(section.providerUrl, { method: 'POST', mode: 'no-cors', body: new URLSearchParams({ email }) });
+      } catch {
+        setStatus('error');
+        return;
+      }
+    }
     setStatus('success');
     setEmail('');
     setTimeout(() => setStatus('idle'), 3000);
@@ -4449,7 +4739,7 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
             <h2 className="text-3xl font-bold mb-2" style={getTextStyle(section.textStyles, 'title', { color: '#fff' })}><AnimatedText text={section.title} textStyles={section.textStyles?.title} /></h2>
           )}
           {section.showSubtitle !== false && section.subtitle && <p className="mb-8" style={getTextStyle(section.textStyles, 'subtitle', { color: 'rgba(255,255,255,0.9)' })}><AnimatedText text={section.subtitle} textStyles={section.textStyles?.subtitle} /></p>}
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col @min-[640px]:flex-row gap-3 max-w-md mx-auto">
             <input
               type="email"
               placeholder={section.placeholder || 'Enter your email'}
@@ -4457,7 +4747,7 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
               onChange={(e) => setEmail(e.target.value)}
               required
               className="flex-1 px-4 py-3 rounded-lg text-gray-900"
-              style={{ borderRadius: theme.borderRadius, backgroundColor: 'white' }}
+              style={{ borderRadius: theme.borderRadius, backgroundColor: cardSurface(theme) }}
             />
             <button
               type="submit"
@@ -4479,3 +4769,253 @@ function NewsletterPreview({ section, theme }: { section: NewsletterSection; the
   );
 }
 
+// Radial skill ring: draws itself in on load, tilts toward the pointer in 3D on hover,
+// and glows in the bar color. Motion is skipped for users who prefer reduced motion.
+function SkillRing({ id, name, level, color, trackColor, labelStyle, clickable, clickProps }: {
+  id: string;
+  name: string;
+  level: number;
+  color: string;
+  trackColor: string;
+  labelStyle: React.CSSProperties;
+  clickable: boolean;
+  clickProps: { onClick?: (e: React.MouseEvent) => void; title?: string };
+}) {
+  const [mounted, setMounted] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+  const gradientId = `skill-ring-${React.useId().replace(/:/g, '')}`;
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: -py * 28, y: px * 28 });
+  };
+
+  return (
+    <div
+      className={`relative w-28 h-28 @min-[768px]:w-40 @min-[768px]:h-40 motion-safe:transition-transform${clickable ? ' cursor-pointer' : ''}`}
+      style={{ perspective: 400 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseMove={onMouseMove}
+      onMouseLeave={() => { setHovered(false); setTilt({ x: 0, y: 0 }); }}
+      {...clickProps}
+    >
+      <div
+        className="absolute inset-0 rounded-full motion-safe:transition-transform motion-safe:duration-200 ease-out"
+        style={{
+          transformStyle: 'preserve-3d',
+          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${hovered ? 1.08 : 1})`,
+          boxShadow: hovered ? `0 14px 30px -8px ${color}99` : '0 4px 10px -4px rgba(0,0,0,0.25)',
+        }}
+        data-skill={id}
+      >
+        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={color} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.55} />
+            </linearGradient>
+          </defs>
+          <circle cx="40" cy="40" r={radius} fill="none" stroke={trackColor} strokeWidth="6" />
+          <circle
+            cx="40"
+            cy="40"
+            r={radius}
+            fill="none"
+            stroke={`url(#${gradientId})`}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={mounted ? circumference * (1 - level / 100) : circumference}
+            className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-[1200ms] ease-out"
+          />
+        </svg>
+        <span
+          className="absolute inset-0 m-auto flex h-fit w-[108px] items-center justify-center text-balance text-center text-base font-semibold leading-tight [overflow-wrap:anywhere]"
+          style={labelStyle}
+        >
+          {name}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Container around one ring category: its heading and rings sit inside one box.
+const CIRCLE_GROUP_CLASS = 'rounded-2xl border p-6 shadow-lg backdrop-blur-sm';
+
+// Tint the skill group card against the page: light ink on dark pages, dark ink on light pages.
+function circleGroupStyle(background: string): React.CSSProperties {
+  return isLightColor(background)
+    ? { backgroundColor: 'rgba(15, 23, 42, 0.05)', borderColor: 'rgba(15, 23, 42, 0.14)' }
+    : { backgroundColor: 'rgba(255, 255, 255, 0.10)', borderColor: 'rgba(255, 255, 255, 0.25)' };
+}
+
+// --- Contrast helpers -------------------------------------------------------
+// Every element colour is checked against the colour it sits on. If the two are too close
+// (WCAG contrast below 3:1), the element switches to black or white, whichever reads better.
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function relativeLuminance(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a: string, b: string): number | null {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  if (la === null || lb === null) return null;
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function visibleColor(color: string, background: string): string {
+  const ratio = contrastRatio(color, background);
+  if (ratio === null || ratio >= 3) return color;
+  const bgLum = relativeLuminance(background) ?? 1;
+  return bgLum > 0.179 ? '#000000' : '#ffffff';
+}
+
+// --- Quick fact card ----------------------------------------------------------
+// Icon, number that counts up when scrolled into view, label below. The card tilts toward
+// the pointer in 3D on hover, like the skill rings. Its surface is chosen to stand out from the page.
+const QUICK_FACT_ICONS: { match: RegExp; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }[] = [
+  { match: /year|experience|since|history/i, icon: Hourglass },
+  { match: /project|portfolio|case stud|piece|work/i, icon: Briefcase },
+  { match: /client|customer|team|people|member|user|collab/i, icon: Users },
+  { match: /award|prize|recogni|winner|honou?r|medal/i, icon: Award },
+  { match: /location|based|city|address|remote|home/i, icon: MapPin },
+  { match: /follower|fan|like|love|loyal/i, icon: Heart },
+  { match: /review|rating|testimonial|feedback|star/i, icon: Star },
+  { match: /coffee|cup/i, icon: Coffee },
+  { match: /design|brand|logo|\bui\b|\bux\b|art/i, icon: Palette },
+  { match: /code|develop|software|app|website|site|engineer/i, icon: Code },
+  { match: /photo|image|shoot|camera/i, icon: Camera },
+  { match: /video|film|movie|youtube/i, icon: Video },
+  { match: /music|song|album|track|podcast/i, icon: Music },
+  { match: /book|article|blog|post|publication|paper|writ/i, icon: BookOpen },
+  { match: /learn|course|education|degree|certif|school|study/i, icon: GraduationCap },
+  { match: /language/i, icon: Languages },
+  { match: /travel|trip|flight|visit|countr|world/i, icon: Plane },
+  { match: /growth|increase|revenue|sales|percent|%/i, icon: TrendingUp },
+  { match: /mail|email|newsletter|subscri/i, icon: Mail },
+  { match: /phone|call|contact/i, icon: Phone },
+  { match: /hour|speed|fast|time|day|month/i, icon: Clock },
+  { match: /tool|stack|skill|tech/i, icon: Wrench },
+];
+
+function QuickFactCard({ fact, theme }: { fact: { id: string; label: string; value: string; icon?: string }; theme: any }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [shown, setShown] = React.useState(0);
+  const [inView, setInView] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+
+  // Split a value such as "5+" or "$1.2k" into prefix, number and suffix; non-numeric values show as-is.
+  const parts = /^(\D*)(\d+(?:\.\d+)?)(.*)$/.exec(fact.value.trim());
+  const prefix = parts ? parts[1] : '';
+  const target = parts ? parseFloat(parts[2]) : 0;
+  const suffix = parts ? parts[3] : '';
+  const decimals = parts && parts[2].includes('.') ? 1 : 0;
+  const Icon = QUICK_FACT_ICONS.find((entry) => entry.match.test(fact.label))?.icon ?? Sparkles;
+
+  // Surface: white on a light page, near-black on a dark page, so the card always stands out.
+  const pageLum = relativeLuminance(theme.colors.background) ?? 1;
+  const surface = pageLum > 0.179 ? '#ffffff' : '#1f2937';
+  const accent = visibleColor(theme.colors.primary, surface);
+  const labelColor = visibleColor(theme.colors.text, surface);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !parts) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fact.value]);
+
+  React.useEffect(() => {
+    if (!inView || !parts) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setShown(target); return; }
+    const start = performance.now();
+    let frame = 0;
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / 1200);
+      setShown(target * (1 - Math.pow(1 - progress, 3)));
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, fact.value]);
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: -py * 18, y: px * 18 });
+  };
+
+  const display = parts ? prefix + shown.toFixed(decimals) + suffix : fact.value;
+
+  return (
+    <div
+      ref={ref}
+      className="w-36 @min-[768px]:w-44"
+      style={{ perspective: 600 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseMove={onMouseMove}
+      onMouseLeave={() => { setHovered(false); setTilt({ x: 0, y: 0 }); }}
+    >
+      <div
+        className="flex h-full flex-col items-center rounded-2xl border p-5 text-center motion-safe:transition-transform motion-safe:duration-200 ease-out"
+        style={{
+          backgroundColor: surface,
+          borderColor: `${accent}66`,
+          transformStyle: 'preserve-3d',
+          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${hovered ? 1.04 : 1})`,
+          boxShadow: hovered ? `0 16px 30px -10px ${accent}88` : '0 2px 8px -4px rgba(0,0,0,0.25)',
+        }}
+      >
+        <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}22` }}>
+          {fact.icon ? (
+            <span
+              aria-hidden="true"
+              className="inline-block h-5 w-5"
+              style={{ ...iconMaskStyle(fact.icon), background: accent }}
+            />
+          ) : (
+            <Icon className="h-5 w-5" style={{ color: accent }} />
+          )}
+        </span>
+        <span className="text-3xl @min-[768px]:text-4xl font-extrabold tabular-nums leading-none" style={{ color: accent }}>{display}</span>
+        <span className="mt-1.5 text-base font-semibold leading-snug" style={{ color: labelColor }}>{fact.label}</span>
+      </div>
+    </div>
+  );
+}

@@ -66,6 +66,9 @@ export function parseSavedWebsite(record: SavedWebsite, ownerEmail: string): Loa
   if (!current) throw new Error('The saved current page is missing');
   // Top-level sections hold the most recent edits of the active page.
   const syncedPages = pages.map(page => page.id === currentPageId ? { ...page, sections: base.sections } : page);
+  if (syncedPages.reduce((total, page) => total + page.sections.length, 0) > 500) {
+    throw new Error('A website may contain at most 500 sections');
+  }
   SiteDataSchema.parse({ ...site, pages: syncedPages });
   return {
     portfolio: { ...portfolio, updatedAt: record.updatedAt },

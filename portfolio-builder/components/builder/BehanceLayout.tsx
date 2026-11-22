@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { usePortfolioStore } from '@/lib/store';
+import { uploadMediaFile } from '@/lib/utils';
 import { SimpleLayoutConfig, SocialLink, Experience, Project, HeroSection, AboutSection, ContactSection, ProjectsSection } from '@/lib/types';
 
 import { 
@@ -17,7 +18,7 @@ import { ProjectEditor } from './ProjectEditor';
 import { SectionRenderer } from './PortfolioPreview';
 import { FlowPortfolio } from './FlowPortfolio';
 import { SectionEditor } from './SectionEditor';
-import { ProjectDetailModal } from './ProjectDetailModal';
+import { ProjectLightbox } from './ProjectLightbox';
 
 // Custom SVG icons for Behance and Pinterest (not available in lucide-react)
 const BehanceIcon = ({ className }: { className?: string }) => (
@@ -264,10 +265,21 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
     );
   }
 
+  // Sidebar colors and fonts come from the portfolio theme, so templates keep their own look.
+  const sc = {
+    bg: theme.colors.background,
+    text: theme.colors.text,
+    muted: theme.colors.textSecondary,
+    accent: theme.colors.primary,
+    border: `${theme.colors.textSecondary}40`,
+    font: theme.typography.bodyFont,
+    heading: theme.typography.headingFont,
+  };
+
   const sidebarContent = (
 
-    <div className="flex-shrink-0 h-screen sticky top-0 bg-white border-r overflow-y-auto" style={{ width: sidebarWidth, borderColor: '#e0e0e0' }}>
-      <div className="space-y-5" style={{ paddingLeft: '100px', paddingRight: '100px', paddingTop: '24px', paddingBottom: '24px', fontFamily: 'Acumin Pro, sans-serif', fontSize: '15px' }}>
+    <div className="flex-shrink-0 h-screen sticky top-0 border-r overflow-y-auto" style={{ backgroundColor: sc.bg, width: sidebarWidth, borderColor: sc.border }}>
+      <div className="space-y-5" style={{ paddingLeft: '100px', paddingRight: '100px', paddingTop: '24px', paddingBottom: '24px', fontFamily: sc.font, fontSize: '15px' }}>
 
 
 
@@ -286,21 +298,21 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
 
         {/* Name */}
         <div>
-          <h1 className="text-2xl font-bold leading-tight" style={{ color: '#050505' }}>
+          <h1 className="text-2xl font-bold leading-tight" style={{ color: sc.text, fontFamily: sc.heading }}>
             {config.profileName || heroSection?.name || portfolio.metadata.title}
           </h1>
           {/* Availability Status - Behance style badge */}
           {config.availableForWork && (
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-              <span className="text-xs font-medium" style={{ color: '#050505' }}>{config.availabilityText}</span>
+              <span className="text-xs font-medium" style={{ color: sc.text }}>{config.availabilityText}</span>
             </div>
           )}
         </div>
 
         {/* Professional Title */}
         <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-sm" style={{ color: '#696969' }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: sc.muted }}>
             <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
             {isEditMode ? (
               <input
@@ -309,14 +321,14 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                 value={config.profileTitle || heroSection?.title || ''}
                 onChange={(e) => updateSimpleLayout({ profileTitle: e.target.value })}
                 className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm"
-                style={{ color: '#696969' }}
+                style={{ color: sc.muted }}
               />
             ) : (
               <span>{config.profileTitle || heroSection?.title}</span>
             )}
           </div>
           {/* Current Workplace */}
-          <div className="flex items-center gap-2 text-sm" style={{ color: '#696969' }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: sc.muted }}>
             <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
             {isEditMode ? (
               <input
@@ -342,7 +354,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                   updateSimpleLayout({ sidebarExperiences: experiences });
                 }}
                 className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm"
-                style={{ color: '#696969' }}
+                style={{ color: sc.muted }}
               />
             ) : (
               <span>
@@ -353,7 +365,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             )}
           </div>
           {/* Address */}
-          <div className="flex items-center gap-2 text-sm" style={{ color: '#696969' }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: sc.muted }}>
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
             {isEditMode ? (
               <input
@@ -362,7 +374,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                 value={config.profileLocation || contactSection?.location || ''}
                 onChange={(e) => updateSimpleLayout({ profileLocation: e.target.value })}
                 className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm"
-                style={{ color: '#696969' }}
+                style={{ color: sc.muted }}
               />
             ) : (
               <span>{config.profileLocation || contactSection?.location}</span>
@@ -376,8 +388,8 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         <div className="flex flex-col gap-2.5 pt-1">
           <button 
             className="w-full py-2.5 px-4 rounded font-semibold text-sm transition-colors border"
-            style={{ borderColor: '#0057E7', color: '#0057E7' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0057E710'}
+            style={{ borderColor: sc.accent, color: sc.accent }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${sc.accent}10`}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
             Message
@@ -394,7 +406,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'LinkedIn' : (isEditMode ? 'Add LinkedIn link' : '')}>
                 <Linkedin className="w-5 h-5" />
               </a>
@@ -407,7 +419,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Instagram' : (isEditMode ? 'Add Instagram link' : '')}>
                 <Instagram className="w-5 h-5" />
               </a>
@@ -420,7 +432,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Facebook' : (isEditMode ? 'Add Facebook link' : '')}>
                 <Facebook className="w-5 h-5" />
               </a>
@@ -433,7 +445,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Pinterest' : (isEditMode ? 'Add Pinterest link' : '')}>
                 <PinterestIcon className="w-5 h-5" />
               </a>
@@ -446,7 +458,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Behance' : (isEditMode ? 'Add Behance link' : '')}>
                 <BehanceIcon className="w-5 h-5" />
               </a>
@@ -459,7 +471,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             return (
               <a href={url} target="_blank" rel="noopener noreferrer" 
                  className="transition-opacity hover:opacity-60" 
-                 style={{ color: '#050505', opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
+                 style={{ color: sc.text, opacity: link ? 1 : (isEditMode ? 0.4 : 0) }}
                  title={link ? 'Dribbble' : (isEditMode ? 'Add Dribbble link' : '')}>
                 <Dribbble className="w-5 h-5" />
               </a>
@@ -467,16 +479,16 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
           })()}
         </div>
 
-        {/* Work Experience */}
-
+        {/* Work Experience: hidden on the public site when there are no entries */}
+        {(isEditMode || (config.sidebarExperiences?.length ?? 0) > 0) && (
         <div className="pt-2">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#696969' }}>Work Experience</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: sc.muted }}>Work Experience</h3>
             {isEditMode && (
               <button
                 onClick={() => setSidebarEditingSection(sidebarEditingSection === 'experience' ? null : 'experience')}
                 className="text-xs flex items-center gap-1 hover:underline"
-                style={{ color: '#0057E7' }}
+                style={{ color: sc.accent }}
               >
                 <Plus className="w-3 h-3" />
                 {config.sidebarExperiences && config.sidebarExperiences.length > 0 ? 'Edit' : 'Add'}
@@ -488,7 +500,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             /* Inline editor for work experience */
             <div className="space-y-3">
               {(config.sidebarExperiences || []).map((exp: Experience, idx: number) => (
-                <div key={exp.id} className="space-y-2 p-2 rounded border" style={{ borderColor: '#e0e0e0' }}>
+                <div key={exp.id} className="space-y-2 p-2 rounded border" style={{ borderColor: sc.border }}>
                   <input
                     type="text"
                     placeholder="Position"
@@ -499,7 +511,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                       updateSimpleLayout({ sidebarExperiences: updated });
                     }}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    style={{ borderColor: '#e0e0e0' }}
+                    style={{ borderColor: sc.border }}
                   />
                   <input
                     type="text"
@@ -511,7 +523,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                       updateSimpleLayout({ sidebarExperiences: updated });
                     }}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    style={{ borderColor: '#e0e0e0' }}
+                    style={{ borderColor: sc.border }}
                   />
                   <input
                     type="text"
@@ -523,7 +535,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                       updateSimpleLayout({ sidebarExperiences: updated });
                     }}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    style={{ borderColor: '#e0e0e0' }}
+                    style={{ borderColor: sc.border }}
                   />
                   <button
                     onClick={() => {
@@ -548,17 +560,17 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                     description: '',
                     achievements: [],
                   };
-                  updateSimpleLayout({ sidebarExperiences: [...(config.sidebarExperiences || []), newExp] });
+                  updateSimpleLayout({ sidebarExperiences: [newExp, ...(config.sidebarExperiences || [])] });
                 }}
                 className="text-xs flex items-center gap-1 hover:underline"
-                style={{ color: '#0057E7' }}
+                style={{ color: sc.accent }}
               >
                 <Plus className="w-3 h-3" /> Add Experience
               </button>
               <button
                 onClick={() => setSidebarEditingSection(null)}
                 className="w-full py-1.5 text-xs font-medium text-white rounded"
-                style={{ backgroundColor: '#0057E7' }}
+                style={{ backgroundColor: sc.accent }}
               >
                 Done
               </button>
@@ -569,10 +581,10 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                 <div className="space-y-4">
                   {config.sidebarExperiences.map((exp: Experience) => (
                     <div key={exp.id}>
-                      <div className="text-sm font-semibold" style={{ color: '#050505' }}>
+                      <div className="text-sm font-semibold" style={{ color: sc.text }}>
                         {exp.position}
                       </div>
-                      <div className="text-sm flex items-center gap-1.5" style={{ color: '#696969' }}>
+                      <div className="text-sm flex items-center gap-1.5" style={{ color: sc.muted }}>
                         <span>{exp.company}</span>
                         {exp.location && (
                           <>
@@ -590,18 +602,19 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
             )
           )}
         </div>
+        )}
 
         {/* Resume Upload */}
         {isEditMode && (
           <div className="pt-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: '#696969' }}>Resume</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: sc.muted }}>Resume</h3>
             {config.resumeUrl ? (
               <div className="flex items-center gap-2">
                 <a
                   href={config.resumeUrl}
                   download
                   className="text-sm flex items-center gap-1.5 hover:underline"
-                  style={{ color: '#0057E7' }}
+                  style={{ color: sc.accent }}
                 >
                   <Download className="w-3.5 h-3.5" />
                   Download Resume
@@ -614,21 +627,23 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                 </button>
               </div>
             ) : (
-              <label className="text-sm flex items-center gap-1.5 cursor-pointer hover:underline" style={{ color: '#0057E7' }}>
+              <label className="text-sm flex items-center gap-1.5 cursor-pointer hover:underline" style={{ color: sc.accent }}>
                 <FileText className="w-3.5 h-3.5" />
                 Upload Resume
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
+                    e.target.value = '';
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        updateSimpleLayout({ resumeUrl: ev.target?.result as string });
-                      };
-                      reader.readAsDataURL(file);
+                      // F12: resumes are stored as uploaded URLs, not base64 copies. Only PDFs are accepted by /api/upload.
+                      try {
+                        updateSimpleLayout({ resumeUrl: await uploadMediaFile(file) });
+                      } catch (error) {
+                        window.alert(error instanceof Error ? error.message : 'Resume upload failed');
+                      }
                     }
                   }}
                 />
@@ -638,12 +653,12 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         )}
         {!isEditMode && config.resumeUrl && (
           <div className="pt-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: '#696969' }}>Resume</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: sc.muted }}>Resume</h3>
             <a
               href={config.resumeUrl}
               download
               className="text-sm flex items-center gap-1.5 hover:underline"
-              style={{ color: '#0057E7' }}
+              style={{ color: sc.accent }}
             >
               <Download className="w-3.5 h-3.5" />
               Download Resume
@@ -654,12 +669,12 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         {/* About Me */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#696969' }}>About Me</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: sc.muted }}>About Me</h3>
             {isEditMode && (
               <button
                 onClick={() => setSidebarEditingSection(sidebarEditingSection === 'about' ? null : 'about')}
                 className="text-xs flex items-center gap-1 hover:underline"
-                style={{ color: '#0057E7' }}
+                style={{ color: sc.accent }}
               >
                 <Plus className="w-3 h-3" />
                 Edit
@@ -674,12 +689,12 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
                 onChange={(e) => updateSimpleLayout({ sidebarAbout: e.target.value })}
                 rows={4}
                 className="w-full px-2 py-1.5 text-sm border rounded resize-none"
-                style={{ borderColor: '#e0e0e0' }}
+                style={{ borderColor: sc.border }}
               />
               <button
                 onClick={() => setSidebarEditingSection(null)}
                 className="w-full py-1.5 text-xs font-medium text-white rounded"
-                style={{ backgroundColor: '#0057E7' }}
+                style={{ backgroundColor: sc.accent }}
               >
                 Done
               </button>
@@ -687,14 +702,14 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
           ) : (
             (config.sidebarAbout || aboutSection?.content) && (
               <>
-                <p className="leading-relaxed" style={{ color: '#050505', fontSize: '13px' }}>
+                <p className="leading-relaxed" style={{ color: sc.text, fontSize: '13px' }}>
                   {aboutSection?.content || config.sidebarAbout}
                 </p>
 
                 {(aboutSection?.secondParagraph || aboutSection?.quickFacts) && (
                   <button 
                     className="text-sm font-medium mt-2 flex items-center gap-1 hover:underline"
-                    style={{ color: '#0057E7' }}
+                    style={{ color: sc.accent }}
                   >
                     Read More
                     <ArrowLeft className="w-3 h-3 rotate-180" />
@@ -709,23 +724,23 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         {/* Contact Information */}
         {(contactSection?.email || contactSection?.phone || contactSection?.location) && (
           <div className="pt-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: '#696969' }}>Contact</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: sc.muted }}>Contact</h3>
             <div className="space-y-2.5 text-sm">
               {contactSection?.email && (
-                <a href={`mailto:${contactSection.email}`} className="flex items-center gap-2 hover:underline" style={{ color: '#050505' }}>
-                  <Mail className="w-4 h-4" style={{ color: '#696969' }} />
+                <a href={`mailto:${contactSection.email}`} className="flex items-center gap-2 hover:underline" style={{ color: sc.text }}>
+                  <Mail className="w-4 h-4" style={{ color: sc.muted }} />
                   {contactSection.email}
                 </a>
               )}
               {contactSection?.phone && (
-                <a href={`tel:${contactSection.phone}`} className="flex items-center gap-2 hover:underline" style={{ color: '#050505' }}>
-                  <Phone className="w-4 h-4" style={{ color: '#696969' }} />
+                <a href={`tel:${contactSection.phone}`} className="flex items-center gap-2 hover:underline" style={{ color: sc.text }}>
+                  <Phone className="w-4 h-4" style={{ color: sc.muted }} />
                   {contactSection.phone}
                 </a>
               )}
               {contactSection?.location && (
-                <div className="flex items-center gap-2" style={{ color: '#050505' }}>
-                  <MapPin className="w-4 h-4" style={{ color: '#696969' }} />
+                <div className="flex items-center gap-2" style={{ color: sc.text }}>
+                  <MapPin className="w-4 h-4" style={{ color: sc.muted }} />
                   {contactSection.location}
                 </div>
               )}
@@ -734,25 +749,27 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         )}
 
         {/* Member Since */}
-        <div className="pt-4 border-t" style={{ borderColor: '#e0e0e0' }}>
-          <p className="text-xs" style={{ color: '#696969' }}>
+        <div className="pt-4 border-t" style={{ borderColor: sc.border }}>
+          <p className="text-xs" style={{ color: sc.muted }}>
             Member since {new Date(portfolio.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()}
           </p>
         </div>
 
-        {/* Report Link */}
+        {/* Report Link: builder only */}
+        {isEditMode && (
         <button 
           className="text-xs mt-2 hover:underline"
-          style={{ color: '#696969' }}
+          style={{ color: sc.muted }}
         >
           Report Profile
         </button>
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: theme.typography.bodyFont }}>
+    <div className="flex min-h-screen" style={{ fontFamily: theme.typography.bodyFont, backgroundColor: theme.colors.background }}>
       {/* Left Sidebar */}
       {config.showSidebar && config.sidebarPosition === 'left' && <>
         {sidebarContent}
@@ -789,7 +806,7 @@ export function BehanceLayout({ onEditProject, onAddProject, isEditMode = true }
         />
         {sidebarContent}
       </>}
-      <ProjectDetailModal project={viewingProject} isOpen={!!viewingProject}
+      <ProjectLightbox project={viewingProject} isOpen={!!viewingProject}
         onClose={() => setViewingProject(null)} theme={theme} projects={projects} onNavigate={setViewingProject} />
     </div>
   );

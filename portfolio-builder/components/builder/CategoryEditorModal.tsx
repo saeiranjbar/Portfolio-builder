@@ -74,7 +74,7 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
       tags: [],
       category: categoryName,
     };
-    setProjects(prev => [...prev, newProject]);
+    setProjects(prev => [newProject, ...prev]);
     // Open the project editor modal for the new project
     setEditingProject(newProject);
     setIsProjectModalOpen(true);
@@ -111,7 +111,7 @@ export function CategoryEditorModal({ isOpen, onClose, onSave, existingCategorie
         caption: '',
       };
       updateProject(projectId, {
-        images: [...(project.images || []), newImage]
+        images: [newImage, ...(project.images || [])]
       });
     }
   };

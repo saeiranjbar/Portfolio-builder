@@ -17,7 +17,7 @@ interface StatsEditorProps {
 export function StatsEditor({ section, onUpdate }: StatsEditorProps) {
   const addStat = () => {
     const newStat: Stat = { id: generateId(), value: 0, suffix: '+', label: '' };
-    onUpdate({ stats: [...section.stats, newStat] });
+    onUpdate({ stats: [newStat, ...section.stats] });
   };
   const updateStat = (id: string, updates: Partial<Stat>) => {
     onUpdate({ stats: section.stats.map((s) => (s.id === id ? { ...s, ...updates } : s)) });

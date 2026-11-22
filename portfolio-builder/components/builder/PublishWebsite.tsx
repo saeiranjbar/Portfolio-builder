@@ -89,7 +89,7 @@ export function PublishWebsite({ reference, ownerEmail, busy, onPublish }: {
   }
   const url = publication?.url ?? (publication?.path ? `${origin}${publication.path}` : '');
   return <>
-    <Button variant="outline" disabled={busy || working} onClick={() => setOpen(true)} className="flex items-center gap-2">
+    <Button disabled={busy || working} onClick={() => setOpen(true)} className="flex items-center gap-2" style={{ background: '#2446D6', color: '#ffffff' }}>
       <Globe className="w-4 h-4" />Publish
     </Button>
     <Dialog open={open} onOpenChange={next => { if (!busy && !working) setOpen(next); }}>

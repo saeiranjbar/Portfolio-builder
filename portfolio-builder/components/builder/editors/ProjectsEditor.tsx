@@ -38,8 +38,8 @@ export function ProjectsEditor({ section, onUpdate }: ProjectsEditorProps) {
     } else {
       // Add mode: add new category
       onUpdate({ 
-        categories: [...(section.categories || []), category],
-        projects: [...section.projects, ...projects]
+        categories: [category, ...(section.categories || [])],
+        projects: [...projects, ...section.projects]
       });
     }
     setEditingCategoryData(null);

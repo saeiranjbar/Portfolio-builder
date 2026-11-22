@@ -28,7 +28,7 @@ export function TestimonialsEditor({ section, onUpdate }: TestimonialsEditorProp
       content: 'Testimonial content...',
       avatar: '',
     };
-    onUpdate({ testimonials: [...section.testimonials, newTestimonial] });
+    onUpdate({ testimonials: [newTestimonial, ...section.testimonials] });
   };
 
   const updateTestimonial = (id: string, updates: Partial<Testimonial>) => {

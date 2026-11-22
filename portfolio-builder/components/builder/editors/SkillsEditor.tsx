@@ -11,7 +11,7 @@ import { Plus, Trash2, Type, Star, Check, X,
   GitBranch, Github, Gitlab, Box, Cloud, Flame, Database, Globe, 
   ShoppingBag, PenTool, Pencil, FileText, MessageSquare, KanbanSquare, List, 
   Layout, Zap, Mail, BarChart } from 'lucide-react';
-import { generateId } from '@/lib/utils';
+import { cn, generateId } from '@/lib/utils';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 // Common tool/software icon options with their components
@@ -66,14 +66,24 @@ interface SkillCardProps {
   onUpdate: (id: string, updates: Partial<Skill>) => void;
   onRemove: (id: string) => void;
   categories: string[];
+  /** True for the skill that was just added; it stays highlighted until its name field is left. */
+  isNew?: boolean;
+  onFocusDone?: () => void;
 }
 
-function SkillCard({ skill, onUpdate, onRemove, categories }: SkillCardProps) {
+function SkillCard({ skill, onUpdate, onRemove, categories, isNew, onFocusDone }: SkillCardProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
   const IconComponent = iconComponentMap[skill.icon ?? ''] ?? Star;
 
   return (
-    <Card key={skill.id} className="min-w-0">
+    <Card
+      key={skill.id}
+      className={cn(
+        'min-w-0 transition-colors',
+        isNew && 'border-2 border-blue-500 bg-blue-50 shadow-md ring-4 ring-blue-200'
+      )}
+    >
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
           {/* Icon picker button */}
@@ -153,26 +163,44 @@ function SkillCard({ skill, onUpdate, onRemove, categories }: SkillCardProps) {
               <Input
                 id={`skill-name-${skill.id}`}
                 className="min-w-0"
+                autoFocus={isNew}
                 value={skill.name}
                 onChange={(e) => onUpdate(skill.id, { name: e.target.value })}
+                onBlur={() => onFocusDone?.()}
                 placeholder="Skill name"
               />
             </div>
             <div className="min-w-0 space-y-1">
               <Label htmlFor={`skill-category-${skill.id}`} className="text-xs">Category</Label>
-              <Input
+              {/* Lists every category already on this page; "New category" opens a text box */}
+              <select
                 id={`skill-category-${skill.id}`}
-                className="min-w-0"
-                value={skill.category}
-                onChange={(e) => onUpdate(skill.id, { category: e.target.value })}
-                placeholder="Category"
-                list={`categories-${skill.id}`}
-              />
-              <datalist id={`categories-${skill.id}`}>
+                className="flex h-10 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/20"
+                value={addingCategory ? '__new__' : skill.category}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    setAddingCategory(true);
+                  } else {
+                    setAddingCategory(false);
+                    onUpdate(skill.id, { category: e.target.value });
+                  }
+                }}
+              >
                 {categories.map((cat) => (
-                  <option key={cat} value={cat} />
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
-              </datalist>
+                <option value="__new__">+ New category…</option>
+              </select>
+              {addingCategory && (
+                <Input
+                  className="min-w-0"
+                  autoFocus
+                  value={skill.category}
+                  onChange={(e) => onUpdate(skill.id, { category: e.target.value })}
+                  onBlur={() => setAddingCategory(false)}
+                  placeholder="Category name"
+                />
+              )}
             </div>
             <div className="min-w-0 space-y-1">
               <Label htmlFor={`skill-level-${skill.id}`} className="text-xs">Level: {skill.level}%</Label>
@@ -198,14 +226,19 @@ interface SkillsEditorProps {
 }
 
 export function SkillsEditor({ section, onUpdate }: SkillsEditorProps) {
+  // The skill just added, highlighted until the user leaves its name field
+  const [newSkillId, setNewSkillId] = useState<string | null>(null);
   const addSkill = () => {
+    // Reuse the category of the last skill so the new one lands in an existing group
+    const lastCategory = section.skills[section.skills.length - 1]?.category;
     const newSkill: Skill = {
       id: generateId(),
       name: 'New Skill',
       level: 80,
-      category: 'General',
+      category: lastCategory || 'General',
     };
-    onUpdate({ skills: [...section.skills, newSkill] });
+    setNewSkillId(newSkill.id);
+    onUpdate({ skills: [newSkill, ...section.skills] });
   };
 
   const updateSkill = (id: string, updates: Partial<Skill>) => {
@@ -261,6 +294,8 @@ export function SkillsEditor({ section, onUpdate }: SkillsEditorProps) {
                 onUpdate={updateSkill}
                 onRemove={removeSkill}
                 categories={categories}
+                isNew={skill.id === newSkillId}
+                onFocusDone={() => setNewSkillId(null)}
               />
             ))}
           </div>

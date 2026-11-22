@@ -29,7 +29,7 @@ export function ExperienceEditor({ section, onUpdate }: ExperienceEditorProps) {
       description: '',
       location: '',
     };
-    onUpdate({ experiences: [...section.experiences, newExp] });
+    onUpdate({ experiences: [newExp, ...section.experiences] });
   };
 
   const updateExperience = (id: string, updates: Partial<Experience>) => {

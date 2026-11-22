@@ -28,6 +28,7 @@ import {
 import { OptimizedImage } from './OptimizedImage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { uploadMediaFile, uploadVideoFile } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 
 interface ProjectEditorProps {
@@ -232,12 +233,13 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
     ));
   };
 
+  // F12: images are uploaded and stored as URLs instead of base64 copies in the project
   const handleImageUpload = async (blockId: string, file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      updateMediaBlock(blockId, { imageUrl: e.target?.result as string });
-    };
-    reader.readAsDataURL(file);
+    try {
+      updateMediaBlock(blockId, { imageUrl: await uploadMediaFile(file) });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Image upload failed');
+    }
   };
 
   const addPhotoGridItem = (blockId: string) => {
@@ -602,13 +604,13 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
                                 accept="image/*"
                                 onChange={(e) => {
                                   if (e.target.files?.[0]) {
-                                    const reader = new FileReader();
-                                    reader.onload = (ev) => {
+                                    // F12: grid photos are uploaded and stored as URLs
+                                    uploadMediaFile(e.target.files[0]).then((url) => {
                                       // If this is a placeholder, add a real item; otherwise update existing
                                       if (item.id.startsWith('placeholder-')) {
                                         const newItem: PhotoGridItem = {
                                           id: generateId(),
-                                          url: ev.target?.result as string,
+                                          url,
                                           caption: '',
                                         };
                                         const currentItems = block.photoGridContent?.items || [];
@@ -619,10 +621,9 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
                                           } as PhotoGridContent
                                         });
                                       } else {
-                                        updatePhotoGridItem(block.id, item.id, { url: ev.target?.result as string });
+                                        updatePhotoGridItem(block.id, item.id, { url });
                                       }
-                                    };
-                                    reader.readAsDataURL(e.target.files[0]);
+                                    }).catch((error) => window.alert(error instanceof Error ? error.message : 'Image upload failed'));
                                   }
                                 }}
                               />
@@ -685,18 +686,17 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
                     accept="video/*"
                     onChange={(e) => {
                       if (e.target.files?.[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          updateMediaBlock(block.id, { 
-                            videoContent: { 
-                              ...block.videoContent, 
-                              url: ev.target?.result as string, 
+                        // F12: videos are uploaded (not embedded as base64)
+                        uploadVideoFile(e.target.files[0]).then((url) => {
+                          updateMediaBlock(block.id, {
+                            videoContent: {
+                              ...block.videoContent,
+                              url,
                               type: 'mp4',
-                              controls: true 
-                            } as VideoContent 
+                              controls: true
+                            } as VideoContent
                           });
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
+                        }).catch((error) => window.alert(error instanceof Error ? error.message : 'Video upload failed'));
                       }
                     }}
                   />
@@ -867,19 +867,18 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
                       onChange={(e) => {
                         if (e.target.files?.[0]) {
                           const file = e.target.files[0];
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
+                          // F12: PDFs are uploaded (10 MB limit) and stored as a URL
+                          uploadMediaFile(file).then((url) => {
                             updateMediaBlock(block.id, {
                               pdfContent: {
-                                url: ev.target?.result as string,
+                                url,
                                 fileName: file.name,
                                 caption: '',
                                 viewerWidth: 'full',
                                 viewerHeight: 600,
                               } as PdfContent
                             });
-                          };
-                          reader.readAsDataURL(file);
+                          }).catch((error) => window.alert(error instanceof Error ? error.message : 'PDF upload failed'));
                         }
                       }}
                     />
@@ -994,9 +993,7 @@ export function ProjectEditor({ project, onSave, onCancel, theme }: ProjectEdito
                   accept="image/*"
                   onChange={(e) => {
                     if (e.target.files?.[0]) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => setCoverImage(ev.target?.result as string);
-                      reader.readAsDataURL(e.target.files[0]);
+                      uploadMediaFile(e.target.files[0]).then(setCoverImage).catch((error) => window.alert(error instanceof Error ? error.message : 'Image upload failed'));
                     }
                   }}
                 />

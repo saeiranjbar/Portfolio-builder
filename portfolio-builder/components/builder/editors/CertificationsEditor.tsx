@@ -17,7 +17,7 @@ interface CertificationsEditorProps {
 export function CertificationsEditor({ section, onUpdate }: CertificationsEditorProps) {
   const addCert = () => {
     const newCert: Certification = { id: generateId(), name: '', issuer: '', date: '' };
-    onUpdate({ certifications: [...section.certifications, newCert] });
+    onUpdate({ certifications: [newCert, ...section.certifications] });
   };
   const updateCert = (id: string, updates: Partial<Certification>) => {
     onUpdate({ certifications: section.certifications.map((c) => (c.id === id ? { ...c, ...updates } : c)) });

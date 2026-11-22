@@ -13,7 +13,7 @@ import { BackgroundScenesEditor } from './BackgroundScenesEditor';
 import { CollapsibleSection } from './CollapsibleSection';
 import { Palette, Sparkles } from 'lucide-react';
 
-export function ProjectBackgroundSettings() {
+export function ProjectBackgroundSettings({ flush = false }: { flush?: boolean } = {}) {
   const { portfolio, updateSection } = usePortfolioStore();
 
   // Find the hero section — it holds the project-level background settings
@@ -30,8 +30,9 @@ export function ProjectBackgroundSettings() {
   const sceneCount = (section.backgroundScenes || []).filter((scene) => scene.visible !== false && !!scene.value).length;
 
   return (
-    <div className="border-b border-gray-200">
+    <div className={flush ? undefined : 'border-b border-gray-200'}>
       <CollapsibleSection
+        flush={flush}
         title="Project Background Settings"
         icon={Palette}
         description="Applies to the entire landing page"
@@ -71,6 +72,32 @@ export function ProjectBackgroundSettings() {
 
         {backgroundMode === 'single' && (
         <>
+        {/* Where the background is painted */}
+        <div>
+          <Label>Applies to</Label>
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant={section.backgroundScope !== 'section' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onUpdate({ backgroundScope: 'page' })}
+            >
+              Whole page
+            </Button>
+            <Button
+              variant={section.backgroundScope === 'section' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onUpdate({ backgroundScope: 'section' })}
+            >
+              Hero section only
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {section.backgroundScope === 'section'
+              ? 'The background fills only the hero area; the rest of the page stays plain.'
+              : 'The background fills the whole landing page behind every section.'}
+          </p>
+        </div>
+
         {/* Background Type */}
         <div>
           <Label>Background Type</Label>

@@ -26,8 +26,6 @@ import { NewsletterEditor } from './editors/NewsletterEditor';
 import { PortfolioSection } from '@/lib/types';
 import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ProjectBackgroundSettings } from './ProjectBackgroundSettings';
-import { Magnet } from 'lucide-react';
 
 export function SectionEditor() {
 
@@ -102,38 +100,8 @@ export function SectionEditor() {
     return section.type.charAt(0).toUpperCase() + section.type.slice(1);
   };
 
-  // Find hero section for snap guides toggle (stored on hero in flexible mode)
-  const heroSection = portfolio.sections.find(s => s.type === 'hero');
-  const isSimpleMode = portfolio.layoutMode === 'simple';
-
   return (
     <div className="min-h-0">
-      {/* Snap Guides toggle — always visible at top (free-form mode only) */}
-      {!isSimpleMode && heroSection && (
-        <div className="px-4 py-3 border-b border-gray-200 bg-blue-50/50">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-blue-700">
-              <Magnet className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm font-medium">Snap Guides</span>
-            </div>
-            <button
-              onClick={() => updateSection(heroSection.id, { snapEnabled: !((heroSection as any).snapEnabled !== false) } as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                (heroSection as any).snapEnabled !== false
-                  ? 'bg-blue-500 text-white hover:bg-blue-600'
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-              title="Toggle snap guides for aligning elements"
-            >
-              <Magnet className="w-3.5 h-3.5" />
-              {(heroSection as any).snapEnabled !== false ? 'On' : 'Off'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Project-level Background Settings — always visible at top */}
-      <ProjectBackgroundSettings />
 
       {portfolio.sections.map((section) => {
 
@@ -143,7 +111,7 @@ export function SectionEditor() {
             {/* Accordion Header */}
             <div className={cn(
               'flex items-center border-l-2 transition-colors',
-              isExpanded ? 'border-blue-500 bg-blue-50' : 'border-transparent hover:bg-gray-50'
+              isExpanded ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-100 hover:bg-gray-200'
             )}>
               <button
                 onClick={() => selectSection(isExpanded ? null : section.id)}

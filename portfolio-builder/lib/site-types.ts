@@ -383,6 +383,7 @@ export const HeroSectionSchema = z.object({
   layout: z.enum(['free', 'centered', 'left', 'split']).default('centered'),
   galleryImages: z.array(GalleryImageSchema).optional(),
   typingWords: z.array(z.string()).optional(),
+  subtitleTypingWords: z.array(z.string()).optional(),
   galleryGridCols: z.number().int().min(1).max(4).optional(),
   galleryVideoGridCols: z.number().int().min(1).max(3).optional(),
   galleryVideos: z.array(z.object({ id: z.string(), url: z.string(), type: z.enum(['youtube', 'vimeo', 'uploaded']), caption: z.string().optional(), size: z.enum(['small', 'medium', 'large']).optional() })).optional(),

@@ -19,7 +19,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 export function FAQEditor({ section, onUpdate }: FAQEditorProps) {
   const addItem = () => {
     const newItem: FAQItem = { id: generateId(), question: 'New Question', answer: '' };
-    onUpdate({ items: [...section.items, newItem] });
+    onUpdate({ items: [newItem, ...section.items] });
   };
 
   const updateItem = (id: string, updates: Partial<FAQItem>) => {

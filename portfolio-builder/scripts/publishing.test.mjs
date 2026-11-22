@@ -67,7 +67,7 @@ function setup(session = { user: { email: 'owner@example.com' } }, environment =
   record = { id, userId: 'owner', title: 'My website', updatedAt: new Date(),
     data: JSON.stringify({ ...state.portfolio, pages: state.pages, currentPageId: state.currentPageId }) };
   return {
-    db, revisions, record, storeModule,
+    db, revisions, record, storeModule, loadModule: load,
     api: load(path.join(root, 'app/api/publish/route.ts')),
     publishing: load(path.join(root, 'lib/publishing.ts')),
     sanitizer: load(path.join(root, 'lib/public-content.ts')),
@@ -170,6 +170,19 @@ test('published rich text removes script execution while retaining safe formatti
   assert.equal(clean.url, '');
   assert.equal(clean.link, '');
   assert.match(original.text, /onerror/);
+});
+
+test('editor media rendering sanitizes rich text and sandboxed embeds', () => {
+  const { loadModule } = setup();
+  const { MediaBlockRenderer } = loadModule(path.join(root, 'components/builder/MediaBlocks.tsx'));
+  const themeColors = { text: '#111111', background: '#ffffff', primary: '#000000' };
+  const render = block => renderToString(React.createElement(MediaBlockRenderer, { block, themeColors }));
+  const rich = render({ id: 'text', type: 'text', textContent: { text: '<strong>Safe</strong><img src="https://example.com/a.png" onerror="alert(1)"><script>alert(2)</script>' } });
+  assert.match(rich, /<strong>Safe<\/strong>/);
+  assert.doesNotMatch(rich, /onerror|alert|<script/);
+  const embed = render({ id: 'embed', type: 'embed', embedContent: { embedCode: '<iframe src="https://www.youtube.com/embed/example" onload="alert(3)"></iframe>' } });
+  assert.doesNotMatch(embed, /onload|alert/);
+  assert.match(embed, /sandbox="allow-scripts allow-presentation"/);
 });
 
 test('cloud publication validates the server URL and includes session cookies', async () => {

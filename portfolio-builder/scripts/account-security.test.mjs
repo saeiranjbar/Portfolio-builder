@@ -12,7 +12,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const dependency = createRequire(import.meta.url);
 const password = 'a long secure password';
 
-function setup(initialUsers = [], emailError = false) {
+function setup(initialUsers = [], emailError = false, extraEnvironment = {}) {
   let users = structuredClone(initialUsers);
   let challenges = new Map();
   const counters = new Map();
@@ -58,7 +58,7 @@ function setup(initialUsers = [], emailError = false) {
       catch (error) { users = oldUsers; challenges = oldChallenges; throw error; }
     },
   };
-  const environment = { NEXTAUTH_SECRET: 'test-only-secret', RESEND_API_KEY: 'test-only-key', AUTH_FROM_EMAIL: 'sender@example.com' };
+  const environment = { NEXTAUTH_SECRET: 'test-only-secret', RESEND_API_KEY: 'test-only-key', AUTH_FROM_EMAIL: 'sender@example.com', ...extraEnvironment };
   const cache = new Map();
   function load(file) {
     if (cache.has(file)) return cache.get(file).exports;
@@ -81,9 +81,35 @@ function setup(initialUsers = [], emailError = false) {
     return testModule.exports;
   }
   const security = load('lib/account-security.ts');
-  return { ...security, passwords: load('lib/passwords.ts'), handlers: load('app/api/account/route.ts'), sent,
+  return { ...security, passwords: load('lib/passwords.ts'), handlers: load('app/api/account/route.ts'), contact: load('app/api/send-email/route.ts'), legacyContact: load('app/api/contact/route.ts'), sent,
     environment, get users() { return users; }, get challenges() { return challenges; } };
 }
+
+test('legacy contact endpoint cannot relay to arbitrary recipients', async () => {
+  const { legacyContact, sent } = setup();
+  assert.equal((await legacyContact.POST()).status, 410);
+  assert.equal(sent.length, 0);
+});
+
+test('contact messages validate input and send plain text to the configured recipient', async () => {
+  const { contact, sent } = setup([], false, { CONTACT_EMAIL: 'owner@example.com' });
+  const payload = { from: 'visitor@example.com', name: 'Visitor', subject: 'Hello', message: '<img src=x onerror=alert(1)>' };
+  const request = body => new NextRequest('http://localhost/api/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal((await contact.POST(request({ ...payload, from: 'invalid' }))).status, 400);
+  assert.equal((await contact.POST(request(payload))).status, 200);
+  assert.equal(sent[0].to[0], 'owner@example.com');
+  assert.match(sent[0].text, /onerror/);
+  assert.equal(sent[0].html, undefined);
+});
+
+test('contact messages fail when the mail service or configured spam check is unavailable', async () => {
+  const missing = setup([], false, { RESEND_API_KEY: '', CONTACT_EMAIL: 'owner@example.com' });
+  const protectedRoute = setup([], false, { CONTACT_EMAIL: 'owner@example.com', RECAPTCHA_SECRET_KEY: 'configured' });
+  const body = JSON.stringify({ from: 'visitor@example.com', name: 'Visitor', subject: 'Hello', message: 'Hi' });
+  const request = () => new NextRequest('http://localhost/api/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  assert.equal((await missing.contact.POST(request())).status, 500);
+  assert.equal((await protectedRoute.contact.POST(request())).status, 400);
+});
 
 function codeFrom(mail) { return mail.text.match(/code is: (\d{8})/)[1]; }
 const requestInput = { email: 'owner@example.com', purpose: 'register' };

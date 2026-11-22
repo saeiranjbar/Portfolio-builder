@@ -129,6 +129,7 @@ export function PageBackgroundBackdrop({ scenes, transition, advance, interval, 
                   muted
                   loop
                   playsInline
+                  disablePictureInPicture
                   preload={isActive ? 'auto' : 'metadata'}
                   className="absolute inset-0 h-full w-full object-cover"
                 />

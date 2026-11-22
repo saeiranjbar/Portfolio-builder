@@ -2,18 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FolderOpen, Loader2, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { FolderOpen, LogIn, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { deleteSavedWebsite, listSavedWebsites, parseSavedWebsite, renameSavedWebsite, type SavedWebsite } from '@/lib/cloud-load';
 import { usePortfolioStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-interface Props { onOpened?: () => void; dark?: boolean; disabled?: boolean }
+interface Props {
+  onOpened?: () => void;
+  dark?: boolean;
+  disabled?: boolean;
+  /** Show a sign-in link in place of the list while signed out. */
+  signInPrompt?: boolean;
+}
 
 export function SavedWebsites(props: Props) {
   const { data: session, status } = useSession();
   if (status === 'loading') return null;
-  if (!session?.user?.email) return null;
+  if (!session?.user?.email) {
+    if (!props.signInPrompt) return null;
+    return <Link href="/login"
+      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-colors hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+      <LogIn className="h-4 w-4" aria-hidden="true" />Sign in to see your saved websites
+    </Link>;
+  }
   // Account changes unmount the old list and abort its pending request.
   return <AccountWebsites key={session.user.email} ownerEmail={session.user.email} {...props} />;
 }

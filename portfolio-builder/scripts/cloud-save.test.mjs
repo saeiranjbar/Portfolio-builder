@@ -126,6 +126,14 @@ test('invalid saved content is rejected before replacing the current draft', () 
   }
 });
 
+test('the shared document validator rejects sites exceeding the section limit', () => {
+  const { store, parseSavedWebsite } = setup();
+  const record = savedRecord(store.getState());
+  const data = JSON.parse(record.data);
+  data.sections = Array.from({ length: 501 }, () => data.sections[0]);
+  assert.throws(() => parseSavedWebsite({ ...record, data: JSON.stringify(data) }, ownerEmail), /500 sections/);
+});
+
 test('first save posts the current draft and all pages without using the local ID as a database ID', async () => {
   const { store, savePortfolioToCloud } = setup();
   store.getState().addPage('About');
@@ -269,6 +277,31 @@ for (const action of ['resetPortfolio', 'createBlankFlexibleSite']) {
     assert.equal(store.getState().cloudPortfolio, null);
   });
 }
+
+test('scratch creation starts with a hero section and no selected section', () => {
+  const { store } = setup();
+  store.getState().createBlankFlexibleSite();
+  const state = store.getState();
+  assert.equal(state.portfolio.sections.length, 1);
+  assert.equal(state.portfolio.sections[0].type, 'hero');
+  assert.equal(state.pages[0].sections.length, 1);
+  assert.equal(state.pages[0].sections[0].type, 'hero');
+  assert.equal(state.selectedSectionId, null);
+});
+
+test('starting a template as a new site clears the previous pages and cloud reference', () => {
+  const { store } = setup();
+  store.getState().completeCloudSave(store.getState(), reference);
+  store.getState().addPage('Old page');
+  const portfolio = { ...store.getState().portfolio, id: 'new-template', name: 'New template', sections: [] };
+  store.getState().setNewPortfolio(portfolio);
+  const state = store.getState();
+  assert.equal(state.pages.length, 1);
+  assert.equal(state.pages[0].slug, '');
+  assert.equal(state.pages[0].sections.length, 0);
+  assert.equal(state.currentPageId, 'home');
+  assert.equal(state.cloudPortfolio, null);
+});
 
 test('unsaved edits and the cloud record ID are both persisted for refresh', () => {
   const { store } = setup();

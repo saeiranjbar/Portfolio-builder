@@ -1,5 +1,25 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Prototype status and checks
+
+This is a development prototype, not ready for a public service. See
+[PROTOTYPE-STATUS.md](PROTOTYPE-STATUS.md) for the implemented safeguards and
+remaining work. The editor offers a blank start and a template gallery with a
+desktop/mobile preview. Starting a new site can replace the current local
+draft; save it first if you want to keep it.
+
+Install dependencies with `npm ci`, then run `npm run dev`. The editor can be
+opened at http://localhost:3000. Cloud saving and publishing require a configured
+PostgreSQL database and authentication; image upload and email also require
+their respective services. The Prisma schema expects `DATABASE_URL` and
+`DIRECT_URL`. See `.env.local.example` for email and CAPTCHA variable names;
+keep real credentials in your local environment and do not commit them.
+
+Run the automated checks with `npm test` and
+`npx tsc --noEmit --incremental false`. `npm run lint` currently reports
+existing errors and warnings. The automated tests use mocks for external
+services; they do not verify a live database, storage, or email delivery.
+
 ## Getting Started
 
 First, run the development server:

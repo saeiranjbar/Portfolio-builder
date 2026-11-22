@@ -69,7 +69,16 @@ export function Navbar({ theme, sections }: NavbarProps) {
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!navbar.enabled) return null;
+  // Existing sites have no variant set, so they keep rendering without a navbar.
+  if (!navbar.enabled || !navbar.variant) return null;
+  const floating = navbar.variant === 'floating';
+  const minimal = navbar.variant === 'minimal';
+  const squareButtons = theme.buttonStyle === 'square';
+  const underlineButtons = theme.buttonStyle === 'underline';
+  // Shape of the navbar call-to-action, from the template's button style.
+  const ctaStyle = (): React.CSSProperties => underlineButtons
+    ? { color: theme.colors.text, borderBottom: `2px solid ${theme.colors.primary}`, borderRadius: 0, paddingLeft: 0, paddingRight: 0 }
+    : { backgroundColor: theme.colors.primary, color: '#ffffff', borderRadius: squareButtons ? 0 : theme.borderRadius };
 
   // Build nav links from visible sections
   // Exclude hero from nav links — it's already represented by the logo
@@ -103,7 +112,8 @@ export function Navbar({ theme, sections }: NavbarProps) {
 
   const isTransparent = navbar.transparentOnTop && !scrolled;
   const bgColor = isTransparent ? 'transparent' : theme.colors.background;
-  const textColor = isTransparent ? (heroIsLight ? theme.colors.text : '#ffffff') : theme.colors.text;
+  // Floating pills sit on the theme background, so they always use the theme text color.
+  const textColor = isTransparent && !floating ? (heroIsLight ? theme.colors.text : '#ffffff') : theme.colors.text;
   const borderColor = isTransparent ? 'transparent' : 'rgba(0,0,0,0.08)';
 
   const handleNavClick = (e: React.MouseEvent, sectionId: string) => {
@@ -120,18 +130,21 @@ export function Navbar({ theme, sections }: NavbarProps) {
       <nav
         ref={navRef}
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-transform duration-300',
-          navbar.sticky && 'sticky',
+          'z-50 transition-transform duration-300',
+          navbar.sticky ? 'sticky top-0' : 'absolute top-0 left-0 right-0',
           scrolled && 'shadow-md backdrop-blur-md',
           hidden && '-translate-y-full'
         )}
         style={{
-          backgroundColor: bgColor,
-          borderBottom: `1px solid ${borderColor}`,
+          backgroundColor: floating ? 'transparent' : bgColor,
+          borderBottom: floating || minimal ? 'none' : `1px solid ${borderColor}`,
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className={cn('mx-auto px-4 @min-[640px]:px-6 @min-[1024px]:px-8', floating ? 'max-w-4xl pt-4' : 'max-w-7xl')}>
+          <div
+            className={cn('flex items-center justify-between h-16', floating && 'rounded-full border px-6 shadow-lg backdrop-blur-md')}
+            style={floating ? { backgroundColor: `${theme.colors.background}e6`, borderColor: `${theme.colors.text}33` } : undefined}
+          >
             {/* Logo */}
             <div className="flex items-center gap-3">
               {navbar.logoType === 'image' && navbar.logo ? (
@@ -148,7 +161,7 @@ export function Navbar({ theme, sections }: NavbarProps) {
               {/* Availability badge */}
               {availability.enabled && (
                 <span
-                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                  className="hidden @min-[640px]:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
                     backgroundColor: `${availability.color}20`,
                     color: availability.color,
@@ -164,7 +177,7 @@ export function Navbar({ theme, sections }: NavbarProps) {
             </div>
 
             {/* Desktop Nav Links */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden @min-[768px]:flex items-center gap-6">
               {navLinks.slice(0, 6).map((link) => (
                 <a
                   key={link.id}
@@ -203,12 +216,8 @@ export function Navbar({ theme, sections }: NavbarProps) {
                       if (link) handleNavClick(e, link.id);
                     }
                   }}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-                  style={{
-                    backgroundColor: theme.colors.primary,
-                    color: '#ffffff',
-                    borderRadius: theme.borderRadius,
-                  }}
+                  className="hidden @min-[640px]:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                  style={ctaStyle()}
                 >
                   {navbar.ctaButtonText}
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -218,7 +227,7 @@ export function Navbar({ theme, sections }: NavbarProps) {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden p-2 rounded-lg transition-colors"
+                className="@min-[768px]:hidden p-2 rounded-lg transition-colors"
                 style={{ color: textColor }}
                 aria-label="Toggle menu"
               >
@@ -231,7 +240,7 @@ export function Navbar({ theme, sections }: NavbarProps) {
         {/* Mobile menu */}
         {mobileOpen && (
           <div
-            className="md:hidden border-t"
+            className="@min-[768px]:hidden border-t"
             style={{ backgroundColor: theme.colors.background, borderColor: 'rgba(0,0,0,0.08)' }}
           >
             <div className="px-4 py-3 space-y-1">
@@ -255,11 +264,7 @@ export function Navbar({ theme, sections }: NavbarProps) {
                     if (link) handleNavClick(e, link.id);
                   }}
                   className="block px-3 py-2 rounded-lg text-sm font-medium text-center mt-2"
-                  style={{
-                    backgroundColor: theme.colors.primary,
-                    color: '#ffffff',
-                    borderRadius: theme.borderRadius,
-                  }}
+                  style={ctaStyle()}
                 >
                   {navbar.ctaButtonText}
                 </a>

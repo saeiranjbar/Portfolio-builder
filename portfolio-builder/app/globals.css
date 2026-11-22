@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Hidden here; the reCAPTCHA terms are shown as text in the welcome footer instead (Google's allowed alternative). */
+.grecaptcha-badge { visibility: hidden !important; }
+
 
 :root {
   --background: #ffffff;

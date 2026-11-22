@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { imageToBase64 } from '@/lib/utils';
+import { uploadMediaFile } from '@/lib/utils';
 import { OptimizedImage } from './OptimizedImage';
 
 
@@ -28,11 +28,16 @@ function isValidImageUrl(value: string): boolean {
 }
 
 export function ImageUploader({ value, onChange, className }: ImageUploaderProps) {
+  const [uploadError, setUploadError] = useState('');
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) {
-      const base64 = await imageToBase64(file);
-      onChange(base64);
+    if (!file) return;
+    setUploadError('');
+    try {
+      // F12: store the uploaded URL, not a base64 copy of the image
+      onChange(await uploadMediaFile(file));
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Image upload failed');
     }
   }, [onChange]);
 
@@ -89,6 +94,7 @@ export function ImageUploader({ value, onChange, className }: ImageUploaderProps
             <p className="text-xs text-gray-500">
               Supports: JPG, PNG, GIF, WebP
             </p>
+            {uploadError && <p role="alert" className="text-xs text-red-600">{uploadError}</p>}
           </div>
         </div>
       )}

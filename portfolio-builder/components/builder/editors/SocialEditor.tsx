@@ -34,7 +34,7 @@ export function SocialEditor({ section, onUpdate }: SocialEditorProps) {
       platform: 'linkedin',
       url: '',
     };
-    onUpdate({ links: [...section.links, newLink] });
+    onUpdate({ links: [newLink, ...section.links] });
   };
 
   const updateLink = (id: string, updates: Partial<SocialLink>) => {

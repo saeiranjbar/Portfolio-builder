@@ -11,7 +11,8 @@ import { GalleryUploader } from '../GalleryUploader';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, MapPin, Download, Video, Languages, Quote, Sparkles, Tag, FileText, Image as ImageIcon, Type, Images, Upload } from 'lucide-react';
-import { imageToBase64 } from '@/lib/utils';
+import { uploadMediaFile } from '@/lib/utils';
+import { IconPicker } from '../IconPicker';
 
 
 
@@ -30,7 +31,7 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
   // Quick facts helpers
   const addQuickFact = () => {
     const newFact: AboutQuickFact = { id: generateId(), label: 'New Fact', value: '0+' };
-    onUpdate({ quickFacts: [...(section.quickFacts || []), newFact] });
+    onUpdate({ quickFacts: [newFact, ...(section.quickFacts || [])] });
   };
   const updateQuickFact = (id: string, updates: Partial<AboutQuickFact>) => {
     onUpdate({ quickFacts: (section.quickFacts || []).map(f => f.id === id ? { ...f, ...updates } : f) });
@@ -44,7 +45,7 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
   const addToolTag = () => {
     const tag = toolTagInput.trim();
     if (tag && !(section.toolTags || []).includes(tag)) {
-      onUpdate({ toolTags: [...(section.toolTags || []), tag] });
+      onUpdate({ toolTags: [tag, ...(section.toolTags || [])] });
       setToolTagInput('');
     }
   };
@@ -55,7 +56,7 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
   // Languages helpers
   const addLanguage = () => {
     const newLang: AboutLanguage = { id: generateId(), language: 'New Language', proficiency: 'Fluent' };
-    onUpdate({ languages: [...(section.languages || []), newLang] });
+    onUpdate({ languages: [newLang, ...(section.languages || [])] });
   };
   const updateLanguage = (id: string, updates: Partial<AboutLanguage>) => {
     onUpdate({ languages: (section.languages || []).map(l => l.id === id ? { ...l, ...updates } : l) });
@@ -266,25 +267,32 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
           </Button>
         </div>
         {(section.quickFacts || []).map((fact) => (
-          <div key={fact.id} className="flex items-center gap-2">
-            <Input
-              value={fact.value}
-              onChange={(e) => updateQuickFact(fact.id, { value: e.target.value })}
-              placeholder="5+"
-              className="w-20"
+          <div key={fact.id} className="space-y-2 rounded-lg border border-gray-200 p-2">
+            <div className="flex items-center gap-2">
+              <Input
+                value={fact.value}
+                onChange={(e) => updateQuickFact(fact.id, { value: e.target.value })}
+                placeholder="5+"
+                className="w-20"
+              />
+              <Input
+                value={fact.label}
+                onChange={(e) => updateQuickFact(fact.id, { label: e.target.value })}
+                placeholder="Years Experience"
+                className="flex-1"
+              />
+              <button
+                onClick={() => removeQuickFact(fact.id)}
+                className="p-2 text-red-400 hover:text-red-600"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <IconPicker
+              value={fact.icon}
+              query={fact.label}
+              onChange={(icon) => updateQuickFact(fact.id, { icon })}
             />
-            <Input
-              value={fact.label}
-              onChange={(e) => updateQuickFact(fact.id, { label: e.target.value })}
-              placeholder="Years Experience"
-              className="flex-1"
-            />
-            <button
-              onClick={() => removeQuickFact(fact.id)}
-              className="p-2 text-red-400 hover:text-red-600"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
           </div>
         ))}
       </CollapsibleSection>
@@ -396,15 +404,19 @@ export function AboutEditor({ section, onUpdate }: AboutEditorProps) {
             <input
               id="resume-file-upload"
               type="file"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf"
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  const base64 = await imageToBase64(file);
-                  onUpdate({ resumeUrl: base64 });
-                }
                 e.target.value = '';
+                if (file) {
+                  // F12: resumes are stored as uploaded URLs, not base64 copies. Only PDFs are accepted by /api/upload.
+                  try {
+                    onUpdate({ resumeUrl: await uploadMediaFile(file) });
+                  } catch (error) {
+                    window.alert(error instanceof Error ? error.message : 'Resume upload failed');
+                  }
+                }
               }}
             />
           </div>

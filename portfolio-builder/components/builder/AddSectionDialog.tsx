@@ -58,7 +58,7 @@ export function AddSectionDialog({ onSectionAdded }: AddSectionDialogProps) {
       </div>
 
       {availableCategories.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {availableCategories.map(([type, config]) => {
             const Icon = categoryIcons[type] || FileText;
             return (
@@ -66,13 +66,15 @@ export function AddSectionDialog({ onSectionAdded }: AddSectionDialogProps) {
                 key={type}
                 type="button"
                 onClick={() => handleAddCategory(type as SectionType)}
-                className={cn('flex flex-col items-center gap-2 rounded-2xl border border-gray-200 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50 hover:shadow-md')}
+                className={cn('flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors duration-200 hover:border-blue-500 hover:bg-blue-50')}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50">
-                  <Icon className="h-6 w-6 text-gray-900" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                  <Icon className="h-5 w-5 text-gray-900" />
                 </div>
-                <span className="text-sm font-medium text-gray-900">{config.name}</span>
-                <span className="text-center text-xs text-gray-500">{config.description}</span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-gray-900">{config.name}</span>
+                  <span className="text-xs leading-snug text-gray-500">{config.description}</span>
+                </span>
               </button>
             );
           })}

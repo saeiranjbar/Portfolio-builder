@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePortfolioStore } from '@/lib/store';
 import { SectionEditor } from '@/components/builder/SectionEditor';
 import { ElementInspector } from '@/components/builder/ElementInspector';
 import { SectionListPanel } from '@/components/builder/SectionListPanel';
 import { AddSectionDialog } from '@/components/builder/AddSectionDialog';
 import { PortfolioPreview } from '@/components/builder/PortfolioPreview';
-import { ThemeSettings } from '@/components/builder/ThemeSettings';
-import { EffectsPanel } from '@/components/builder/EffectsPanel';
+import { EditOnDesktopNotice } from '@/components/builder/EditOnDesktopNotice';
+import { PhoneViewIcon, TabletViewIcon } from '@/components/builder/ViewIcons';
 import { SectionTabs } from '@/components/builder/SectionTabs';
 import { CommandPalette } from '@/components/builder/CommandPalette';
+import { EditorSettingsGroup } from '@/components/builder/EditorSettingsGroup';
 import { downloadHTML, downloadJSON } from '@/lib/export';
-import { Project } from '@/lib/types';
+import { PortfolioData, Project } from '@/lib/types';
 import { ProjectEditorModal } from '@/components/builder/ProjectEditorModal';
 import { PortfolioSkeleton } from '@/components/builder/Skeleton';
 import { Button } from '@/components/ui/button';
@@ -22,16 +24,13 @@ import { AccountControls } from '@/components/AccountControls';
 import { SavedWebsites } from '@/components/builder/SavedWebsites';
 import { PublishWebsite } from '@/components/builder/PublishWebsite';
 import { requestPublication } from '@/lib/cloud-publish';
-import { SignInScreen } from '@/components/SignInScreen';
 import {
   Monitor,
-  Tablet,
-  Smartphone,
   Eye,
   Edit3,
   Download,
   Upload,
-  Palette,
+  MoreHorizontal,
   Undo2,
   Redo2,
   Command,
@@ -40,17 +39,18 @@ import {
   Loader2,
   Plus,
   Wand2,
-  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
   Ruler,
   Grid3x3,
   LayoutGrid,
   RotateCcw,
+  X,
 } from 'lucide-react';
 
 
-import { cn } from '@/lib/utils';
+import { cn, generateId } from '@/lib/utils';
+import { sectionConfig } from '@/lib/templates';
 import toast from 'react-hot-toast';
 import { AIWebsiteChat } from '@/components/builder/AIWebsiteChat';
 import { WelcomeScreen } from '@/components/builder/WelcomeScreen';
@@ -61,19 +61,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 
 export default function BuilderPage() {
-  const { status } = useSession();
-  // Allow guest access for local testing. Read the hostname after mount so the
-  // server render and the first client render match (avoids a hydration mismatch).
-  const isLocal = useSyncExternalStore(
-    () => () => undefined,
-    () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
-    () => false,
-  );
-  if (status === 'authenticated' || isLocal) return <AuthenticatedBuilder />;
-  if (status === 'loading') return <div className="min-h-screen" style={{ background: '#E8EAED' }}>
-    <p role="status" className="p-8 text-center" style={{ color: '#4A515C' }}>Checking sign-in…</p>
-  </div>;
-  return <SignInScreen />;
+  // Everyone, signed in or not, starts on the welcome screen. Signing in is
+  // requested when saving (see handleSave), and saved websites appear once signed in.
+  return <AuthenticatedBuilder />;
 }
 
 function AuthenticatedBuilder() {
@@ -140,26 +130,33 @@ function AuthenticatedBuilder() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [showThemePanel, setShowThemePanel] = useState(false);
-  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const moreButtonRef = React.useRef<HTMLButtonElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAIChat, setShowAIChat] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
+  // Every visit starts on the welcome screen. A site that already has sections
+  // can be resumed from it with "Continue editing".
+  const [showWelcome, setShowWelcome] = useState(true);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Show welcome screen only after client mount to avoid hydration mismatch
-  React.useEffect(() => {
-    if (portfolio.sections.length === 0) {
-      setShowWelcome(true);
-    }
-  }, [portfolio.sections.length]);
   const saveInFlightRef = React.useRef(false);
   const lastSyncedCategoryIdRef = React.useRef<string>('');
   const wasPreviewModeRef = React.useRef(previewMode);
+
+  // Editing is for desktop screens only: small screens and Mobile view get a notice instead.
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsNarrowScreen(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  // Preview only views the site, so it stays available on any screen.
+  const editingBlocked = !previewMode && (isNarrowScreen || viewMode === 'mobile');
 
   // Resizable editor panel
   const [editorWidth, setEditorWidth] = useState(320);
@@ -405,13 +402,82 @@ function AuthenticatedBuilder() {
     setShowExportMenu(false);
   };
 
+  // The array each section type renders from. A missing or non-array value here crashes
+  // the page on render, so a missing one is filled with [] and a wrong type is refused.
+  const REQUIRED_ARRAYS: Record<string, string[]> = {
+    projects: ['projects'],
+    skills: ['skills'],
+    experience: ['experiences'],
+    education: ['educations'],
+    testimonials: ['testimonials'],
+    services: ['services'],
+    process: ['steps'],
+    stats: ['stats'],
+    awards: ['awards'],
+    press: ['items'],
+    certifications: ['certifications'],
+    blog: ['posts'],
+    faq: ['items'],
+    social: ['links'],
+  };
+
+  const normalizeImportedSections = (list: unknown): Record<string, any>[] | null => {
+    if (!Array.isArray(list)) return null;
+    const out: Record<string, any>[] = [];
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+      const section: Record<string, any> = { ...(raw as Record<string, any>) };
+      if (typeof section.type !== 'string' || !(section.type in sectionConfig)) return null;
+      if (typeof section.id !== 'string' || !section.id) section.id = generateId();
+      for (const field of REQUIRED_ARRAYS[section.type] ?? []) {
+        if (section[field] === undefined || section[field] === null) section[field] = [];
+        else if (!Array.isArray(section[field])) return null;
+      }
+      out.push(section);
+    }
+    return out;
+  };
+
+  // Returns a portfolio the editor can render, or null if the file cannot be used.
+  // Missing config blocks fall back to the current site's settings.
+  const normalizeImportedPortfolio = (value: unknown): PortfolioData | null => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const src = value as Record<string, any>;
+    const sections = normalizeImportedSections(src.sections);
+    if (!sections) return null;
+    let pages: unknown = src.pages;
+    if (pages !== undefined) {
+      if (!Array.isArray(pages)) return null;
+      const normalizedPages = pages.map((page: any) => {
+        const pageSections = normalizeImportedSections(page?.sections);
+        return pageSections ? { ...page, sections: pageSections } : null;
+      });
+      if (normalizedPages.some(page => page === null)) return null;
+      pages = normalizedPages;
+    }
+    return {
+      ...src,
+      id: typeof src.id === 'string' && src.id ? src.id : portfolio.id,
+      name: typeof src.name === 'string' ? src.name : portfolio.name,
+      metadata: src.metadata ?? portfolio.metadata,
+      theme: src.theme ?? portfolio.theme,
+      navbar: src.navbar ?? portfolio.navbar,
+      availability: src.availability ?? portfolio.availability,
+      darkMode: src.darkMode ?? portfolio.darkMode,
+      layoutMode: src.layoutMode ?? portfolio.layoutMode,
+      sections,
+      ...(pages !== undefined ? { pages } : {}),
+    } as PortfolioData;
+  };
+
   const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const data = JSON.parse(e.target?.result as string);
+          const data = normalizeImportedPortfolio(JSON.parse(e.target?.result as string));
+          if (!data) throw new Error('Not a portfolio export');
           setPortfolio(data);
           toast.success('Portfolio imported successfully', { icon: '✅' });
         } catch (error) {
@@ -468,8 +534,20 @@ function AuthenticatedBuilder() {
   const savedToCurrentAccount = Boolean(session?.user?.email
     && cloudPortfolio?.ownerEmail === session.user.email);
 
+  if (editingBlocked) {
+    return (
+      <EditOnDesktopNotice
+        canSwitchToDesktop={!isNarrowScreen}
+        onSwitchToDesktop={() => setViewMode('desktop')}
+        onPreview={() => togglePreviewMode()}
+      />
+    );
+  }
+
   // Show welcome screen first
   if (showWelcome) {
+    // "Continue editing" is offered only for work worth resuming. A new visitor's
+    // default site is a single empty hero.
     return (
       <WelcomeScreen
         onOpenSaved={() => {
@@ -482,13 +560,17 @@ function AuthenticatedBuilder() {
           setShowAIChat(true);
         }}
         onChooseManual={() => {
+          if (isDirty && !window.confirm('Start a new blank site? Unsaved changes in the current site will be replaced. Save them first if you want to keep them.')) return;
           createBlankFlexibleSite();
+          setActiveSectionId('');
+          lastSyncedCategoryIdRef.current = '';
           setShowWelcome(false);
         }}
         onChooseTemplate={() => {
           setShowWelcome(false);
           setShowTemplateGallery(true);
         }}
+        onContinue={isDirty || cloudPortfolio || portfolio.sections.length > 1 ? () => setShowWelcome(false) : undefined}
       />
     );
   }
@@ -563,33 +645,37 @@ function AuthenticatedBuilder() {
           <h1 className="text-2xl leading-none" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Portfolio Builder</h1>
           <button
             onClick={() => setShowAIChat(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-            style={{ background: '#2446D6' }}
+            className="flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium hover:bg-blue-50 transition-colors"
+            style={{ borderColor: '#2446D6', color: '#2446D6', background: '#ffffff' }}
           >
             <Wand2 className="w-4 h-4" />
             <span className="hidden md:inline">AI Website Builder</span>
             <span className="md:hidden">AI</span>
           </button>
           {isDirty && (
-            <span className="text-xs text-orange-500 flex items-center gap-1">
-              <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <span className="w-2 h-2 bg-gray-400 rounded-full" />
               Unsaved changes
             </span>
           )}
           {!isDirty && (
-            <span className="text-xs text-green-500 flex items-center gap-1">
+            <span className="text-xs text-gray-500 flex items-center gap-1">
               <span className="w-2 h-2 bg-green-500 rounded-full" />
               Saved
             </span>
           )}
+          {/* Account and site management sit apart from the editing tools */}
+          <div className="flex items-center gap-2 border-l border-[#B9BFC8] pl-4">
+            <AccountControls />
+            <SavedWebsites disabled={isSaving} onOpened={() => {
+              setActiveSectionId('');
+              lastSyncedCategoryIdRef.current = '';
+            }} />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <AccountControls />
-          <SavedWebsites disabled={isSaving} onOpened={() => {
-            setActiveSectionId('');
-            lastSyncedCategoryIdRef.current = '';
-          }} />
+        {/* Editing tools: their own full-width row below the title on narrower screens, one row on wide screens */}
+        <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:flex-nowrap">
           {/* Undo/Redo */}
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
             <button
@@ -648,17 +734,17 @@ function AuthenticatedBuilder() {
               )}
               title="Tablet view"
             >
-              <Tablet className="w-4 h-4" />
+              <TabletViewIcon className="w-5 h-4" />
             </button>
             <button
               onClick={() => setViewMode('mobile')}
               className={cn(
                 'p-2 rounded-lg transition-all duration-200',
-                viewMode === 'mobile' ? 'bg-gray-100' : 'hover:bg-gray-50'
+                'hover:bg-gray-50'
               )}
               title="Mobile view"
             >
-              <Smartphone className="w-4 h-4" />
+              <PhoneViewIcon className="w-4 h-4" />
             </button>
           </div>
 
@@ -673,6 +759,7 @@ function AuthenticatedBuilder() {
               title="Toggle Rulers"
             >
               <Ruler className="w-4 h-4" />
+              <span className="hidden lg:inline text-xs ml-1.5">Rulers</span>
             </button>
             <button
               onClick={toggleGuides}
@@ -683,6 +770,7 @@ function AuthenticatedBuilder() {
               title="Toggle Guides (click rulers to add, right-click to remove)"
             >
               <Grid3x3 className="w-4 h-4" />
+              <span className="hidden lg:inline text-xs ml-1.5">Guides</span>
             </button>
             <button
               onClick={toggleGrid}
@@ -693,6 +781,7 @@ function AuthenticatedBuilder() {
               title="Toggle Grid"
             >
               <LayoutGrid className="w-4 h-4" />
+              <span className="hidden lg:inline text-xs ml-1.5">Grid</span>
             </button>
             {showGrid && (
               <label className="p-1 rounded-lg hover:bg-gray-50 flex items-center cursor-pointer" title="Grid color">
@@ -713,24 +802,19 @@ function AuthenticatedBuilder() {
             </button>
           </div>
 
-          {/* Save Button */}
+          {/* Secondary actions: Save and Preview */}
           <Button
-            variant={isDirty || !savedToCurrentAccount ? 'default' : 'outline'}
+            variant="outline"
             onClick={() => void handleSave()}
             disabled={isSaving || status === 'loading' || (!isDirty && savedToCurrentAccount)}
-            className="flex items-center gap-2 hover:opacity-90"
-            style={{ background: '#2446D6' }}
+            className="flex items-center gap-2"
             title="Save (Ctrl+S)"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isSaving ? 'Saving…' : 'Save'}
           </Button>
-
-          {/* Preview Toggle */}
-          <PublishWebsite reference={cloudPortfolio} ownerEmail={session?.user?.email}
-            busy={isSaving || status === 'loading'} onPublish={subdomain => handleSave(true, subdomain)} />
           <Button
-            variant={previewMode ? 'default' : 'outline'}
+            variant="ghost"
             onClick={togglePreviewMode}
             className="flex items-center gap-2"
           >
@@ -738,20 +822,33 @@ function AuthenticatedBuilder() {
             {previewMode ? 'Edit' : 'Preview'}
           </Button>
 
-          {/* Export Dropdown */}
+          {/* Primary action: the only solid-colour button in the toolbar */}
+          <PublishWebsite reference={cloudPortfolio} ownerEmail={session?.user?.email}
+            busy={isSaving || status === 'loading'} onPublish={subdomain => handleSave(true, subdomain)} />
+
+          {/* Export and import share one menu */}
           <div className="relative">
             <Button
-              className="flex items-center gap-2 hover:opacity-90"
-              style={{ background: '#2446D6' }}
+              ref={moreButtonRef}
+              variant="ghost"
               onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-2"
+              aria-expanded={showExportMenu}
             >
-              <Download className="w-4 h-4" />
-              Export
+              <MoreHorizontal className="w-4 h-4" />
+              More
             </Button>
-            {showExportMenu && (
+            {/* Rendered in a portal: the toolbar scrolls horizontally below xl and the header's blur creates its own containing block, either of which would clip or misplace a dropdown. */}
+            {showExportMenu && moreButtonRef.current && createPortal(
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-200 z-20 overflow-hidden">
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div
+                  className="fixed w-56 bg-white rounded-2xl shadow-lg border border-gray-200 z-50 overflow-hidden"
+                  style={{
+                    top: moreButtonRef.current.getBoundingClientRect().bottom + 4,
+                    right: window.innerWidth - moreButtonRef.current.getBoundingClientRect().right,
+                  }}
+                >
                   <button
                     onClick={handleExportHTML}
                     className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors"
@@ -764,22 +861,21 @@ function AuthenticatedBuilder() {
                   >
                     📄 Export as JSON
                   </button>
+                  <label className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors">
+                    <Upload className="w-4 h-4" />
+                    Import from JSON
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportJSON}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
-
-          {/* Import */}
-          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:bg-gray-50 transition-colors">
-            <Upload className="w-4 h-4" />
-            Import
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportJSON}
-              className="hidden"
-            />
-          </label>
         </div>
       </motion.header>
 
@@ -807,16 +903,25 @@ function AuthenticatedBuilder() {
             <h3 className="text-sm font-semibold text-gray-900">Add a Category</h3>
             <button
               onClick={() => setShowAddSection(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors text-xl font-bold"
-              title="Close (press Escape)"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              title="Close"
             >
-              ✕
+              <X className="w-4 h-4" />
+              Close
             </button>
           </div>
           <AddSectionDialog onSectionAdded={(id) => {
             handleSelectSection(id);
             setShowAddSection(false);
           }} />
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setShowAddSection(false)}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -867,61 +972,8 @@ function AuthenticatedBuilder() {
                   </button>
                 </div>
 
-                {/* Theme Settings Toggle */}
-                <div className="p-3">
-                  <button
-                    onClick={() => setShowThemePanel(!showThemePanel)}
-                    className={cn(
-                      'w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-200',
-                      showThemePanel
-                        ? 'border-purple-400 bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-300 bg-gradient-to-r hover:from-purple-50 hover:to-blue-50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Palette className="w-5 h-5 text-purple-600" />
-                      <span className="text-sm font-semibold text-gray-900">Theme Settings</span>
-                    </div>
-                    <span className="text-gray-400 text-xs">
-                      {showThemePanel ? '▲' : '▼'}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Theme Panel */}
-                {showThemePanel && (
-                  <div className="px-3 pb-4">
-                    <ThemeSettings />
-                  </div>
-                )}
-
-                {/* Effects Settings Toggle */}
-                <div className="p-3">
-                  <button
-                    onClick={() => setShowEffectsPanel(!showEffectsPanel)}
-                    className={cn(
-                      'w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-200',
-                      showEffectsPanel
-                        ? 'border-pink-400 bg-pink-50'
-                        : 'border-gray-200 hover:border-pink-300 bg-gradient-to-r hover:from-pink-50 hover:to-purple-50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-pink-600" />
-                      <span className="text-sm font-semibold text-gray-900">Interactive Effects</span>
-                    </div>
-                    <span className="text-gray-400 text-xs">
-                      {showEffectsPanel ? '▲' : '▼'}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Effects Panel */}
-                {showEffectsPanel && (
-                  <div className="px-3 pb-4">
-                    <EffectsPanel />
-                  </div>
-                )}
+                {/* Interactive effects, snap guides and background settings, grouped */}
+                <EditorSettingsGroup />
 
                 {/* Divider */}
                 <div className="border-t" />
@@ -985,6 +1037,12 @@ function AuthenticatedBuilder() {
                     <PortfolioSkeleton />
                   </div>
                 ) : activeSectionId ? (
+                  <>
+                    {portfolio.sections.length === 1 && (
+                      <p className="mb-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-900">
+                        Click a section in the sidebar to edit it, or use Add Category to build the rest of your page.
+                      </p>
+                    )}
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={viewMode}
@@ -1001,6 +1059,7 @@ function AuthenticatedBuilder() {
                       />
                     </motion.div>
                   </AnimatePresence>
+                  </>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500">
                     Add a category to see the preview

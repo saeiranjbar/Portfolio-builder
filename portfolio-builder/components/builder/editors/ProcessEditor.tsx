@@ -18,7 +18,7 @@ interface ProcessEditorProps {
 export function ProcessEditor({ section, onUpdate }: ProcessEditorProps) {
   const addStep = () => {
     const newStep: ProcessStep = { id: generateId(), number: section.steps.length + 1, title: '', description: '' };
-    onUpdate({ steps: [...section.steps, newStep] });
+    onUpdate({ steps: [newStep, ...section.steps] });
   };
   const updateStep = (id: string, updates: Partial<ProcessStep>) => {
     onUpdate({ steps: section.steps.map((s) => (s.id === id ? { ...s, ...updates } : s)) });

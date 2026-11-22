@@ -32,7 +32,7 @@ export function ContactEditor({ section, onUpdate }: ContactEditorProps) {
       platform: 'linkedin',
       url: '',
     };
-    onUpdate({ socialLinks: [...(section.socialLinks || []), newLink] });
+    onUpdate({ socialLinks: [newLink, ...(section.socialLinks || [])] });
   };
 
   const updateSocialLink = (id: string, updates: Partial<SocialLink>) => {

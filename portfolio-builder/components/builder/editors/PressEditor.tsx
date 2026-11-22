@@ -17,7 +17,7 @@ interface PressEditorProps {
 export function PressEditor({ section, onUpdate }: PressEditorProps) {
   const addItem = () => {
     const newItem: PressItem = { id: generateId(), name: '', logo: '' };
-    onUpdate({ items: [...section.items, newItem] });
+    onUpdate({ items: [newItem, ...section.items] });
   };
   const updateItem = (id: string, updates: Partial<PressItem>) => {
     onUpdate({ items: section.items.map((i) => (i.id === id ? { ...i, ...updates } : i)) });
@@ -50,7 +50,7 @@ export function PressEditor({ section, onUpdate }: PressEditorProps) {
       {/* Press Items */}
       <CollapsibleSection title="Press Items" icon={Newspaper} defaultOpen>
         <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold">Press Items ({section.items.length})</Label>
+          <Label className="text-base font-semibold">Logos ({section.items.length})</Label>
           <Button size="sm" onClick={addItem}><Plus className="w-4 h-4 mr-1" /> Add</Button>
         </div>
         {section.items.map((item) => (

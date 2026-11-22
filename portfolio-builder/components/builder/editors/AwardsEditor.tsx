@@ -18,7 +18,7 @@ interface AwardsEditorProps {
 export function AwardsEditor({ section, onUpdate }: AwardsEditorProps) {
   const addAward = () => {
     const newAward: Award = { id: generateId(), title: '', organization: '', year: '' };
-    onUpdate({ awards: [...section.awards, newAward] });
+    onUpdate({ awards: [newAward, ...section.awards] });
   };
   const updateAward = (id: string, updates: Partial<Award>) => {
     onUpdate({ awards: section.awards.map((a) => (a.id === id ? { ...a, ...updates } : a)) });

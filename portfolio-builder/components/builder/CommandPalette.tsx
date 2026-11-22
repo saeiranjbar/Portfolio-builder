@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePortfolioStore } from '@/lib/store';
 import { sectionConfig } from '@/lib/templates';
+import { PhoneViewIcon, TabletViewIcon } from '@/components/builder/ViewIcons';
 import { SectionType } from '@/lib/types';
 import { downloadHTML, downloadJSON } from '@/lib/export';
 import {
@@ -14,8 +15,6 @@ import {
   Redo2,
   Download,
   Monitor,
-  Tablet,
-  Smartphone,
   Palette,
   Layers,
   ArrowUp,
@@ -98,7 +97,7 @@ export function CommandPalette({ isOpen, onClose, onSelectSection, onOpenAddSect
     cmds.push({
       id: 'view-tablet',
       label: 'Set view to Tablet',
-      icon: Tablet,
+      icon: TabletViewIcon,
       action: () => {
         setViewMode('tablet');
         onClose();
@@ -109,7 +108,7 @@ export function CommandPalette({ isOpen, onClose, onSelectSection, onOpenAddSect
     cmds.push({
       id: 'view-mobile',
       label: 'Set view to Mobile',
-      icon: Smartphone,
+      icon: PhoneViewIcon,
       action: () => {
         setViewMode('mobile');
         onClose();

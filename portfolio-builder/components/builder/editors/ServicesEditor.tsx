@@ -18,7 +18,7 @@ interface ServicesEditorProps {
 export function ServicesEditor({ section, onUpdate }: ServicesEditorProps) {
   const addService = () => {
     const newService: Service = { id: generateId(), title: '', description: '', icon: 'Star' };
-    onUpdate({ services: [...section.services, newService] });
+    onUpdate({ services: [newService, ...section.services] });
   };
   const updateService = (id: string, updates: Partial<Service>) => {
     onUpdate({ services: section.services.map((s) => (s.id === id ? { ...s, ...updates } : s)) });

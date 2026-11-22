@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { CollapsibleSection } from '../CollapsibleSection';
+import { CommaListInput } from '../CommaListInput';
 import { ImageUploader } from '../ImageUploader';
 import { Plus, Trash2, FileText, Settings } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export function BlogEditor({ section, onUpdate }: BlogEditorProps) {
       date: new Date().toISOString().split('T')[0],
       tags: [],
     };
-    onUpdate({ posts: [...section.posts, newPost] });
+    onUpdate({ posts: [newPost, ...section.posts] });
   };
 
   const updatePost = (id: string, updates: Partial<BlogPost>) => {
@@ -140,9 +141,9 @@ export function BlogEditor({ section, onUpdate }: BlogEditorProps) {
           </div>
           <div>
             <Label>Tags (comma-separated)</Label>
-            <Input
-              value={(post.tags || []).join(', ')}
-              onChange={(e) => updatePost(post.id, { tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+            <CommaListInput
+              values={post.tags || []}
+              onChange={(tags) => updatePost(post.id, { tags })}
               placeholder="Design, UX, Tutorial"
             />
           </div>

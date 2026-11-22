@@ -151,6 +151,7 @@ interface PortfolioState {
 
   // Actions
   setPortfolio: (portfolio: PortfolioData) => void;
+  setNewPortfolio: (portfolio: PortfolioData) => void;
   updateSection: (sectionId: string, updates: Partial<PortfolioSection>) => void;
   addSection: (type: SectionType) => void;
   removeSection: (sectionId: string) => void;
@@ -229,6 +230,24 @@ const defaultDarkMode: DarkModeConfig = {
   active: false,
 };
 
+// Every element "Show" flag the section editors read. The editors treat a missing
+// flag as on, so new categories set each one explicitly to off.
+const ELEMENT_SHOW_FLAGS = [
+  'showName', 'showTitle', 'showSubtitle', 'showTagline', 'showBio', 'showAvatar', 'showImage',
+  'showPersonalQuote', 'showQuickFacts', 'showToolTags', 'showLocation', 'showLanguages',
+  'showGallery', 'showVideo', 'showCTA', 'showResume', 'showEmail', 'showPhone', 'showCalendly',
+  'showSocialLinks', 'showButton', 'showForm', 'showCategories',
+] as const;
+// The one element a new section keeps on: Name for the hero, Section title for every other category.
+const mainElementFlag = (type: SectionType): (typeof ELEMENT_SHOW_FLAGS)[number] => (type === 'hero' ? 'showName' : 'showTitle');
+
+// Switches every element "Show" flag off except the section's main element.
+const withOnlyMainElement = (section: PortfolioSection): PortfolioSection => {
+  const main = mainElementFlag(section.type);
+  const flags = Object.fromEntries(ELEMENT_SHOW_FLAGS.map((key) => [key, key === main])) as Partial<PortfolioSection>;
+  return { ...section, ...flags } as PortfolioSection;
+};
+
 export const createDefaultSection = (type: SectionType): PortfolioSection => {
   const id = generateId();
 
@@ -243,8 +262,9 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         subtitle: 'Creative Professional',
         bio: 'Write a brief introduction about yourself...',
         avatar: '',
-        backgroundType: 'gradient',
-        backgroundValue: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        // Neutral by default: the theme's own background, so the accent colours contrast with the page.
+        backgroundType: 'color',
+        backgroundValue: defaultTheme.colors.background,
         backgroundOverlayOpacity: 0,
         avatarPosition: { x: 50, y: 8 },
         namePosition: { x: 50, y: 18 },
@@ -321,7 +341,7 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         type: 'skills',
         title: 'Skills & Expertise',
         skills: [],
-        displayStyle: 'bars',
+        displayStyle: 'circles',
         freeFormEnabled: true,
       };
     case 'experience':
@@ -372,7 +392,7 @@ export const createDefaultSection = (type: SectionType): PortfolioSection => {
         id,
         visible: true,
         type: 'footer',
-        copyrightText: '© {year} Your Name. All rights reserved.',
+        copyrightText: '© {year} All rights reserved.',
         showQuickLinks: true,
         showSocialIcons: true,
         showContactInfo: true,
@@ -579,6 +599,22 @@ const editorPortfolioStore = create<PortfolioState>()(
           isDirty: true,
         })),
 
+      setNewPortfolio: (portfolio) =>
+        set((state) => ({
+          past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
+          portfolio,
+          pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections: portfolio.sections }],
+          currentPageId: 'home',
+          cloudPortfolio: null,
+          draftVersion: state.draftVersion + 1,
+          selectedSectionId: null,
+          selectedElementId: null,
+          selectedElementSectionId: null,
+          previewMode: false,
+          future: [],
+          isDirty: true,
+        })),
+
       updateSection: (sectionId, updates) =>
         set((state) => {
           const newPortfolio: PortfolioData = {
@@ -601,11 +637,18 @@ const editorPortfolioStore = create<PortfolioState>()(
       addSection: (type) =>
         set((state) => {
           // Categories share the landing page canvas; they do not receive a copied background.
-          const newSection = { ...createDefaultSection(type), freeFormEnabled: true, snapEnabled: true } as PortfolioSection;
+          // A new section starts with only its main element on; the user turns on what they need.
+          const newSection = { ...withOnlyMainElement(createDefaultSection(type)), freeFormEnabled: true, snapEnabled: true } as PortfolioSection;
+          // F9: the footer always stays last, so categories are inserted above it.
+          const sections = state.portfolio.sections;
+          const footerIndex = type === 'footer' ? -1 : sections.findIndex((s) => s.type === 'footer');
+          const nextSections = footerIndex >= 0
+            ? [...sections.slice(0, footerIndex), newSection, ...sections.slice(footerIndex)]
+            : [...sections, newSection];
           const newPortfolio: PortfolioData = {
             ...state.portfolio,
             updatedAt: new Date().toISOString(),
-            sections: [...state.portfolio.sections, newSection],
+            sections: nextSections,
           };
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
@@ -890,7 +933,7 @@ const editorPortfolioStore = create<PortfolioState>()(
             id: generateId(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            sections: [createDefaultSection('hero')],
+            sections: [withOnlyMainElement(createDefaultSection('hero'))],
           };
           return {
             past: [...state.past, clonePortfolio(state.portfolio)].slice(-MAX_HISTORY),
@@ -909,7 +952,8 @@ const editorPortfolioStore = create<PortfolioState>()(
 
       createBlankFlexibleSite: () =>
         set((state) => {
-          const sections = [createDefaultSection('hero')];
+          // A blank site starts with a hero section, so there is always a first section to edit.
+          const sections: PortfolioSection[] = [withOnlyMainElement(createDefaultSection('hero'))];
           const fresh: PortfolioData = {
             ...defaultPortfolio,
             id: generateId(),
@@ -925,7 +969,7 @@ const editorPortfolioStore = create<PortfolioState>()(
             draftVersion: state.draftVersion + 1,
             pages: [{ id: 'home', slug: '', title: 'Home', themeMode: 'inherit', sections }],
             currentPageId: 'home',
-            selectedSectionId: sections[0].id,
+            selectedSectionId: null,
             selectedElementId: null,
             selectedElementSectionId: null,
             future: [],
@@ -1039,7 +1083,7 @@ const editorPortfolioStore = create<PortfolioState>()(
             title,
             themeMode,
             themeOverride: themeMode === 'custom' ? (options?.themeOverride ?? state.portfolio.theme) : undefined,
-            sections: [createDefaultSection(options?.sectionType ?? 'hero')],
+            sections: [withOnlyMainElement(createDefaultSection(options?.sectionType ?? 'hero'))],
           };
           // Persist the outgoing page's live sections, then switch to the new page.
           const pages = state.pages.map((p) =>

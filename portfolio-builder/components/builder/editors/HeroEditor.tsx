@@ -11,8 +11,9 @@ import { ImageUploader } from '../ImageUploader';
 import { GalleryUploader } from '../GalleryUploader';
 import { VideoUploader } from '../VideoUploader';
 import { CollapsibleSection } from '../CollapsibleSection';
+import { CommaListInput } from '../CommaListInput';
 import { AnchorLinkInput } from '../AnchorLinkInput';
-import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images, Type, MousePointerClick, Plus, Trash2, Video as VideoIcon } from 'lucide-react';
+import { Move, User, Briefcase, FileText, AlignLeft, Image as ImageIcon, Images, MousePointerClick, Plus, Trash2, Video as VideoIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { HeroPdfEditor } from './HeroPdfEditor';
@@ -27,9 +28,12 @@ interface HeroEditorProps {
   onUpdate: (updates: Partial<HeroSection>) => void;
 }
 
+
 export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
   const { portfolio } = usePortfolioStore();
   const isSimpleMode = portfolio.layoutMode === 'simple';
+  const isTyping = (section.typingWords || []).length > 0;
+  const isSubtitleTyping = (section.subtitleTypingWords || []).length > 0;
 
   return (
     <div className="space-y-4">
@@ -60,42 +64,52 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         toggleChecked={section.showTitle}
         onToggleChange={(checked) => onUpdate({ showTitle: checked })}
       >
-        <Input
-          value={section.title}
-          onChange={(e) => onUpdate({ title: e.target.value })}
-          placeholder="Graphic Designer"
-        />
-        {section.showTitle && !isSimpleMode && (
-          <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
-        )}
-      </CollapsibleSection>
-
-      {/* Typing Animation */}
-      <CollapsibleSection
-        title="Typing Animation (Title Rotation)"
-        icon={Type}
-        description="Add rotating words that type and delete in the title position (e.g., Designer / Developer / Creator)"
-      >
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">
-            Enter words separated by commas. When set, these will animate in the title position instead of the static title.
-          </p>
-          <Input
-            value={(section.typingWords || []).join(', ')}
-            onChange={(e) => {
-              const words = e.target.value.split(',').map(w => w.trim()).filter(Boolean);
-              onUpdate({ typingWords: words });
-            }}
-            placeholder="Designer, Developer, Creator"
-          />
-          {(section.typingWords || []).length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onUpdate({ typingWords: [] })}
-            >
-              Clear typing animation
-            </Button>
+          <div className="space-y-2">
+            <Label className="text-xs text-gray-600">Title style</Label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`title-style-${section.id}`}
+                className="mt-1"
+                checked={!isTyping}
+                onChange={() => onUpdate({ typingWords: [] })}
+              />
+              <span className="text-sm text-gray-700">Static title</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`title-style-${section.id}`}
+                className="mt-1"
+                checked={isTyping}
+                onChange={() => onUpdate({ typingWords: [(section.title || '').trim() || 'Designer'] })}
+              />
+              <span className="text-sm text-gray-700">Typing animation</span>
+            </label>
+          </div>
+
+          {isTyping ? (
+            <div className="space-y-2">
+              <CommaListInput
+                values={section.typingWords || []}
+                onChange={(words) => onUpdate({ typingWords: words })}
+                placeholder="Designer, Developer, Creator"
+              />
+              <p className="text-xs text-gray-500">
+                Enter words separated by commas. They type and delete in the title position. Remove every word to go back to the static title.
+              </p>
+            </div>
+          ) : (
+            <Input
+              value={section.title}
+              onChange={(e) => onUpdate({ title: e.target.value })}
+              placeholder="Graphic Designer"
+            />
+          )}
+
+          {section.showTitle && !isSimpleMode && (
+            <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
           )}
         </div>
       </CollapsibleSection>
@@ -108,14 +122,54 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
         toggleChecked={section.showSubtitle}
         onToggleChange={(checked) => onUpdate({ showSubtitle: checked })}
       >
-        <Input
-          value={section.subtitle}
-          onChange={(e) => onUpdate({ subtitle: e.target.value })}
-          placeholder="Creating Visual Stories"
-        />
-        {section.showSubtitle && !isSimpleMode && (
-          <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
-        )}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label className="text-xs text-gray-600">Display style</Label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`subtitle-style-${section.id}`}
+                className="mt-1"
+                checked={!isSubtitleTyping}
+                onChange={() => onUpdate({ subtitleTypingWords: [] })}
+              />
+              <span className="text-sm text-gray-700">Static subtitle</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`subtitle-style-${section.id}`}
+                className="mt-1"
+                checked={isSubtitleTyping}
+                onChange={() => onUpdate({ subtitleTypingWords: [(section.subtitle || '').trim() || 'Creating Visual Stories'] })}
+              />
+              <span className="text-sm text-gray-700">Typing animation</span>
+            </label>
+          </div>
+
+          {isSubtitleTyping ? (
+            <div className="space-y-2">
+              <CommaListInput
+                values={section.subtitleTypingWords || []}
+                onChange={(words) => onUpdate({ subtitleTypingWords: words })}
+                placeholder="Creating Visual Stories, Designing Brands"
+              />
+              <p className="text-xs text-gray-500">
+                Enter words separated by commas. They type and delete in the subtitle position. Remove every word to go back to the static subtitle.
+              </p>
+            </div>
+          ) : (
+            <Input
+              value={section.subtitle}
+              onChange={(e) => onUpdate({ subtitle: e.target.value })}
+              placeholder="Creating Visual Stories"
+            />
+          )}
+
+          {section.showSubtitle && !isSimpleMode && (
+            <p className="text-xs text-gray-500 italic">Drag in preview to reposition</p>
+          )}
+        </div>
       </CollapsibleSection>
 
       {/* Bio */}
@@ -231,7 +285,7 @@ export function HeroEditor({ section, onUpdate }: HeroEditorProps) {
                 link: '#',
                 variant: 'primary' as const,
               };
-              onUpdate({ ctaButtons: [...(section.ctaButtons || []), newBtn] });
+              onUpdate({ ctaButtons: [newBtn, ...(section.ctaButtons || [])] });
             }}
           >
             <Plus className="w-3.5 h-3.5" /> Add CTA Button

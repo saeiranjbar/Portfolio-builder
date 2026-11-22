@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test scripts/portfolio-api.test.mjs scripts/cloud-save.test.mjs scripts/login-errors.test.mjs scripts/account-security.test.mjs scripts/publishing.test.mjs scripts/page-background.test.mjs scripts/page-grid-rows.test.mjs scripts/gallery-order.test.mjs",
+    "test": "node --test scripts/portfolio-api.test.mjs scripts/cloud-save.test.mjs scripts/login-errors.test.mjs scripts/account-security.test.mjs scripts/upload-security.test.mjs scripts/publishing.test.mjs scripts/page-background.test.mjs scripts/page-grid-rows.test.mjs scripts/gallery-order.test.mjs scripts/mobile-page-layout.test.mjs",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "lucide-react": "^0.468.0",
     "next": "16.2.2",
     "next-auth": "^4.24.0",
+    "pdfjs-dist": "^6.5.438",
     "prisma": "5.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

@@ -372,6 +372,9 @@ export interface HeroSection {
   // ('single', the classic behaviour) or a sequence of full-page scenes that
   // cross-fade into each other ('sequence', like a video reel).
   backgroundMode?: 'single' | 'sequence';
+  // Where a single background is painted: across the whole landing page ('page', the default)
+  // or only behind the hero section ('section').
+  backgroundScope?: 'page' | 'section';
   backgroundScenes?: PageBackgroundScene[]; // used when backgroundMode === 'sequence'
   backgroundAdvance?: 'scroll' | 'timer'; // what moves the sequence forward
   backgroundInterval?: number; // seconds per scene when backgroundAdvance === 'timer'
@@ -419,6 +422,7 @@ export interface HeroSection {
   galleryVideoGridCols?: number; // 1-3 columns for video grid
   // Typing/rotating text animation for title (e.g., ["Designer", "Developer", "Creator"])
   typingWords?: string[];
+  subtitleTypingWords?: string[];
   // Enable parallax effect on hero background
   parallaxEnabled?: boolean;
   // Background shapes (free-form decorative shapes behind text)
@@ -531,6 +535,10 @@ export interface ProjectsSection {
   projects: Project[];
   layout: 'grid' | 'carousel' | 'list';
   columnCount: 1 | 2;
+  // Mosaic grid: three columns where every fourth project spans two columns.
+  mosaic?: boolean;
+  // Full-width grid: keeps single-column tiles at a wide reading size instead of hugging their content.
+  fullWidth?: boolean;
 
   aspectRatio: '1:1' | '4:3' | '16:9' | 'original';
   textStyles?: TextStyles;
@@ -980,6 +988,8 @@ export interface Theme {
   typography: ThemeTypography;
   borderRadius: number;
   spacing: number;
+  // Call-to-action button shape. Unset means rounded, using borderRadius.
+  buttonStyle?: 'rounded' | 'square' | 'underline';
 }
 
 // Navbar Configuration
@@ -993,6 +1003,8 @@ export interface NavbarConfig {
   sticky: boolean;
   transparentOnTop: boolean; // Transparent over hero, solid on scroll
   style: 'solid' | 'transparent';
+  // Navbar look. Unset means no navbar is shown (existing sites keep their layout).
+  variant?: 'bar' | 'floating' | 'minimal';
 }
 
 // Availability Status
@@ -1102,4 +1114,10 @@ export interface Template {
   preview: string;
   theme: Theme;
   defaultSections: PortfolioSection[];
+  // Optional per-template navigation and motion. Unset fields keep the builder defaults.
+  navbar?: Partial<NavbarConfig>;
+  effects?: PortfolioEffects;
+  // Optional structural layout: 'simple' draws a left sidebar with the profile block.
+  layoutMode?: LayoutMode;
+  simpleLayout?: Partial<SimpleLayoutConfig>;
 }

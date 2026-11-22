@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface MagneticButtonProps {
@@ -12,11 +12,12 @@ interface MagneticButtonProps {
 }
 
 export function MagneticButton({ children, onClick, className, strength = 0.3 }: MagneticButtonProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const reduceMotion = useReducedMotion();
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
+    if (!ref.current || reduceMotion) return;
     const rect = ref.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
@@ -28,16 +29,17 @@ export function MagneticButton({ children, onClick, className, strength = 0.3 }:
   };
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       animate={{ x: offset.x, y: offset.y }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={cn('inline-block cursor-pointer', className)}
+      className={cn('inline-block cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white', className)}
     >
       {children}
-    </motion.div>
+    </motion.button>
   );
 }

@@ -70,7 +70,7 @@ export function ElementInspector({ onClose }: ElementInspectorProps) {
       default: return <GenericElementInspector section={section} onUpdate={(u) => updateSection(section.id, u)} elementKey={selectedElementId} />;
     }
   };
-  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{(section as any).name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{getElementDefinition(section.type, selectedElementId)?.label || selectedElementId}</span></div>{renderInspector()}{styleBlock}</div>);
+  return (<div className="p-3 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold text-gray-900">Edit Element</h3>{onClose && <Button variant="outline" size="sm" onClick={onClose} aria-label="Close element editor" title="Close element editor" className="gap-1.5 border-gray-300 font-medium text-gray-700 hover:bg-gray-100"><X className="w-3.5 h-3.5" />Close</Button>}</div><div className="text-xs text-gray-500">Section: <span className="font-medium text-gray-700">{(section as any).name || section.type}</span><br/>Element: <span className="font-medium text-gray-700">{getElementDefinition(section.type, selectedElementId)?.label || selectedElementId}</span></div>{renderInspector()}{styleBlock}</div>);
 }
 
 interface HeroElementInspectorProps { section: HeroSection; onUpdate: (u: Partial<HeroSection>) => void; elementKey: string; }

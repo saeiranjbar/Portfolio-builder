@@ -29,7 +29,7 @@ export function EducationEditor({ section, onUpdate }: EducationEditorProps) {
       endDate: '',
       description: '',
     };
-    onUpdate({ educations: [...section.educations, newEdu] });
+    onUpdate({ educations: [newEdu, ...section.educations] });
   };
 
   const updateEducation = (id: string, updates: Partial<Education>) => {
